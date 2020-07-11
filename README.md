@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.org/codeplea/tinyexpr.svg?branch=master)](https://travis-ci.org/codeplea/tinyexpr)
+# TinyExprpp
 
+TinyExprpp is a C++ refactor of Tinyexpr, and the documentation will gradually be refactored along with the code.
 
-<img alt="TinyExpr logo" src="https://codeplea.com/public/content/tinyexpr_logo.png" align="right"/>
 
 # TinyExpr
 
