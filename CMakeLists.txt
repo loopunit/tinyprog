@@ -1,63 +1,73 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
-project(tinyexpr)
+project(tinyexprpp VERSION 0.0 LANGUAGES CXX C)
+
+include(FetchContent)
+
+set(VCPKG_DEVELOP_TRIPLET x64-windows-static-md)
+
+macro(vcpkg_setup_ez)
+	cmake_parse_arguments(
+		"_arg"
+		""
+		"REPO;TAG;DIR;UPDATE_DISCONNECTED"
+		""
+		${ARGN}
+	)
+
+	if(NOT _arg_TAG)
+		set(vcpkg_ez_SOURCE_DIR ${_arg_DIR})
+	else()
+		FetchContent_Declare(
+			vcpkg_ez
+			GIT_REPOSITORY		${_arg_REPO}
+			GIT_TAG				${_arg_TAG}
+			SOURCE_DIR			${_arg_DIR}
+			UPDATE_DISCONNECTED	${_arg_UPDATE_DISCONNECTED}
+		)
+
+		FetchContent_GetProperties(vcpkg_ez)
+
+		if(NOT vcpkg_ez_POPULATED)
+			FetchContent_Populate(vcpkg_ez)
+		endif()
+	endif()
+endmacro()
+
+if(NOT VCPKG_DEVELOP_ROOT_DIR)
+	set(VCPKG_DEVELOP_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR}/vcpkg_root)
+endif()
+
+if(VCPKG_DEVELOP_EZ_DIR)
+	vcpkg_setup_ez(DIR ${VCPKG_DEVELOP_EZ_DIR})
+else()
+	vcpkg_setup_ez(
+		REPO https://github.com/loopunit/vcpkg_ez.git
+		TAG 36eeadb76aaacf6be677cc678fbdfeaba3080c68
+		DIR ${VCPKG_DEVELOP_ROOT_DIR}/vcpkg_ez
+	)
+endif()
+
+include(${vcpkg_ez_SOURCE_DIR}/vcpkg_ez.cmake)
 
 option(TE_POW_FROM_RIGHT "Evaluate exponents from right to left." OFF)
 option(TE_NAT_LOG "Define the log function as natural logarithm." OFF)
-option(build_tinyexpr_test "Build TinyExpr tests." OFF)
-option(build_tinyexpr_test_pr "Build TinyExpr tests PR." OFF)
-option(build_tinyexpr_bench "Build TinyExpr benchmark." OFF)
-option(build_tinyexpr_example "Build TinyExpr example." OFF)
-option(build_tinyexpr_example2 "Build TinyExpr example 2." OFF)
-option(build_tinyexpr_example3 "Build TinyExpr example 3." OFF)
 
-find_library(MATH_LIB m)
+vcpkg_static_library(${PROJECT_NAME}
+	SOURCES
+		src/tinyexpr.c
+	HEADERS
+		include/tinyexpr.h
+	PUBLIC_INCLUDES
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ansi -Wall -Wshadow -fPIC -O3")
+target_compile_definitions(${PROJECT_NAME}
+	PUBLIC
+		$<IF:$<BOOL:${TE_POW_FROM_RIGHT}>,"TE_POW_FROM_RIGHT",>
+		$<IF:$<BOOL:${TE_NAT_LOG}>,"TE_NAT_LOG",>
+)
 
-set(SOURCE_FILES
-        tinyexpr.c
-        tinyexpr.h
-        )
-
-add_library(tinyexpr STATIC ${SOURCE_FILES})
-if (TE_POW_FROM_RIGHT)
-    target_compile_definitions(tinyexpr PRIVATE TE_POW_FROM_RIGHT)
-endif()
-if (TE_NAT_LOG)
-    target_compile_definitions(tinyexpr PRIVATE TE_NAT_LOG)
-endif()
-target_link_libraries(tinyexpr ${MATH_LIB})
-install(TARGETS tinyexpr ARCHIVE DESTINATION lib)
-install(FILES tinyexpr.h DESTINATION include COMPONENT Devel)
-
-if (build_tinyexpr_test)
-    add_executable(tinyexpr_test test.c tinyexpr.c)
-    target_link_libraries(tinyexpr_test ${MATH_LIB})
-endif()
-
-if (build_tinyexpr_test_pr)
-    add_executable(tinyexpr_test_pr test.c tinyexpr.c)
-    target_compile_definitions(tinyexpr_test_pr PRIVATE TE_POW_FROM_RIGHT TE_NAT_LOG)
-    target_link_libraries(tinyexpr_test_pr ${MATH_LIB})
-endif()
-
-if (build_tinyexpr_bench)
-    add_executable(tinyexpr_benchmark benchmark.c tinyexpr.c)
-    target_link_libraries(tinyexpr_benchmark ${MATH_LIB})
-endif()
-
-if (build_tinyexpr_example)
-    add_executable(tinyexpr_example example.c tinyexpr.c)
-    target_link_libraries(tinyexpr_example ${MATH_LIB})
-endif()
-
-if (build_tinyexpr_example2)
-    add_executable(tinyexpr_example2 example2.c tinyexpr.c)
-    target_link_libraries(tinyexpr_example2 ${MATH_LIB})
-endif()
-
-if (build_tinyexpr_example3)
-    add_executable(tinyexpr_example3 example3.c tinyexpr.c)
-    target_link_libraries(tinyexpr_example3 ${MATH_LIB})
+if(ENABLE_TESTING)
+	add_subdirectory(test)
 endif()
