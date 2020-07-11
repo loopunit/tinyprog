@@ -25,8 +25,263 @@
 #ifndef __TINYEXPR_H__
 #define __TINYEXPR_H__
 
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <limits.h>
+#include <limits>
+
+namespace tinyexpr_details
+{
+	static inline constexpr double TE_NAN	   = std::numeric_limits<double>::quiet_NaN();
+	static inline constexpr double TE_INFINITY = std::numeric_limits<double>::infinity();
+
+	static inline double te_pi(void)
+	{
+		return 3.14159265358979323846;
+	}
+
+	static inline double te_e(void)
+	{
+		return 2.71828182845904523536;
+	}
+
+	static inline double te_fac(double a)
+	{
+		/* simplest version of fac */
+		if (a < 0.0)
+			return TE_NAN;
+
+		if (a > UINT_MAX)
+			return TE_INFINITY;
+		unsigned int	  ua	 = (unsigned int)(a);
+		unsigned long int result = 1, i;
+		for (i = 1; i <= ua; i++)
+		{
+			if (i > ULONG_MAX / result)
+				return TE_INFINITY;
+
+			result *= i;
+		}
+		return (double)result;
+	}
+
+	static inline double te_ncr(double n, double r)
+	{
+		if (n < 0.0 || r < 0.0 || n < r)
+			return NAN;
+		if (n > UINT_MAX || r > UINT_MAX)
+			return TE_INFINITY;
+		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+		unsigned long int result = 1;
+		if (ur > un / 2)
+			ur = un - ur;
+		for (i = 1; i <= ur; i++)
+		{
+			if (result > ULONG_MAX / (un - ur + i))
+				return TE_INFINITY;
+			result *= un - ur + i;
+			result /= i;
+		}
+		return result;
+	}
+
+	static inline double te_npr(double n, double r)
+	{
+		return te_ncr(n, r) * te_fac(r);
+	}
+
+	static inline double te_floor(double d)
+	{
+		return ::floor(d);
+	}
+
+	static inline double te_ceil(double d)
+	{
+		return ::ceil(d);
+	}
+
+	static inline double te_fabs(double a)
+	{
+		return ::fabs(a);
+	}
+
+	static inline double te_acos(double a)
+	{
+		return ::acos(a);
+	}
+
+	static inline double te_asin(double a)
+	{
+		return ::asin(a);
+	}
+
+	static inline double te_atan(double a)
+	{
+		return ::atan(a);
+	}
+
+	static inline double te_atan2(double a, double b)
+	{
+		return ::atan2(a, b);
+	}
+
+	static inline double te_cos(double a)
+	{
+		return ::cos(a);
+	}
+
+	static inline double te_cosh(double a)
+	{
+		return ::cosh(a);
+	}
+
+	static inline double te_exp(double a)
+	{
+		return ::exp(a);
+	}
+
+	static inline double te_log(double a)
+	{
+		return ::log(a);
+	}
+
+	static inline double te_log10(double a)
+	{
+		return ::log10(a);
+	}
+
+	static inline double te_pow(double a, double b)
+	{
+		return ::pow(a, b);
+	}
+
+	static inline double te_sin(double a)
+	{
+		return ::sin(a);
+	}
+
+	static inline double te_sinh(double a)
+	{
+		return ::sinh(a);
+	}
+
+	static inline double te_sqrt(double a)
+	{
+		return ::sqrt(a);
+	}
+
+	static inline double te_tan(double a)
+	{
+		return ::tan(a);
+	}
+
+	static inline double te_tanh(double a)
+	{
+		return ::tanh(a);
+	}
+
+	static inline double te_add(double a, double b)
+	{
+		return a + b;
+	}
+
+	static inline double te_sub(double a, double b)
+	{
+		return a - b;
+	}
+
+	static inline double te_mul(double a, double b)
+	{
+		return a * b;
+	}
+
+	static inline double te_divide(double a, double b)
+	{
+		return a / b;
+	}
+	static inline double te_negate(double a)
+	{
+		return -a;
+	}
+	static inline double te_comma(double a, double b)
+	{
+		(void)a;
+		return b;
+	}
+
+	static inline double te_greater(double a, double b)
+	{
+		return a > b;
+	}
+
+	static inline double te_greater_eq(double a, double b)
+	{
+		return a >= b;
+	}
+
+	static inline double te_lower(double a, double b)
+	{
+		return a < b;
+	}
+
+	static inline double te_lower_eq(double a, double b)
+	{
+		return a <= b;
+	}
+
+	static inline double te_equal(double a, double b)
+	{
+		return a == b;
+	}
+
+	static inline double te_not_equal(double a, double b)
+	{
+		return a != b;
+	}
+
+	static inline double te_logical_and(double a, double b)
+	{
+		return a != 0.0 && b != 0.0;
+	}
+
+	static inline double te_logical_or(double a, double b)
+	{
+		return a != 0.0 || b != 0.0;
+	}
+
+	static inline double te_logical_not(double a)
+	{
+		return a == 0.0;
+	}
+
+	static inline double te_logical_notnot(double a)
+	{
+		return a != 0.0;
+	}
+
+	static inline double te_negate_logical_not(double a)
+	{
+		return -(a == 0.0);
+	}
+
+	static inline double te_negate_logical_notnot(double a)
+	{
+		return -(a != 0.0);
+	}
+
+	static inline double te_fmod(double a, double b)
+	{
+		return ::fmod(a, b);
+	}
+
+} // namespace tinyexpr_details
+
 namespace tinyexpr
 {
+	namespace details = tinyexpr_details;
+
 	struct te_expr
 	{
 		int type;
@@ -89,24 +344,6 @@ namespace tinyexpr
 	/* Frees the expression. */
 	/* This is safe to call on NULL pointers. */
 	static inline void te_free(te_expr* n);
-
-} // namespace tinyexpr
-
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
-#include <limits.h>
-
-namespace tinyexpr
-{
-	#ifndef NAN
-	#	define NAN (0.0 / 0.0)
-	#endif
-
-	#ifndef INFINITY
-	#	define INFINITY (1.0 / 0.0)
-	#endif
 
 	typedef double (*te_fun2)(double, double);
 
@@ -212,99 +449,36 @@ namespace tinyexpr
 		free(n);
 	}
 
-	static inline double pi(void)
-	{
-		return 3.14159265358979323846;
-	}
-
-	static inline double e(void)
-	{
-		return 2.71828182845904523536;
-	}
-
-	static inline double fac(double a)
-	{ 
-		/* simplest version of fac */
-		if (a < 0.0)
-			return NAN;
-		if (a > UINT_MAX)
-			return INFINITY;
-		unsigned int	  ua	 = (unsigned int)(a);
-		unsigned long int result = 1, i;
-		for (i = 1; i <= ua; i++)
-		{
-			if (i > ULONG_MAX / result)
-				return INFINITY;
-			result *= i;
-		}
-		return (double)result;
-	}
-
-	static inline double ncr(double n, double r)
-	{
-		if (n < 0.0 || r < 0.0 || n < r)
-			return NAN;
-		if (n > UINT_MAX || r > UINT_MAX)
-			return INFINITY;
-		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-		unsigned long int result = 1;
-		if (ur > un / 2)
-			ur = un - ur;
-		for (i = 1; i <= ur; i++)
-		{
-			if (result > ULONG_MAX / (un - ur + i))
-				return INFINITY;
-			result *= un - ur + i;
-			result /= i;
-		}
-		return result;
-	}
-
-	static inline double npr(double n, double r)
-	{
-		return ncr(n, r) * fac(r);
-	}
-
-	static inline double te_floor(double d)
-	{
-		return floor(d);
-	}
-
-	static inline double te_ceil(double d)
-	{
-		return ceil(d);
-	}
-
 	static inline const te_variable functions[] = {
 		/* must be in alphabetical order */
-		{"abs", fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"acos", acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"asin", asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan", atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan2", atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"ceil", te_ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cos", cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cosh", cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"e", e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"exp", exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"fac", fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"floor", te_floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ln", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"abs", details::te_fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"acos", details::te_acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"asin", details::te_asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan", details::te_atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan2", details::te_atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"ceil", details::te_ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cos", details::te_cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cosh", details::te_cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"e", details::te_e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"exp", details::te_exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"fac", details::te_fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"floor", details::te_floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ln", details::te_log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
-		{"log", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", details::te_log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
-		{"log", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", details::te_log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-		{"log10", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ncr", ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"npr", npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"pi", pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"pow", pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"sin", sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sinh", sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sqrt", sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tan", tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tanh", tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log10", details::te_log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ncr", details::te_ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"npr", details::te_npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"pi", details::te_pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"pow", details::te_pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"sin", details::te_sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sinh", details::te_sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sqrt", details::te_sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tan", details::te_tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tanh", details::te_tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 		{0, 0, 0, 0}};
 
 	static inline const te_variable* find_builtin(const char* name, int len)
@@ -351,92 +525,6 @@ namespace tinyexpr
 			}
 		}
 		return 0;
-	}
-
-	static inline double add(double a, double b)
-	{
-		return a + b;
-	}
-	static inline double sub(double a, double b)
-	{
-		return a - b;
-	}
-	static inline double mul(double a, double b)
-	{
-		return a * b;
-	}
-	static inline double divide(double a, double b)
-	{
-		return a / b;
-	}
-	static inline double negate(double a)
-	{
-		return -a;
-	}
-	static inline double comma(double a, double b)
-	{
-		(void)a;
-		return b;
-	}
-
-	static inline double greater(double a, double b)
-	{
-		return a > b;
-	}
-
-	static inline double greater_eq(double a, double b)
-	{
-		return a >= b;
-	}
-
-	static inline double lower(double a, double b)
-	{
-		return a < b;
-	}
-
-	static inline double lower_eq(double a, double b)
-	{
-		return a <= b;
-	}
-
-	static inline double equal(double a, double b)
-	{
-		return a == b;
-	}
-
-	static inline double not_equal(double a, double b)
-	{
-		return a != b;
-	}
-
-	static inline double logical_and(double a, double b)
-	{
-		return a != 0.0 && b != 0.0;
-	}
-
-	static inline double logical_or(double a, double b)
-	{
-		return a != 0.0 || b != 0.0;
-	}
-
-	static inline double logical_not(double a)
-	{
-		return a == 0.0;
-	}
-
-	static inline double logical_notnot(double a)
-	{
-		return a != 0.0;
-	}
-
-	static inline double negate_logical_not(double a)
-	{
-		return -(a == 0.0);
-	}
-
-	static inline double negate_logical_notnot(double a)
-	{
-		return -(a != 0.0);
 	}
 
 	static inline void next_token(state* s)
@@ -516,46 +604,46 @@ namespace tinyexpr
 					{
 					case '+':
 						s->type		= TOK_INFIX;
-						s->function = add;
+						s->function = details::te_add;
 						break;
 					case '-':
 						s->type		= TOK_INFIX;
-						s->function = sub;
+						s->function = details::te_sub;
 						break;
 					case '*':
 						s->type		= TOK_INFIX;
-						s->function = mul;
+						s->function = details::te_mul;
 						break;
 					case '/':
 						s->type		= TOK_INFIX;
-						s->function = divide;
+						s->function = details::te_divide;
 						break;
 					case '^':
 						s->type		= TOK_INFIX;
-						s->function = pow;
+						s->function = details::te_pow;
 						break;
 					case '%':
 						s->type		= TOK_INFIX;
-						s->function = fmod;
+						s->function = details::te_fmod;
 						break;
 					case '!':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = not_equal;
+							s->function = details::te_not_equal;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = logical_not;
+							s->function = details::te_logical_not;
 						}
 						break;
 					case '=':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = equal;
+							s->function = details::te_equal;
 						}
 						else
 						{
@@ -566,33 +654,33 @@ namespace tinyexpr
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = lower_eq;
+							s->function = details::te_lower_eq;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = lower;
+							s->function = details::te_lower;
 						}
 						break;
 					case '>':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = greater_eq;
+							s->function = details::te_greater_eq;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = greater;
+							s->function = details::te_greater;
 						}
 						break;
 					case '&':
 						if (s->next++[0] == '&')
 						{
 							s->type		= TOK_INFIX;
-							s->function = logical_and;
+							s->function = details::te_logical_and;
 						}
 						else
 						{
@@ -603,7 +691,7 @@ namespace tinyexpr
 						if (s->next++[0] == '|')
 						{
 							s->type		= TOK_INFIX;
-							s->function = logical_or;
+							s->function = details::te_logical_or;
 						}
 						else
 						{
@@ -753,7 +841,7 @@ namespace tinyexpr
 		default:
 			ret		   = new_expr(0, 0);
 			s->type	   = TOK_ERROR;
-			ret->value = NAN;
+			ret->value = details::TE_NAN;
 			break;
 		}
 
@@ -764,17 +852,18 @@ namespace tinyexpr
 	{
 		/* <power>     =    {("-" | "+" | "!")} <base> */
 		int sign = 1;
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
+		while (s->type == TOK_INFIX && (s->function == details::te_add || s->function == details::te_sub))
 		{
-			if (s->function == sub)
+			if (s->function == details::te_sub)
 				sign = -sign;
 			next_token(s);
 		}
 
 		int logical = 0;
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == logical_not))
+		while (s->type == TOK_INFIX && (s->function == details::te_add || s->function == details::te_sub ||
+										   s->function == details::te_logical_not))
 		{
-			if (s->function == logical_not)
+			if (s->function == details::te_logical_not)
 			{
 				if (logical == 0)
 				{
@@ -799,12 +888,12 @@ namespace tinyexpr
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = logical_not;
+				ret->function = details::te_logical_not;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = logical_notnot;
+				ret->function = details::te_logical_notnot;
 			}
 		}
 		else
@@ -812,17 +901,17 @@ namespace tinyexpr
 			if (logical == 0)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate;
+				ret->function = details::te_negate;
 			}
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate_logical_not;
+				ret->function = details::te_negate_logical_not;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate_logical_notnot;
+				ret->function = details::te_negate_logical_notnot;
 			}
 		}
 
@@ -900,7 +989,8 @@ namespace tinyexpr
 		/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 		te_expr* ret = factor(s);
 
-		while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod))
+		while (s->type == TOK_INFIX &&
+			   (s->function == details::te_mul || s->function == details::te_divide || s->function == details::te_fmod))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -916,7 +1006,7 @@ namespace tinyexpr
 		/* <expr>      =    <term> {("+" | "-") <term>} */
 		te_expr* ret = term(s);
 
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
+		while (s->type == TOK_INFIX && (s->function == details::te_add || s->function == details::te_sub))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -932,8 +1022,9 @@ namespace tinyexpr
 		/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 		te_expr* ret = sum_expr(s);
 
-		while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq || s->function == lower ||
-										   s->function == lower_eq || s->function == equal || s->function == not_equal))
+		while (s->type == TOK_INFIX && (s->function == details::te_greater || s->function == details::te_greater_eq ||
+										   s->function == details::te_lower || s->function == details::te_lower_eq ||
+										   s->function == details::te_equal || s->function == details::te_not_equal))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -949,7 +1040,8 @@ namespace tinyexpr
 		/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 		te_expr* ret = test_expr(s);
 
-		while (s->type == TOK_INFIX && (s->function == logical_and || s->function == logical_or))
+		while (
+			s->type == TOK_INFIX && (s->function == details::te_logical_and || s->function == details::te_logical_or))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -969,7 +1061,7 @@ namespace tinyexpr
 		{
 			next_token(s);
 			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-			ret->function = comma;
+			ret->function = details::te_comma;
 		}
 
 		return ret;
@@ -981,7 +1073,7 @@ namespace tinyexpr
 	static inline double te_eval(const te_expr* n)
 	{
 		if (!n)
-			return NAN;
+			return details::TE_NAN;
 
 		switch (TYPE_MASK(n->type))
 		{
@@ -1018,7 +1110,7 @@ namespace tinyexpr
 				return TE_FUN(double, double, double, double, double, double, double)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return NAN;
+				return details::TE_NAN;
 			}
 
 		case TE_CLOSURE0:
@@ -1051,11 +1143,11 @@ namespace tinyexpr
 				return TE_FUN(void*, double, double, double, double, double, double, double)(
 					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return NAN;
+				return details::TE_NAN;
 			}
 
 		default:
-			return NAN;
+			return details::TE_NAN;
 		}
 	}
 
@@ -1135,7 +1227,7 @@ namespace tinyexpr
 		}
 		else
 		{
-			ret = NAN;
+			ret = details::TE_NAN;
 		}
 		return ret;
 	}
