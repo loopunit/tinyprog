@@ -1,0 +1,47 @@
+--Debug-x64--
+interp  4.4443e+12      22260ms     4mfps
+149.78% longer
+
+Expression: a+5
+native  5.0045e+11        999ms   100mfps
+interp  5.0045e+11       5424ms    18mfps
+442.94% longer
+
+Expression: a+(5*2)
+native  5.0095e+11       1012ms    98mfps
+interp  5.0095e+11       5443ms    18mfps
+437.85% longer
+
+Expression: (a+5)*2
+native  1.0009e+12       1005ms    99mfps
+interp  1.0009e+12       9481ms    10mfps
+843.38% longer
+
+Expression: (1/(a+1)+2/(a+2)+3/(a+3))
+native  5.2226e+05       1263ms    79mfps
+interp  5.2226e+05      34423ms     2mfps
+2625.49% longer
+
+--Release-x64--
+interp  4.4443e+12      11388ms     8mfps
+80.62% longer
+
+Expression: a+5
+native  5.0045e+11        234ms   427mfps
+interp  5.0045e+11       1171ms    85mfps
+400.43% longer
+
+Expression: a+(5*2)
+native  5.0095e+11        235ms   425mfps
+interp  5.0095e+11       1170ms    85mfps
+397.87% longer
+
+Expression: (a+5)*2
+native  1.0009e+12        238ms   420mfps
+interp  1.0009e+12       1873ms    53mfps
+686.97% longer
+
+Expression: (1/(a+1)+2/(a+2)+3/(a+3))
+native  5.2226e+05        316ms   316mfps
+interp  5.2226e+05       8549ms    11mfps
+2605.38% longer
