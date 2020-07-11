@@ -25,8 +25,163 @@
 #ifndef __TINYEXPR_H__
 #define __TINYEXPR_H__
 
+#include <limits>
+
+#include <math.h>
+
+namespace tinyexpr_details
+{
+	static inline constexpr double nan		= std::numeric_limits<double>::quiet_NaN();
+	static inline constexpr double infinity = std::numeric_limits<double>::infinity();
+
+	static inline double pi(void)
+	{
+		return 3.14159265358979323846;
+	}
+
+	static inline double e(void)
+	{
+		return 2.71828182845904523536;
+	}
+
+	static inline double exp(double a)
+	{
+		return ::exp(a);
+	}
+
+	static inline double fac(double a)
+	{
+		/* simplest version of fac */
+		if (a < 0.0)
+			return nan;
+		if (a > UINT_MAX)
+			return infinity;
+		unsigned int	  ua	 = (unsigned int)(a);
+		unsigned long int result = 1, i;
+		for (i = 1; i <= ua; i++)
+		{
+			if (i > ULONG_MAX / result)
+				return infinity;
+			result *= i;
+		}
+		return (double)result;
+	}
+
+	static inline double ncr(double n, double r)
+	{
+		if (n < 0.0 || r < 0.0 || n < r)
+			return nan;
+		if (n > UINT_MAX || r > UINT_MAX)
+			return infinity;
+		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+		unsigned long int result = 1;
+		if (ur > un / 2)
+			ur = un - ur;
+		for (i = 1; i <= ur; i++)
+		{
+			if (result > ULONG_MAX / (un - ur + i))
+				return infinity;
+			result *= un - ur + i;
+			result /= i;
+		}
+		return result;
+	}
+
+	static inline double npr(double n, double r)
+	{
+		return ncr(n, r) * fac(r);
+	}
+
+	static inline double floor(double d)
+	{
+		return ::floor(d);
+	}
+
+	static inline double ceil(double d)
+	{
+		return ::ceil(d);
+	}
+
+	static inline double fabs(double a)
+	{
+		return ::fabs(a);
+	}
+
+	static inline double acos(double a)
+	{
+		return ::acos(a);
+	}
+
+	static inline double asin(double a)
+	{
+		return ::asin(a);
+	}
+
+	static inline double atan(double a)
+	{
+		return ::atan(a);
+	}
+
+	static inline double atan2(double a, double b)
+	{
+		return ::atan2(a, b);
+	}
+
+	static inline double cos(double a)
+	{
+		return ::cos(a);
+	}
+
+	static inline double cosh(double a)
+	{
+		return ::cosh(a);
+	}
+
+	static inline double log(double a)
+	{
+		return ::log(a);
+	}
+
+	static inline double log10(double a)
+	{
+		return ::log10(a);
+	}
+
+	static inline double pow(double a, double b)
+	{
+		return ::pow(a, b);
+	}
+
+	static inline double sin(double a)
+	{
+		return ::sin(a);
+	}
+
+	static inline double sinh(double a)
+	{
+		return ::sinh(a);
+	}
+
+	static inline double sqrt(double a)
+	{
+		return ::sqrt(a);
+	}
+
+	static inline double tan(double a)
+	{
+		return ::tan(a);
+	}
+
+	static inline double tanh(double a)
+	{
+		return ::tanh(a);
+	}
+} // namespace tinyexpr_details
+
 namespace tinyexpr
 {
+	namespace details = tinyexpr_details;
+
 	struct te_expr
 	{
 		int type;
@@ -93,21 +248,12 @@ namespace tinyexpr
 } // namespace tinyexpr
 
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
 
 namespace tinyexpr
 {
-	#ifndef NAN
-	#	define NAN (0.0 / 0.0)
-	#endif
-
-	#ifndef INFINITY
-	#	define INFINITY (1.0 / 0.0)
-	#endif
-
 	typedef double (*te_fun2)(double, double);
 
 	enum
@@ -212,99 +358,36 @@ namespace tinyexpr
 		free(n);
 	}
 
-	static inline double pi(void)
-	{
-		return 3.14159265358979323846;
-	}
-
-	static inline double e(void)
-	{
-		return 2.71828182845904523536;
-	}
-
-	static inline double fac(double a)
-	{ 
-		/* simplest version of fac */
-		if (a < 0.0)
-			return NAN;
-		if (a > UINT_MAX)
-			return INFINITY;
-		unsigned int	  ua	 = (unsigned int)(a);
-		unsigned long int result = 1, i;
-		for (i = 1; i <= ua; i++)
-		{
-			if (i > ULONG_MAX / result)
-				return INFINITY;
-			result *= i;
-		}
-		return (double)result;
-	}
-
-	static inline double ncr(double n, double r)
-	{
-		if (n < 0.0 || r < 0.0 || n < r)
-			return NAN;
-		if (n > UINT_MAX || r > UINT_MAX)
-			return INFINITY;
-		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-		unsigned long int result = 1;
-		if (ur > un / 2)
-			ur = un - ur;
-		for (i = 1; i <= ur; i++)
-		{
-			if (result > ULONG_MAX / (un - ur + i))
-				return INFINITY;
-			result *= un - ur + i;
-			result /= i;
-		}
-		return result;
-	}
-
-	static inline double npr(double n, double r)
-	{
-		return ncr(n, r) * fac(r);
-	}
-
-	static inline double te_floor(double d)
-	{
-		return floor(d);
-	}
-
-	static inline double te_ceil(double d)
-	{
-		return ceil(d);
-	}
-
 	static inline const te_variable functions[] = {
 		/* must be in alphabetical order */
-		{"abs", fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"acos", acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"asin", asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan", atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan2", atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"ceil", te_ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cos", cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cosh", cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"e", e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"exp", exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"fac", fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"floor", te_floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ln", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"abs", details::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"acos", details::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"asin", details::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan", details::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan2", details::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"ceil", details::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cos", details::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cosh", details::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"e", details::e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"exp", details::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"fac", details::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"floor", details::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ln", details::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
-		{"log", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", details::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
-		{"log", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", details::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-		{"log10", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ncr", ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"npr", npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"pi", pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"pow", pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"sin", sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sinh", sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sqrt", sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tan", tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tanh", tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log10", details::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ncr", details::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"npr", details::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"pi", details::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"pow", details::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"sin", details::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sinh", details::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sqrt", details::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tan", details::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tanh", details::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 		{0, 0, 0, 0}};
 
 	static inline const te_variable* find_builtin(const char* name, int len)
@@ -753,7 +836,7 @@ namespace tinyexpr
 		default:
 			ret		   = new_expr(0, 0);
 			s->type	   = TOK_ERROR;
-			ret->value = NAN;
+			ret->value = details::nan;
 			break;
 		}
 
@@ -981,7 +1064,7 @@ namespace tinyexpr
 	static inline double te_eval(const te_expr* n)
 	{
 		if (!n)
-			return NAN;
+			return details::nan;
 
 		switch (TYPE_MASK(n->type))
 		{
@@ -1018,7 +1101,7 @@ namespace tinyexpr
 				return TE_FUN(double, double, double, double, double, double, double)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return NAN;
+				return details::nan;
 			}
 
 		case TE_CLOSURE0:
@@ -1051,11 +1134,11 @@ namespace tinyexpr
 				return TE_FUN(void*, double, double, double, double, double, double, double)(
 					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return NAN;
+				return details::nan;
 			}
 
 		default:
-			return NAN;
+			return details::nan;
 		}
 	}
 
@@ -1135,7 +1218,7 @@ namespace tinyexpr
 		}
 		else
 		{
-			ret = NAN;
+			ret = details::nan;
 		}
 		return ret;
 	}
