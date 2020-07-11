@@ -9,7 +9,7 @@ option(build_tinyexpr_example3 "Build TinyExpr example 3." ON)
 if (build_tinyexpr_test)
 	vcpkg_executable(tinyexpr_test
 	SOURCES 
-		test.c
+		test.cpp
 	PRIVATE_DEPENDENCIES
 		tinyexprpp
 	)
@@ -18,7 +18,7 @@ endif()
 if (build_tinyexpr_bench)
 	vcpkg_executable(tinyexpr_benchmark
 	SOURCES 
-		benchmark.c
+		benchmark.cpp
 	PRIVATE_DEPENDENCIES
 		tinyexprpp
 	)
@@ -27,7 +27,7 @@ endif()
 if (build_tinyexpr_example)
 	vcpkg_executable(tinyexpr_example
 	SOURCES 
-		example.c
+		example.cpp
 	PRIVATE_DEPENDENCIES
 		tinyexprpp
 	)
@@ -36,7 +36,7 @@ endif()
 if (build_tinyexpr_example2)
 	vcpkg_executable(tinyexpr_example2
 	SOURCES 
-		example2.c
+		example2.cpp
 	PRIVATE_DEPENDENCIES
 		tinyexprpp
 	)
@@ -45,7 +45,7 @@ endif()
 if (build_tinyexpr_example3)
 	vcpkg_executable(tinyexpr_example3
 	SOURCES 
-		example3.c
+		example3.cpp
 	PRIVATE_DEPENDENCIES
 		tinyexprpp
 	)

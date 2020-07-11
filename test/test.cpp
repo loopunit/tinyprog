@@ -484,7 +484,7 @@ double clo2(void *context, double a, double b) {
 }
 
 double cell(void *context, double a) {
-    double *c = context;
+    double *c = (double*)context;
     return c[(int)a];
 }
 
