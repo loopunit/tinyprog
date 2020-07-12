@@ -28,8 +28,12 @@
 #include <limits>
 
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+#include <limits.h>
 
-namespace tinyexpr_details
+struct tinyexpr_details
 {
 	static inline constexpr double nan		= std::numeric_limits<double>::quiet_NaN();
 	static inline constexpr double infinity = std::numeric_limits<double>::infinity();
@@ -176,286 +180,37 @@ namespace tinyexpr_details
 	{
 		return ::tanh(a);
 	}
-} // namespace tinyexpr_details
 
-namespace tinyexpr
-{
-	namespace details = tinyexpr_details;
-
-	struct te_expr
+	static inline double fmod(double a, double b)
 	{
-		int type;
-		union
-		{
-			double		  value;
-			const double* bound;
-			const void*	  function;
-		};
-		void* parameters[1];
-	};
-
-	enum
-	{
-		TE_VARIABLE = 0,
-
-		TE_FUNCTION0 = 8,
-		TE_FUNCTION1,
-		TE_FUNCTION2,
-		TE_FUNCTION3,
-		TE_FUNCTION4,
-		TE_FUNCTION5,
-		TE_FUNCTION6,
-		TE_FUNCTION7,
-
-		TE_CLOSURE0 = 16,
-		TE_CLOSURE1,
-		TE_CLOSURE2,
-		TE_CLOSURE3,
-		TE_CLOSURE4,
-		TE_CLOSURE5,
-		TE_CLOSURE6,
-		TE_CLOSURE7,
-
-		TE_FLAG_PURE = 32
-	};
-
-	struct te_variable
-	{
-		const char* name;
-		const void* address;
-		int			type;
-		void*		context;
-	};
-
-	/* Parses the input expression, evaluates it, and frees it. */
-	/* Returns NaN on error. */
-	static inline double te_interp(const char* expression, int* error);
-
-	/* Parses the input expression and binds variables. */
-	/* Returns NULL on error. */
-	static inline te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
-
-	/* Evaluates the expression. */
-	static inline double te_eval(const te_expr* n);
-
-	/* Prints debugging information on the syntax tree. */
-	static inline void te_print(const te_expr* n);
-
-	/* Frees the expression. */
-	/* This is safe to call on NULL pointers. */
-	static inline void te_free(te_expr* n);
-
-} // namespace tinyexpr
-
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <limits.h>
-
-namespace tinyexpr
-{
-	typedef double (*te_fun2)(double, double);
-
-	enum
-	{
-		TOK_NULL = TE_CLOSURE7 + 1,
-		TOK_ERROR,
-		TOK_END,
-		TOK_SEP,
-		TOK_OPEN,
-		TOK_CLOSE,
-		TOK_NUMBER,
-		TOK_VARIABLE,
-		TOK_INFIX
-	};
-
-	enum
-	{
-		TE_CONSTANT = 1
-	};
-
-	struct state
-	{
-		const char* start;
-		const char* next;
-		int			type;
-		union
-		{
-			double		  value;
-			const double* bound;
-			const void*	  function;
-		};
-		void* context;
-
-		const te_variable* lookup;
-		int				   lookup_len;
-	};
-
-#define TYPE_MASK(TYPE) ((TYPE)&0x0000001F)
-
-#define IS_PURE(TYPE)	  (((TYPE)&TE_FLAG_PURE) != 0)
-#define IS_FUNCTION(TYPE) (((TYPE)&TE_FUNCTION0) != 0)
-#define IS_CLOSURE(TYPE)  (((TYPE)&TE_CLOSURE0) != 0)
-#define ARITY(TYPE)		  (((TYPE) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
-#define NEW_EXPR(type, ...)                                                                                            \
-	[&]() {                                                                                                            \
-		const te_expr* _args[] = {__VA_ARGS__};                                                                        \
-		return new_expr((type), _args);                                                                                \
-	}()
-
-	static inline te_expr* new_expr(const int type, const te_expr* parameters[])
-	{
-		const int arity = ARITY(type);
-		const int psize = sizeof(void*) * arity;
-		const int size	= (sizeof(te_expr) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-		te_expr*  ret	= (te_expr*)malloc(size);
-		memset(ret, 0, size);
-		if (arity && parameters)
-		{
-			memcpy(ret->parameters, parameters, psize);
-		}
-		ret->type  = type;
-		ret->bound = 0;
-		return ret;
-	}
-
-	static inline void te_free_parameters(te_expr* n)
-	{
-		if (!n)
-			return;
-
-		switch (TYPE_MASK(n->type))
-		{
-		case TE_FUNCTION7:
-		case TE_CLOSURE7:
-			te_free((te_expr*)n->parameters[6]); /* Falls through. */
-		case TE_FUNCTION6:
-		case TE_CLOSURE6:
-			te_free((te_expr*)n->parameters[5]); /* Falls through. */
-		case TE_FUNCTION5:
-		case TE_CLOSURE5:
-			te_free((te_expr*)n->parameters[4]); /* Falls through. */
-		case TE_FUNCTION4:
-		case TE_CLOSURE4:
-			te_free((te_expr*)n->parameters[3]); /* Falls through. */
-		case TE_FUNCTION3:
-		case TE_CLOSURE3:
-			te_free((te_expr*)n->parameters[2]); /* Falls through. */
-		case TE_FUNCTION2:
-		case TE_CLOSURE2:
-			te_free((te_expr*)n->parameters[1]); /* Falls through. */
-		case TE_FUNCTION1:
-		case TE_CLOSURE1:
-			te_free((te_expr*)n->parameters[0]);
-		}
-	}
-
-	static inline void te_free(te_expr* n)
-	{
-		if (!n)
-			return;
-		te_free_parameters(n);
-		free(n);
-	}
-
-	static inline const te_variable functions[] = {
-		/* must be in alphabetical order */
-		{"abs", details::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"acos", details::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"asin", details::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan", details::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"atan2", details::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"ceil", details::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cos", details::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"cosh", details::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"e", details::e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"exp", details::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"fac", details::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"floor", details::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ln", details::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-#ifdef TE_NAT_LOG
-		{"log", details::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-#else
-		{"log", details::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-#endif
-		{"log10", details::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"ncr", details::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"npr", details::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"pi", details::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-		{"pow", details::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-		{"sin", details::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sinh", details::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"sqrt", details::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tan", details::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{"tanh", details::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-		{0, 0, 0, 0}};
-
-	static inline const te_variable* find_builtin(const char* name, int len)
-	{
-		int imin = 0;
-		int imax = sizeof(functions) / sizeof(te_variable) - 2;
-
-		/*Binary search.*/
-		while (imax >= imin)
-		{
-			const int i = (imin + ((imax - imin) / 2));
-			int		  c = strncmp(name, functions[i].name, len);
-			if (!c)
-				c = '\0' - functions[i].name[len];
-			if (c == 0)
-			{
-				return functions + i;
-			}
-			else if (c > 0)
-			{
-				imin = i + 1;
-			}
-			else
-			{
-				imax = i - 1;
-			}
-		}
-
-		return 0;
-	}
-
-	static inline const te_variable* find_lookup(const state* s, const char* name, int len)
-	{
-		int				   iters;
-		const te_variable* var;
-		if (!s->lookup)
-			return 0;
-
-		for (var = s->lookup, iters = s->lookup_len; iters; ++var, --iters)
-		{
-			if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
-			{
-				return var;
-			}
-		}
-		return 0;
+		return ::fmod(a, b);
 	}
 
 	static inline double add(double a, double b)
 	{
 		return a + b;
 	}
+
 	static inline double sub(double a, double b)
 	{
 		return a - b;
 	}
+
 	static inline double mul(double a, double b)
 	{
 		return a * b;
 	}
+
 	static inline double divide(double a, double b)
 	{
 		return a / b;
 	}
+
 	static inline double negate(double a)
 	{
 		return -a;
 	}
+
 	static inline double comma(double a, double b)
 	{
 		(void)a;
@@ -521,6 +276,365 @@ namespace tinyexpr
 	{
 		return -(a != 0.0);
 	}
+};
+
+struct tinyexpr_defines
+{
+	enum
+	{
+		TE_VARIABLE = 0,
+
+		TE_FUNCTION0 = 8,
+		TE_FUNCTION1,
+		TE_FUNCTION2,
+		TE_FUNCTION3,
+		TE_FUNCTION4,
+		TE_FUNCTION5,
+		TE_FUNCTION6,
+		TE_FUNCTION7,
+
+		TE_CLOSURE_INIT
+	};
+
+	enum
+	{
+		TE_CLOSURE0 = TE_CLOSURE_INIT,
+		TE_CLOSURE1,
+		TE_CLOSURE2,
+		TE_CLOSURE3,
+		TE_CLOSURE4,
+		TE_CLOSURE5,
+		TE_CLOSURE6,
+		TE_CLOSURE7,
+
+		TE_FLAG_PURE = 32
+	};
+
+	enum
+	{
+		TE_CONSTANT = 1
+	};
+};
+
+struct tinyexpr_common : public tinyexpr_defines
+{
+	using details = tinyexpr_details;
+
+	struct te_expr
+	{
+		int type;
+		union
+		{
+			double		  value;
+			const double* bound;
+			const void*	  function;
+		};
+		void* parameters[1];
+	};
+
+	struct te_variable
+	{
+		const char* name;
+		const void* address;
+		int			type;
+		void*		context;
+	};
+
+	/* Parses the input expression, evaluates it, and frees it. */
+	/* Returns NaN on error. */
+	static inline double te_interp(const char* expression, int* error);
+
+	/* Parses the input expression and binds variables. */
+	/* Returns NULL on error. */
+	static inline te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
+
+	///* Evaluates the expression. */
+	// static inline double te_eval(const te_expr* n);
+
+	/* Prints debugging information on the syntax tree. */
+	static inline void te_print(const te_expr* n);
+
+	///* Frees the expression. */
+	///* This is safe to call on NULL pointers. */
+	// static inline void te_free(te_expr* n);
+};
+
+struct tinyexpr_eval
+{
+	using details = tinyexpr_details;
+	using common  = tinyexpr_common;
+
+#define TYPE_MASK(TYPE) ((TYPE)&0x0000001F)
+
+#define IS_PURE(TYPE)	  (((TYPE)&common::TE_FLAG_PURE) != 0)
+#define IS_FUNCTION(TYPE) (((TYPE)&common::TE_FUNCTION0) != 0)
+#define IS_CLOSURE(TYPE)  (((TYPE)&common::TE_CLOSURE0) != 0)
+#define ARITY(TYPE)		  (((TYPE) & (common::TE_FUNCTION0 | common::TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
+
+	static inline double te_eval(const common::te_expr* n)
+	{
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->function)
+#define M(e)		te_eval((const common::te_expr*)n->parameters[e])
+
+		if (!n)
+			return details::nan;
+
+		switch (TYPE_MASK(n->type))
+		{
+		case common::TE_CONSTANT:
+			return n->value;
+		case common::TE_VARIABLE:
+			return *n->bound;
+
+		case common::TE_FUNCTION0:
+		case common::TE_FUNCTION1:
+		case common::TE_FUNCTION2:
+		case common::TE_FUNCTION3:
+		case common::TE_FUNCTION4:
+		case common::TE_FUNCTION5:
+		case common::TE_FUNCTION6:
+		case common::TE_FUNCTION7:
+			switch (ARITY(n->type))
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(double)(M(0));
+			case 2:
+				return TE_FUN(double, double)(M(0), M(1));
+			case 3:
+				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(double, double, double, double, double, double, double)(
+					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return details::nan;
+			}
+
+		case common::TE_CLOSURE0:
+		case common::TE_CLOSURE1:
+		case common::TE_CLOSURE2:
+		case common::TE_CLOSURE3:
+		case common::TE_CLOSURE4:
+		case common::TE_CLOSURE5:
+		case common::TE_CLOSURE6:
+		case common::TE_CLOSURE7:
+			switch (ARITY(n->type))
+			{
+			case 0:
+				return TE_FUN(void*)(n->parameters[0]);
+			case 1:
+				return TE_FUN(void*, double)(n->parameters[1], M(0));
+			case 2:
+				return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
+			case 3:
+				return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(void*, double, double, double, double, double)(
+					n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(void*, double, double, double, double, double, double)(
+					n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(void*, double, double, double, double, double, double, double)(
+					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return details::nan;
+			}
+
+		default:
+			return details::nan;
+		}
+
+#undef TE_FUN
+#undef M
+	}
+};
+
+struct tinyexpr_compiler
+{
+	using details = tinyexpr_details;
+	using common  = tinyexpr_common;
+	using eval	  = tinyexpr_eval;
+
+	typedef double (*te_fun2)(double, double);
+
+	enum
+	{
+		TOK_NULL = common::TE_CLOSURE7 + 1,
+		TOK_ERROR,
+		TOK_END,
+		TOK_SEP,
+		TOK_OPEN,
+		TOK_CLOSE,
+		TOK_NUMBER,
+		TOK_VARIABLE,
+		TOK_INFIX
+	};
+
+	struct state
+	{
+		const char* start;
+		const char* next;
+		int			type;
+		union
+		{
+			double		  value;
+			const double* bound;
+			const void*	  function;
+		};
+		void* context;
+
+		const common::te_variable* lookup;
+		int						   lookup_len;
+	};
+
+#define NEW_EXPR(type, ...)                                                                                            \
+	[&]() {                                                                                                            \
+		const common::te_expr* _args[] = {__VA_ARGS__};                                                                \
+		return new_expr((type), _args);                                                                                \
+	}()
+
+	static inline common::te_expr* new_expr(const int type, const common::te_expr* parameters[])
+	{
+		const int arity = ARITY(type);
+		const int psize = sizeof(void*) * arity;
+		const int size	= (sizeof(common::te_expr) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+		common::te_expr* ret = (common::te_expr*)malloc(size);
+		memset(ret, 0, size);
+		if (arity && parameters)
+		{
+			memcpy(ret->parameters, parameters, psize);
+		}
+		ret->type  = type;
+		ret->bound = 0;
+		return ret;
+	}
+
+	static inline void te_free_parameters(common::te_expr* n)
+	{
+		if (!n)
+			return;
+
+		switch (TYPE_MASK(n->type))
+		{
+		case common::TE_FUNCTION7:
+		case common::TE_CLOSURE7:
+			te_free((common::te_expr*)n->parameters[6]); /* Falls through. */
+		case common::TE_FUNCTION6:
+		case common::TE_CLOSURE6:
+			te_free((common::te_expr*)n->parameters[5]); /* Falls through. */
+		case common::TE_FUNCTION5:
+		case common::TE_CLOSURE5:
+			te_free((common::te_expr*)n->parameters[4]); /* Falls through. */
+		case common::TE_FUNCTION4:
+		case common::TE_CLOSURE4:
+			te_free((common::te_expr*)n->parameters[3]); /* Falls through. */
+		case common::TE_FUNCTION3:
+		case common::TE_CLOSURE3:
+			te_free((common::te_expr*)n->parameters[2]); /* Falls through. */
+		case common::TE_FUNCTION2:
+		case common::TE_CLOSURE2:
+			te_free((common::te_expr*)n->parameters[1]); /* Falls through. */
+		case common::TE_FUNCTION1:
+		case common::TE_CLOSURE1:
+			te_free((common::te_expr*)n->parameters[0]);
+		}
+	}
+
+	static inline void te_free(common::te_expr* n)
+	{
+		if (!n)
+			return;
+		te_free_parameters(n);
+		free(n);
+	}
+
+	static inline const common::te_variable functions[] = {
+		/* must be in alphabetical order */
+		{"abs", details::fabs, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"acos", details::acos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"asin", details::asin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"atan", details::atan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"atan2", details::atan2, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+		{"ceil", details::ceil, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"cos", details::cos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"cosh", details::cosh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"e", details::e, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
+		{"exp", details::exp, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"fac", details::fac, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"floor", details::floor, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"ln", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#ifdef TE_NAT_LOG
+		{"log", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#else
+		{"log", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#endif
+		{"log10", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"ncr", details::ncr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+		{"npr", details::npr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+		{"pi", details::pi, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
+		{"pow", details::pow, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+		{"sin", details::sin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"sinh", details::sinh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"sqrt", details::sqrt, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"tan", details::tan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{"tanh", details::tanh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+		{0, 0, 0, 0}};
+
+	static inline const common::te_variable* find_builtin(const char* name, int len)
+	{
+		int imin = 0;
+		int imax = sizeof(functions) / sizeof(common::te_variable) - 2;
+
+		/*Binary search.*/
+		while (imax >= imin)
+		{
+			const int i = (imin + ((imax - imin) / 2));
+			int		  c = strncmp(name, functions[i].name, len);
+			if (!c)
+				c = '\0' - functions[i].name[len];
+			if (c == 0)
+			{
+				return functions + i;
+			}
+			else if (c > 0)
+			{
+				imin = i + 1;
+			}
+			else
+			{
+				imax = i - 1;
+			}
+		}
+
+		return 0;
+	}
+
+	static inline const common::te_variable* find_lookup(const state* s, const char* name, int len)
+	{
+		int						   iters;
+		const common::te_variable* var;
+		if (!s->lookup)
+			return 0;
+
+		for (var = s->lookup, iters = s->lookup_len; iters; ++var, --iters)
+		{
+			if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
+			{
+				return var;
+			}
+		}
+		return 0;
+	}
 
 	static inline void next_token(state* s)
 	{
@@ -551,7 +665,7 @@ namespace tinyexpr
 						   (s->next[0] == '_'))
 						s->next++;
 
-					const te_variable* var = find_lookup(s, start, s->next - start);
+					const common::te_variable* var = find_lookup(s, start, s->next - start);
 					if (!var)
 						var = find_builtin(start, s->next - start);
 
@@ -563,29 +677,29 @@ namespace tinyexpr
 					{
 						switch (TYPE_MASK(var->type))
 						{
-						case TE_VARIABLE:
+						case common::TE_VARIABLE:
 							s->type	 = TOK_VARIABLE;
 							s->bound = (const double*)var->address;
 							break;
 
-						case TE_CLOSURE0:
-						case TE_CLOSURE1:
-						case TE_CLOSURE2:
-						case TE_CLOSURE3: /* Falls through. */
-						case TE_CLOSURE4:
-						case TE_CLOSURE5:
-						case TE_CLOSURE6:
-						case TE_CLOSURE7:			   /* Falls through. */
+						case common::TE_CLOSURE0:
+						case common::TE_CLOSURE1:
+						case common::TE_CLOSURE2:
+						case common::TE_CLOSURE3: /* Falls through. */
+						case common::TE_CLOSURE4:
+						case common::TE_CLOSURE5:
+						case common::TE_CLOSURE6:
+						case common::TE_CLOSURE7:	   /* Falls through. */
 							s->context = var->context; /* Falls through. */
 
-						case TE_FUNCTION0:
-						case TE_FUNCTION1:
-						case TE_FUNCTION2:
-						case TE_FUNCTION3: /* Falls through. */
-						case TE_FUNCTION4:
-						case TE_FUNCTION5:
-						case TE_FUNCTION6:
-						case TE_FUNCTION7: /* Falls through. */
+						case common::TE_FUNCTION0:
+						case common::TE_FUNCTION1:
+						case common::TE_FUNCTION2:
+						case common::TE_FUNCTION3: /* Falls through. */
+						case common::TE_FUNCTION4:
+						case common::TE_FUNCTION5:
+						case common::TE_FUNCTION6:
+						case common::TE_FUNCTION7: /* Falls through. */
 							s->type		= var->type;
 							s->function = var->address;
 							break;
@@ -599,19 +713,19 @@ namespace tinyexpr
 					{
 					case '+':
 						s->type		= TOK_INFIX;
-						s->function = add;
+						s->function = details::add;
 						break;
 					case '-':
 						s->type		= TOK_INFIX;
-						s->function = sub;
+						s->function = details::sub;
 						break;
 					case '*':
 						s->type		= TOK_INFIX;
-						s->function = mul;
+						s->function = details::mul;
 						break;
 					case '/':
 						s->type		= TOK_INFIX;
-						s->function = divide;
+						s->function = details::divide;
 						break;
 					case '^':
 						s->type		= TOK_INFIX;
@@ -619,26 +733,26 @@ namespace tinyexpr
 						break;
 					case '%':
 						s->type		= TOK_INFIX;
-						s->function = fmod;
+						s->function = details::fmod;
 						break;
 					case '!':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = not_equal;
+							s->function = details::not_equal;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = logical_not;
+							s->function = details::logical_not;
 						}
 						break;
 					case '=':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = equal;
+							s->function = details::equal;
 						}
 						else
 						{
@@ -649,33 +763,33 @@ namespace tinyexpr
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = lower_eq;
+							s->function = details::lower_eq;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = lower;
+							s->function = details::lower;
 						}
 						break;
 					case '>':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = greater_eq;
+							s->function = details::greater_eq;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = greater;
+							s->function = details::greater;
 						}
 						break;
 					case '&':
 						if (s->next++[0] == '&')
 						{
 							s->type		= TOK_INFIX;
-							s->function = logical_and;
+							s->function = details::logical_and;
 						}
 						else
 						{
@@ -686,7 +800,7 @@ namespace tinyexpr
 						if (s->next++[0] == '|')
 						{
 							s->type		= TOK_INFIX;
-							s->function = logical_or;
+							s->function = details::logical_or;
 						}
 						else
 						{
@@ -716,33 +830,29 @@ namespace tinyexpr
 		} while (s->type == TOK_NULL);
 	}
 
-	static inline te_expr* list(state* s);
-	static inline te_expr* expr(state* s);
-	static inline te_expr* power(state* s);
-
-	static inline te_expr* base(state* s)
+	static inline common::te_expr* base(state* s)
 	{
 		/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "("
 		 * <expr> {"," <expr>} ")" | "(" <list> ")" */
-		te_expr* ret;
-		int		 arity;
+		common::te_expr* ret;
+		int				 arity;
 
 		switch (TYPE_MASK(s->type))
 		{
 		case TOK_NUMBER:
-			ret		   = new_expr(TE_CONSTANT, 0);
+			ret		   = new_expr(common::TE_CONSTANT, 0);
 			ret->value = s->value;
 			next_token(s);
 			break;
 
 		case TOK_VARIABLE:
-			ret		   = new_expr(TE_VARIABLE, 0);
+			ret		   = new_expr(common::TE_VARIABLE, 0);
 			ret->bound = s->bound;
 			next_token(s);
 			break;
 
-		case TE_FUNCTION0:
-		case TE_CLOSURE0:
+		case common::TE_FUNCTION0:
+		case common::TE_CLOSURE0:
 			ret			  = new_expr(s->type, 0);
 			ret->function = s->function;
 			if (IS_CLOSURE(s->type))
@@ -762,8 +872,8 @@ namespace tinyexpr
 			}
 			break;
 
-		case TE_FUNCTION1:
-		case TE_CLOSURE1:
+		case common::TE_FUNCTION1:
+		case common::TE_CLOSURE1:
 			ret			  = new_expr(s->type, 0);
 			ret->function = s->function;
 			if (IS_CLOSURE(s->type))
@@ -772,18 +882,18 @@ namespace tinyexpr
 			ret->parameters[0] = power(s);
 			break;
 
-		case TE_FUNCTION2:
-		case TE_FUNCTION3:
-		case TE_FUNCTION4:
-		case TE_FUNCTION5:
-		case TE_FUNCTION6:
-		case TE_FUNCTION7:
-		case TE_CLOSURE2:
-		case TE_CLOSURE3:
-		case TE_CLOSURE4:
-		case TE_CLOSURE5:
-		case TE_CLOSURE6:
-		case TE_CLOSURE7:
+		case common::TE_FUNCTION2:
+		case common::TE_FUNCTION3:
+		case common::TE_FUNCTION4:
+		case common::TE_FUNCTION5:
+		case common::TE_FUNCTION6:
+		case common::TE_FUNCTION7:
+		case common::TE_CLOSURE2:
+		case common::TE_CLOSURE3:
+		case common::TE_CLOSURE4:
+		case common::TE_CLOSURE5:
+		case common::TE_CLOSURE6:
+		case common::TE_CLOSURE7:
 			arity = ARITY(s->type);
 
 			ret			  = new_expr(s->type, 0);
@@ -843,21 +953,22 @@ namespace tinyexpr
 		return ret;
 	}
 
-	static inline te_expr* power(state* s)
+	static inline common::te_expr* power(state* s)
 	{
 		/* <power>     =    {("-" | "+" | "!")} <base> */
 		int sign = 1;
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
+		while (s->type == TOK_INFIX && (s->function == details::add || s->function == details::sub))
 		{
-			if (s->function == sub)
+			if (s->function == details::sub)
 				sign = -sign;
 			next_token(s);
 		}
 
 		int logical = 0;
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == logical_not))
+		while (s->type == TOK_INFIX &&
+			   (s->function == details::add || s->function == details::sub || s->function == details::logical_not))
 		{
-			if (s->function == logical_not)
+			if (s->function == details::logical_not)
 			{
 				if (logical == 0)
 				{
@@ -871,7 +982,7 @@ namespace tinyexpr
 			next_token(s);
 		}
 
-		te_expr* ret;
+		common::te_expr* ret;
 
 		if (sign == 1)
 		{
@@ -881,31 +992,31 @@ namespace tinyexpr
 			}
 			else if (logical == -1)
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = logical_not;
+				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret->function = details::logical_not;
 			}
 			else
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = logical_notnot;
+				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret->function = details::logical_notnot;
 			}
 		}
 		else
 		{
 			if (logical == 0)
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate;
+				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret->function = details::negate;
 			}
 			else if (logical == -1)
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate_logical_not;
+				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret->function = details::negate_logical_not;
 			}
 			else
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = negate_logical_notnot;
+				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret->function = details::negate_logical_notnot;
 			}
 		}
 
@@ -916,14 +1027,15 @@ namespace tinyexpr
 	static inline te_expr* factor(state* s)
 	{
 		/* <factor>    =    <power> {"^" <power>} */
-		te_expr* ret = power(s);
+		common::te_expr* ret = power(s);
 
-		const void* left_function = NULL;
-		te_expr*	insertion	  = 0;
+		const void*		 left_function = NULL;
+		common::te_expr* insertion	   = 0;
 
 		if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
-			(ret->function == negate || ret->function == logical_not || ret->function == logical_notnot ||
-				ret->function == negate_logical_not || ret->function == negate_logical_notnot))
+			(ret->function == details::negate || ret->function == details::logical_not ||
+				ret->function == details::logical_notnot || ret->function == details::negate_logical_not ||
+				ret->function == details::negate_logical_notnot))
 		{
 			left_function = ret->function;
 			te_expr* se	  = ret->parameters[0];
@@ -961,16 +1073,16 @@ namespace tinyexpr
 		return ret;
 	}
 #else
-	static inline te_expr* factor(state* s)
+	static inline common::te_expr* factor(state* s)
 	{
 		/* <factor>    =    <power> {"^" <power>} */
-		te_expr* ret = power(s);
+		common::te_expr* ret = power(s);
 
 		while (s->type == TOK_INFIX && (s->function == pow))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+			ret = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, power(s));
 			ret->function = t;
 		}
 
@@ -978,179 +1090,94 @@ namespace tinyexpr
 	}
 #endif
 
-	static inline te_expr* term(state* s)
+	static inline common::te_expr* term(state* s)
 	{
 		/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
-		te_expr* ret = factor(s);
+		common::te_expr* ret = factor(s);
 
-		while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod))
+		while (s->type == TOK_INFIX &&
+			   (s->function == details::mul || s->function == details::divide || s->function == details::fmod))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
+			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, factor(s));
 			ret->function = t;
 		}
 
 		return ret;
 	}
 
-	static inline te_expr* sum_expr(state* s)
+	static inline common::te_expr* sum_expr(state* s)
 	{
 		/* <expr>      =    <term> {("+" | "-") <term>} */
-		te_expr* ret = term(s);
+		common::te_expr* ret = term(s);
 
-		while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
+		while (s->type == TOK_INFIX && (s->function == details::add || s->function == details::sub))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
+			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, term(s));
 			ret->function = t;
 		}
 
 		return ret;
 	}
 
-	static inline te_expr* test_expr(state* s)
+	static inline common::te_expr* test_expr(state* s)
 	{
 		/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
-		te_expr* ret = sum_expr(s);
+		common::te_expr* ret = sum_expr(s);
 
-		while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq || s->function == lower ||
-										   s->function == lower_eq || s->function == equal || s->function == not_equal))
+		while (s->type == TOK_INFIX && (s->function == details::greater || s->function == details::greater_eq ||
+										   s->function == details::lower || s->function == details::lower_eq ||
+										   s->function == details::equal || s->function == details::not_equal))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, sum_expr(s));
+			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, sum_expr(s));
 			ret->function = t;
 		}
 
 		return ret;
 	}
 
-	static inline te_expr* expr(state* s)
+	static inline common::te_expr* expr(state* s)
 	{
 		/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
-		te_expr* ret = test_expr(s);
+		common::te_expr* ret = test_expr(s);
 
-		while (s->type == TOK_INFIX && (s->function == logical_and || s->function == logical_or))
+		while (s->type == TOK_INFIX && (s->function == details::logical_and || s->function == details::logical_or))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, test_expr(s));
+			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, test_expr(s));
 			ret->function = t;
 		}
 
 		return ret;
 	}
 
-	static inline te_expr* list(state* s)
+	static inline common::te_expr* list(state* s)
 	{
 		/* <list>      =    <expr> {"," <expr>} */
-		te_expr* ret = expr(s);
+		common::te_expr* ret = expr(s);
 
 		while (s->type == TOK_SEP)
 		{
 			next_token(s);
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-			ret->function = comma;
+			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, expr(s));
+			ret->function = details::comma;
 		}
 
 		return ret;
 	}
 
-#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->function)
-#define M(e)		te_eval((const te_expr*)n->parameters[e])
-
-	static inline double te_eval(const te_expr* n)
-	{
-		if (!n)
-			return details::nan;
-
-		switch (TYPE_MASK(n->type))
-		{
-		case TE_CONSTANT:
-			return n->value;
-		case TE_VARIABLE:
-			return *n->bound;
-
-		case TE_FUNCTION0:
-		case TE_FUNCTION1:
-		case TE_FUNCTION2:
-		case TE_FUNCTION3:
-		case TE_FUNCTION4:
-		case TE_FUNCTION5:
-		case TE_FUNCTION6:
-		case TE_FUNCTION7:
-			switch (ARITY(n->type))
-			{
-			case 0:
-				return TE_FUN(void)();
-			case 1:
-				return TE_FUN(double)(M(0));
-			case 2:
-				return TE_FUN(double, double)(M(0), M(1));
-			case 3:
-				return TE_FUN(double, double, double)(M(0), M(1), M(2));
-			case 4:
-				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
-			case 5:
-				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
-			case 6:
-				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
-			case 7:
-				return TE_FUN(double, double, double, double, double, double, double)(
-					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-			default:
-				return details::nan;
-			}
-
-		case TE_CLOSURE0:
-		case TE_CLOSURE1:
-		case TE_CLOSURE2:
-		case TE_CLOSURE3:
-		case TE_CLOSURE4:
-		case TE_CLOSURE5:
-		case TE_CLOSURE6:
-		case TE_CLOSURE7:
-			switch (ARITY(n->type))
-			{
-			case 0:
-				return TE_FUN(void*)(n->parameters[0]);
-			case 1:
-				return TE_FUN(void*, double)(n->parameters[1], M(0));
-			case 2:
-				return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
-			case 3:
-				return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
-			case 4:
-				return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
-			case 5:
-				return TE_FUN(void*, double, double, double, double, double)(
-					n->parameters[5], M(0), M(1), M(2), M(3), M(4));
-			case 6:
-				return TE_FUN(void*, double, double, double, double, double, double)(
-					n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
-			case 7:
-				return TE_FUN(void*, double, double, double, double, double, double, double)(
-					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-			default:
-				return details::nan;
-			}
-
-		default:
-			return details::nan;
-		}
-	}
-
-#undef TE_FUN
-#undef M
-
-	static inline void optimize(te_expr* n)
+	static inline void optimize(common::te_expr* n)
 	{
 		/* Evaluates as much as possible. */
-		if (n->type == TE_CONSTANT)
+		if (n->type == common::TE_CONSTANT)
 			return;
-		if (n->type == TE_VARIABLE)
+		if (n->type == common::TE_VARIABLE)
 			return;
 
 		/* Only optimize out functions flagged as pure. */
@@ -1161,23 +1188,24 @@ namespace tinyexpr
 			int		  i;
 			for (i = 0; i < arity; ++i)
 			{
-				optimize((te_expr*)n->parameters[i]);
-				if (((te_expr*)(n->parameters[i]))->type != TE_CONSTANT)
+				optimize((common::te_expr*)n->parameters[i]);
+				if (((common::te_expr*)(n->parameters[i]))->type != common::TE_CONSTANT)
 				{
 					known = 0;
 				}
 			}
 			if (known)
 			{
-				const double value = te_eval(n);
+				const double value = eval::te_eval(n);
 				te_free_parameters(n);
-				n->type	 = TE_CONSTANT;
+				n->type	 = common::TE_CONSTANT;
 				n->value = value;
 			}
 		}
 	}
 
-	static inline te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
+	static inline common::te_expr* te_compile(
+		const char* expression, const common::te_variable* variables, int var_count, int* error)
 	{
 		state s;
 		s.start = s.next = expression;
@@ -1185,7 +1213,7 @@ namespace tinyexpr
 		s.lookup_len	 = var_count;
 
 		next_token(&s);
-		te_expr* root = list(&s);
+		common::te_expr* root = list(&s);
 
 		if (s.type != TOK_END)
 		{
@@ -1209,11 +1237,11 @@ namespace tinyexpr
 
 	static inline double te_interp(const char* expression, int* error)
 	{
-		te_expr* n = te_compile(expression, 0, 0, error);
-		double	 ret;
+		common::te_expr* n = te_compile(expression, 0, 0, error);
+		double			 ret;
 		if (n)
 		{
-			ret = te_eval(n);
+			ret = eval::te_eval(n);
 			te_free(n);
 		}
 		else
@@ -1223,36 +1251,36 @@ namespace tinyexpr
 		return ret;
 	}
 
-	static inline void pn(const te_expr* n, int depth)
+	static inline void pn(const common::te_expr* n, int depth)
 	{
 		int i, arity;
 		printf("%*s", depth, "");
 
 		switch (TYPE_MASK(n->type))
 		{
-		case TE_CONSTANT:
+		case common::TE_CONSTANT:
 			printf("%f\n", n->value);
 			break;
-		case TE_VARIABLE:
+		case common::TE_VARIABLE:
 			printf("bound %p\n", n->bound);
 			break;
 
-		case TE_FUNCTION0:
-		case TE_FUNCTION1:
-		case TE_FUNCTION2:
-		case TE_FUNCTION3:
-		case TE_FUNCTION4:
-		case TE_FUNCTION5:
-		case TE_FUNCTION6:
-		case TE_FUNCTION7:
-		case TE_CLOSURE0:
-		case TE_CLOSURE1:
-		case TE_CLOSURE2:
-		case TE_CLOSURE3:
-		case TE_CLOSURE4:
-		case TE_CLOSURE5:
-		case TE_CLOSURE6:
-		case TE_CLOSURE7:
+		case common::TE_FUNCTION0:
+		case common::TE_FUNCTION1:
+		case common::TE_FUNCTION2:
+		case common::TE_FUNCTION3:
+		case common::TE_FUNCTION4:
+		case common::TE_FUNCTION5:
+		case common::TE_FUNCTION6:
+		case common::TE_FUNCTION7:
+		case common::TE_CLOSURE0:
+		case common::TE_CLOSURE1:
+		case common::TE_CLOSURE2:
+		case common::TE_CLOSURE3:
+		case common::TE_CLOSURE4:
+		case common::TE_CLOSURE5:
+		case common::TE_CLOSURE6:
+		case common::TE_CLOSURE7:
 			arity = ARITY(n->type);
 			printf("f%d", arity);
 			for (i = 0; i < arity; i++)
@@ -1262,17 +1290,49 @@ namespace tinyexpr
 			printf("\n");
 			for (i = 0; i < arity; i++)
 			{
-				pn((const te_expr*)n->parameters[i], depth + 1);
+				pn((const common::te_expr*)n->parameters[i], depth + 1);
 			}
 			break;
 		}
 	}
 
-	static inline void te_print(const te_expr* n)
+	static inline void te_print(const common::te_expr* n)
 	{
 		pn(n, 0);
 	}
+};
 
-} // namespace tinyexpr
+struct tinyexpr : public tinyexpr_defines
+{
+	using details  = tinyexpr_details;
+	using common   = tinyexpr_common;
+	using eval	   = tinyexpr_eval;
+	using compiler = tinyexpr_compiler;
+
+	using te_variable = common::te_variable;
+	using te_expr	  = common::te_expr;
+
+	static inline common::te_expr* te_compile(
+		const char* expression, const common::te_variable* variables, int var_count, int* error)
+	{
+		return compiler::te_compile(
+			expression, variables, var_count, error);
+	}
+
+	static inline double te_interp(const char* expression, int* error)
+	{
+		return compiler::te_interp(expression, error);
+	}
+
+	static inline double te_eval(const common::te_expr* n)
+	{
+		return eval::te_eval(n);
+	}
+
+	static inline void te_free(common::te_expr* n)
+	{
+		compiler::te_free(n);
+	}
+};
 
 #endif /*__TINYEXPR_H__*/
