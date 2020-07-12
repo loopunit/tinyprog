@@ -16,13 +16,14 @@ int main(int argc, char* argv[])
 	printf("Evaluating:\n\t%s\n", expression);
 
 	int				   err;
-	tinyexpr::te_expr* n = tinyexpr::te_compile(expression, vars, 1, &err);
+	tinyexpr		   te_instance;
+	auto			   n = te_instance.te_compile(expression, vars, 1, &err);
 
 	if (n)
 	{
-		const double r = tinyexpr::te_eval(n);
+		const double r = te_instance.te_eval(n);
 		printf("Result:\n\t%f\n", r);
-		tinyexpr::te_free(n);
+		te_instance.te_free(n);
 	}
 	else
 	{

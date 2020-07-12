@@ -61,17 +61,18 @@ void bench(const char* expr, function1 func)
 		printf("\tinf\n");
 
 	printf("interp ");
-	tinyexpr::te_expr* n = tinyexpr::te_compile(expr, &lk, 1, 0);
+	tinyexpr		   te_instance;
+	auto n = te_instance.te_compile(expr, &lk, 1, 0);
 	start	   = clock();
 	d		   = 0;
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
 			tmp = i;
-			d += tinyexpr::te_eval(n);
+			d += te_instance.te_eval(n);
 		}
 	const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
-	tinyexpr::te_free(n);
+	te_instance.te_free(n);
 
 	/*Million floats per second input.*/
 	printf(" %.5g", d);

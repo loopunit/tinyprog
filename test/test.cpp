@@ -153,7 +153,8 @@ void test_results()
 		const double answer = cases[i].answer;
 
 		int			 err;
-		const double ev = tinyexpr::te_interp(expr, &err);
+		tinyexpr	 te_instance;
+		const double ev = te_instance.te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -189,11 +190,12 @@ void test_syntax()
 		const int	e	 = errors[i].answer;
 
 		int			 err;
-		const double r = tinyexpr::te_interp(expr, &err);
+		tinyexpr	 te_instance;
+		const double r = te_instance.te_interp(expr, &err);
 		lequal(err, e);
 		lok(r != r);
 
-		tinyexpr::te_expr* n = tinyexpr::te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, 0, 0, &err);
 		lequal(err, e);
 		lok(!n);
 
@@ -202,7 +204,7 @@ void test_syntax()
 			printf("FAILED: %s\n", expr);
 		}
 
-		const double k = tinyexpr::te_interp(expr, 0);
+		const double k = te_instance.te_interp(expr, 0);
 		lok(k != k);
 	}
 }
@@ -229,16 +231,17 @@ void test_nans()
 		const char* expr = nans[i];
 
 		int			 err;
-		const double r = tinyexpr::te_interp(expr, &err);
+		tinyexpr	 te_instance;
+		const double r = te_instance.te_interp(expr, &err);
 		lequal(err, 0);
 		lok(r != r);
 
-		tinyexpr::te_expr* n = tinyexpr::te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const double c = tinyexpr::te_eval(n);
+		const double c = te_instance.te_eval(n);
 		lok(c != c);
-		tinyexpr::te_free(n);
+		te_instance.te_free(n);
 	}
 }
 
@@ -263,39 +266,42 @@ void test_infs()
 		const char* expr = infs[i];
 
 		int			 err;
-		const double r = tinyexpr::te_interp(expr, &err);
+		tinyexpr	 te_instance;
+		const double r = te_instance.te_interp(expr, &err);
 		lequal(err, 0);
 		lok(r == r + 1);
 
-		tinyexpr::te_expr* n = tinyexpr::te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const double c = tinyexpr::te_eval(n);
+		const double c = te_instance.te_eval(n);
 		lok(c == c + 1);
-		tinyexpr::te_free(n);
+		te_instance.te_free(n);
 	}
 }
 
 void test_variables()
 {
-	double				  x, y, test;
+	double x, y, test;
+
 	tinyexpr::te_variable lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
 
-	int err;
+	tinyexpr te_instance;
+	int		 err;
 
-	tinyexpr::te_expr* expr1 = tinyexpr::te_compile("cos x + sin y", lookup, 2, &err);
+	auto expr1 = te_instance.te_compile("cos x + sin y", lookup, 2, &err);
 	lok(expr1);
 	lok(!err);
 
-	tinyexpr::te_expr* expr2 = tinyexpr::te_compile("x+x+x-y", lookup, 2, &err);
+	auto expr2 = te_instance.te_compile("x+x+x-y", lookup, 2, &err);
 	lok(expr2);
 	lok(!err);
 
-	tinyexpr::te_expr* expr3 = tinyexpr::te_compile("x*y^3", lookup, 2, &err);
+	auto expr3 = te_instance.te_compile("x*y^3", lookup, 2, &err);
 	lok(expr3);
 	lok(!err);
 
-	tinyexpr::te_expr* expr4 = tinyexpr::te_compile("te_st+5", lookup, 3, &err);
+	auto expr4 = te_instance.te_compile("te_st+5", lookup, 3, &err);
 	lok(expr4);
 	lok(!err);
 
@@ -305,39 +311,39 @@ void test_variables()
 		{
 			double ev;
 
-			ev = tinyexpr::te_eval(expr1);
+			ev = te_instance.te_eval(expr1);
 			lfequal(ev, cos(x) + sin(y));
 
-			ev = tinyexpr::te_eval(expr2);
+			ev = te_instance.te_eval(expr2);
 			lfequal(ev, x + x + x - y);
 
-			ev = tinyexpr::te_eval(expr3);
+			ev = te_instance.te_eval(expr3);
 			lfequal(ev, x * y * y * y);
 
 			test = x;
-			ev	 = tinyexpr::te_eval(expr4);
+			ev	 = te_instance.te_eval(expr4);
 			lfequal(ev, x + 5);
 		}
 	}
 
-	tinyexpr::te_free(expr1);
-	tinyexpr::te_free(expr2);
-	tinyexpr::te_free(expr3);
-	tinyexpr::te_free(expr4);
+	te_instance.te_free(expr1);
+	te_instance.te_free(expr2);
+	te_instance.te_free(expr3);
+	te_instance.te_free(expr4);
 
-	tinyexpr::te_expr* expr5 = tinyexpr::te_compile("xx*y^3", lookup, 2, &err);
+	auto expr5 = te_instance.te_compile("xx*y^3", lookup, 2, &err);
 	lok(!expr5);
 	lok(err);
 
-	tinyexpr::te_expr* expr6 = tinyexpr::te_compile("tes", lookup, 3, &err);
+	auto expr6 = te_instance.te_compile("tes", lookup, 3, &err);
 	lok(!expr6);
 	lok(err);
 
-	tinyexpr::te_expr* expr7 = tinyexpr::te_compile("sinn x", lookup, 2, &err);
+	auto expr7 = te_instance.te_compile("sinn x", lookup, 2, &err);
 	lok(!expr7);
 	lok(err);
 
-	tinyexpr::te_expr* expr8 = tinyexpr::te_compile("si x", lookup, 2, &err);
+	auto expr8 = te_instance.te_compile("si x", lookup, 2, &err);
 	lok(!expr8);
 	lok(err);
 }
@@ -347,10 +353,10 @@ void test_variables()
 	{                                                                                                                  \
 		if ((b) != (b))                                                                                                \
 			break;                                                                                                     \
-		expr = tinyexpr::te_compile((a), lookup, 2, &err);                                                             \
-		lfequal(tinyexpr::te_eval(expr), (b));                                                                         \
+		expr = te_instance.te_compile((a), lookup, 2, &err);                                                           \
+		lfequal(te_instance.te_eval(expr), (b));                                                                       \
 		lok(!err);                                                                                                     \
-		tinyexpr::te_free(expr);                                                                                       \
+		te_instance.te_free(expr);                                                                                     \
 	} while (0)
 
 void test_functions()
@@ -358,6 +364,7 @@ void test_functions()
 	double				  x, y;
 	tinyexpr::te_variable lookup[] = {{"x", &x}, {"y", &y}};
 
+	tinyexpr		   te_instance;
 	int				   err;
 	tinyexpr::te_expr* expr;
 
@@ -473,12 +480,12 @@ void test_dynamic()
 		const char*	 expr	= cases[i].expr;
 		const double answer = cases[i].answer;
 
-		int				   err;
-		tinyexpr::te_expr* ex =
-			tinyexpr::te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		tinyexpr te_instance;
+		int		 err;
+		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
 		lok(ex);
-		lfequal(tinyexpr::te_eval(ex), answer);
-		tinyexpr::te_free(ex);
+		lfequal(te_instance.te_eval(ex), answer);
+		te_instance.te_free(ex);
 	}
 }
 
@@ -531,18 +538,18 @@ void test_closure()
 		const char*	 expr	= cases[i].expr;
 		const double answer = cases[i].answer;
 
-		int				   err;
-		tinyexpr::te_expr* ex =
-			tinyexpr::te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		tinyexpr te_instance;
+		int		 err;
+		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
 		lok(ex);
 
 		extra = 0;
-		lfequal(tinyexpr::te_eval(ex), answer + extra);
+		lfequal(te_instance.te_eval(ex), answer + extra);
 
 		extra = 10;
-		lfequal(tinyexpr::te_eval(ex), answer + extra);
+		lfequal(te_instance.te_eval(ex), answer + extra);
 
-		tinyexpr::te_free(ex);
+		te_instance.te_free(ex);
 	}
 
 	test_case cases2[] = {
@@ -557,12 +564,12 @@ void test_closure()
 		const char*	 expr	= cases2[i].expr;
 		const double answer = cases2[i].answer;
 
-		int				   err;
-		tinyexpr::te_expr* ex =
-			tinyexpr::te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		tinyexpr te_instance;
+		int		 err;
+		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
 		lok(ex);
-		lfequal(tinyexpr::te_eval(ex), answer);
-		tinyexpr::te_free(ex);
+		lfequal(te_instance.te_eval(ex), answer);
+		te_instance.te_free(ex);
 	}
 }
 
@@ -581,16 +588,17 @@ void test_optimize()
 		const char*	 expr	= cases[i].expr;
 		const double answer = cases[i].answer;
 
-		int				   err;
-		tinyexpr::te_expr* ex = tinyexpr::te_compile(expr, 0, 0, &err);
+		tinyexpr te_instance;
+		int		 err;
+		auto	 ex = te_instance.te_compile(expr, 0, 0, &err);
 		lok(ex);
 
 		/* The answer should be know without
 		 * even running eval. */
 		lfequal(ex->value, answer);
-		lfequal(tinyexpr::te_eval(ex), answer);
+		lfequal(te_instance.te_eval(ex), answer);
 
-		tinyexpr::te_free(ex);
+		te_instance.te_free(ex);
 	}
 }
 
@@ -628,20 +636,21 @@ void test_pow()
 		const char* expr1 = cases[i].expr1;
 		const char* expr2 = cases[i].expr2;
 
-		tinyexpr::te_expr* ex1 = tinyexpr::te_compile(expr1, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
-		tinyexpr::te_expr* ex2 = tinyexpr::te_compile(expr2, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
+		tinyexpr te_instance;
+		auto ex1 = te_instance.te_compile(expr1, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
+		auto ex2 = te_instance.te_compile(expr2, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
 
 		lok(ex1);
 		lok(ex2);
 
-		double r1 = tinyexpr::te_eval(ex1);
-		double r2 = tinyexpr::te_eval(ex2);
+		double r1 = te_instance.te_eval(ex1);
+		double r2 = te_instance.te_eval(ex2);
 
 		fflush(stdout);
 		lfequal(r1, r2);
 
-		tinyexpr::te_free(ex1);
-		tinyexpr::te_free(ex2);
+		te_instance.te_free(ex1);
+		te_instance.te_free(ex2);
 	}
 }
 
@@ -678,8 +687,9 @@ void test_combinatorics()
 		const char*	 expr	= cases[i].expr;
 		const double answer = cases[i].answer;
 
+		tinyexpr	 te_instance;
 		int			 err;
-		const double ev = tinyexpr::te_interp(expr, &err);
+		const double ev = te_instance.te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -773,8 +783,9 @@ void test_logic()
 		const char*	 expr	= cases[i].expr;
 		const double answer = cases[i].answer;
 
+		tinyexpr	 te_instance;
 		int			 err;
-		const double ev = tinyexpr::te_interp(expr, &err);
+		const double ev = te_instance.te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 

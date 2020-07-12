@@ -12,6 +12,8 @@ int main(int argc, char* argv[])
 	const char* expression = argv[1];
 	printf("Evaluating:\n\t%s\n", expression);
 
+	tinyexpr te_instance;
+
 	/* This shows an example where the variables
 	 * x and y are bound at eval-time. */
 	double		x, y;
@@ -19,7 +21,7 @@ int main(int argc, char* argv[])
 
 	/* This will compile the expression and check for errors. */
 	int		 err;
-	tinyexpr::te_expr* n = tinyexpr::te_compile(expression, vars, 2, &err);
+	auto n = te_instance.te_compile(expression, vars, 2, &err);
 
 	if (n)
 	{
@@ -28,10 +30,10 @@ int main(int argc, char* argv[])
 		 * already been done. */
 		x			   = 3;
 		y			   = 4;
-		const double r = tinyexpr::te_eval(n);
+		const auto r = te_instance.te_eval(n);
 		printf("Result:\n\t%f\n", r);
 
-		tinyexpr::te_free(n);
+		te_instance.te_free(n);
 	}
 	else
 	{

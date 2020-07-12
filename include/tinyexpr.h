@@ -1319,23 +1319,23 @@ struct tinyexpr : public tinyexpr_defines
 	using te_variable = common::te_variable;
 	using te_expr	  = common::te_expr;
 
-	static inline common::te_expr* te_compile(
+	inline common::te_expr* te_compile(
 		const char* expression, const common::te_variable* variables, int var_count, int* error)
 	{
 		return compiler::te_compile(expression, variables, var_count, error);
 	}
 
-	static inline double te_interp(const char* expression, int* error)
+	inline double te_interp(const char* expression, int* error)
 	{
 		return compiler::te_interp(expression, error);
 	}
 
-	static inline double te_eval(const common::te_expr* n)
+	inline double te_eval(const common::te_expr* n)
 	{
 		return eval::te_eval(n);
 	}
 
-	static inline void te_free(common::te_expr* n)
+	inline void te_free(common::te_expr* n)
 	{
 		compiler::te_free(n);
 	}
