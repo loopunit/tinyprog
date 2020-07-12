@@ -38,7 +38,8 @@ void bench(const char* expr, function1 func)
 	double			tmp;
 	clock_t			start;
 
-	tinyexpr::te_variable lk = {"a", &tmp};
+	tinyexpr te_instance;
+	te_instance.register_variable({"a", &tmp});
 
 	printf("Expression: %s\n", expr);
 
@@ -61,10 +62,9 @@ void bench(const char* expr, function1 func)
 		printf("\tinf\n");
 
 	printf("interp ");
-	tinyexpr		   te_instance;
-	auto n = te_instance.te_compile(expr, &lk, 1, 0);
-	start	   = clock();
-	d		   = 0;
+	auto n = te_instance.te_compile(expr, 0);
+	start  = clock();
+	d	   = 0;
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{

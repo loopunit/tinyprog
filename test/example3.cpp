@@ -10,14 +10,14 @@ double my_sum(double a, double b)
 
 int main(int argc, char* argv[])
 {
-	tinyexpr::te_variable vars[] = {{"mysum", my_sum, tinyexpr::TE_FUNCTION2}};
-
 	const char* expression = "mysum(5, 6)";
 	printf("Evaluating:\n\t%s\n", expression);
 
-	int				   err;
-	tinyexpr		   te_instance;
-	auto			   n = te_instance.te_compile(expression, vars, 1, &err);
+	int		 err;
+	tinyexpr te_instance;
+
+	te_instance.register_variable({"mysum", my_sum, tinyexpr::TE_FUNCTION2});
+	auto	 n = te_instance.te_compile(expression, &err);
 
 	if (n)
 	{

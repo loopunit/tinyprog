@@ -195,7 +195,7 @@ void test_syntax()
 		lequal(err, e);
 		lok(r != r);
 
-		auto n = te_instance.te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, &err);
 		lequal(err, e);
 		lok(!n);
 
@@ -236,7 +236,7 @@ void test_nans()
 		lequal(err, 0);
 		lok(r != r);
 
-		auto n = te_instance.te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, &err);
 		lok(n);
 		lequal(err, 0);
 		const double c = te_instance.te_eval(n);
@@ -271,7 +271,7 @@ void test_infs()
 		lequal(err, 0);
 		lok(r == r + 1);
 
-		auto n = te_instance.te_compile(expr, 0, 0, &err);
+		auto n = te_instance.te_compile(expr, &err);
 		lok(n);
 		lequal(err, 0);
 		const double c = te_instance.te_eval(n);
@@ -284,24 +284,25 @@ void test_variables()
 {
 	double x, y, test;
 
-	tinyexpr::te_variable lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
-
 	tinyexpr te_instance;
-	int		 err;
+	te_instance.register_variable({"x", &x});
+	te_instance.register_variable({"y", &y});
+	te_instance.register_variable({"te_st", &test});
 
-	auto expr1 = te_instance.te_compile("cos x + sin y", lookup, 2, &err);
+	int	 err;
+	auto expr1 = te_instance.te_compile("cos x + sin y", &err);
 	lok(expr1);
 	lok(!err);
 
-	auto expr2 = te_instance.te_compile("x+x+x-y", lookup, 2, &err);
+	auto expr2 = te_instance.te_compile("x+x+x-y", &err);
 	lok(expr2);
 	lok(!err);
 
-	auto expr3 = te_instance.te_compile("x*y^3", lookup, 2, &err);
+	auto expr3 = te_instance.te_compile("x*y^3", &err);
 	lok(expr3);
 	lok(!err);
 
-	auto expr4 = te_instance.te_compile("te_st+5", lookup, 3, &err);
+	auto expr4 = te_instance.te_compile("te_st+5", &err);
 	lok(expr4);
 	lok(!err);
 
@@ -331,19 +332,19 @@ void test_variables()
 	te_instance.te_free(expr3);
 	te_instance.te_free(expr4);
 
-	auto expr5 = te_instance.te_compile("xx*y^3", lookup, 2, &err);
+	auto expr5 = te_instance.te_compile("xx*y^3", &err);
 	lok(!expr5);
 	lok(err);
 
-	auto expr6 = te_instance.te_compile("tes", lookup, 3, &err);
+	auto expr6 = te_instance.te_compile("tes", &err);
 	lok(!expr6);
 	lok(err);
 
-	auto expr7 = te_instance.te_compile("sinn x", lookup, 2, &err);
+	auto expr7 = te_instance.te_compile("sinn x", &err);
 	lok(!expr7);
 	lok(err);
 
-	auto expr8 = te_instance.te_compile("si x", lookup, 2, &err);
+	auto expr8 = te_instance.te_compile("si x", &err);
 	lok(!expr8);
 	lok(err);
 }
@@ -353,7 +354,7 @@ void test_variables()
 	{                                                                                                                  \
 		if ((b) != (b))                                                                                                \
 			break;                                                                                                     \
-		expr = te_instance.te_compile((a), lookup, 2, &err);                                                           \
+		expr = te_instance.te_compile((a), &err);                                                                      \
 		lfequal(te_instance.te_eval(expr), (b));                                                                       \
 		lok(!err);                                                                                                     \
 		te_instance.te_free(expr);                                                                                     \
@@ -361,10 +362,11 @@ void test_variables()
 
 void test_functions()
 {
-	double				  x, y;
-	tinyexpr::te_variable lookup[] = {{"x", &x}, {"y", &y}};
+	double	 x, y;
+	tinyexpr te_instance;
+	te_instance.register_variable({"x", &x});
+	te_instance.register_variable({"y", &y});
 
-	tinyexpr		   te_instance;
 	int				   err;
 	tinyexpr::te_expr* expr;
 
@@ -432,19 +434,7 @@ double sum7(double a, double b, double c, double d, double e, double f, double g
 
 void test_dynamic()
 {
-	double				  x, f;
-	tinyexpr::te_variable lookup[] = {
-		{"x", &x},
-		{"f", &f},
-		{"sum0", sum0, tinyexpr::TE_FUNCTION0},
-		{"sum1", sum1, tinyexpr::TE_FUNCTION1},
-		{"sum2", sum2, tinyexpr::TE_FUNCTION2},
-		{"sum3", sum3, tinyexpr::TE_FUNCTION3},
-		{"sum4", sum4, tinyexpr::TE_FUNCTION4},
-		{"sum5", sum5, tinyexpr::TE_FUNCTION5},
-		{"sum6", sum6, tinyexpr::TE_FUNCTION6},
-		{"sum7", sum7, tinyexpr::TE_FUNCTION7},
-	};
+	double x, f;
 
 	test_case cases[] = {
 		{"x", 2},
@@ -481,8 +471,19 @@ void test_dynamic()
 		const double answer = cases[i].answer;
 
 		tinyexpr te_instance;
-		int		 err;
-		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		te_instance.register_variables({{"x", &x},
+			{"f", &f},
+			{"sum0", sum0, tinyexpr::TE_FUNCTION0},
+			{"sum1", sum1, tinyexpr::TE_FUNCTION1},
+			{"sum2", sum2, tinyexpr::TE_FUNCTION2},
+			{"sum3", sum3, tinyexpr::TE_FUNCTION3},
+			{"sum4", sum4, tinyexpr::TE_FUNCTION4},
+			{"sum5", sum5, tinyexpr::TE_FUNCTION5},
+			{"sum6", sum6, tinyexpr::TE_FUNCTION6},
+			{"sum7", sum7, tinyexpr::TE_FUNCTION7}});
+
+		int	 err;
+		auto ex = te_instance.te_compile(expr, &err);
 		lok(ex);
 		lfequal(te_instance.te_eval(ex), answer);
 		te_instance.te_free(ex);
@@ -516,15 +517,8 @@ double cell(void* context, double a)
 
 void test_closure()
 {
-	double extra;
+	double context;
 	double c[] = {5, 6, 7, 8, 9};
-
-	tinyexpr::te_variable lookup[] = {
-		{"c0", clo0, tinyexpr::TE_CLOSURE0, &extra},
-		{"c1", clo1, tinyexpr::TE_CLOSURE1, &extra},
-		{"c2", clo2, tinyexpr::TE_CLOSURE2, &extra},
-		{"cell", cell, tinyexpr::TE_CLOSURE1, c},
-	};
 
 	test_case cases[] = {
 		{"c0", 6},
@@ -539,15 +533,22 @@ void test_closure()
 		const double answer = cases[i].answer;
 
 		tinyexpr te_instance;
-		int		 err;
-		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		te_instance.register_variables({
+			{"c0", clo0, tinyexpr::TE_CLOSURE0, &context},
+			{"c1", clo1, tinyexpr::TE_CLOSURE1, &context},
+			{"c2", clo2, tinyexpr::TE_CLOSURE2, &context},
+			{"cell", cell, tinyexpr::TE_CLOSURE1, c},
+		});
+
+		int	 err;
+		auto ex = te_instance.te_compile(expr, &err);
 		lok(ex);
 
-		extra = 0;
-		lfequal(te_instance.te_eval(ex), answer + extra);
+		context = 0;
+		lfequal(te_instance.te_eval(ex), answer + context);
 
-		extra = 10;
-		lfequal(te_instance.te_eval(ex), answer + extra);
+		context = 10;
+		lfequal(te_instance.te_eval(ex), answer + context);
 
 		te_instance.te_free(ex);
 	}
@@ -565,8 +566,15 @@ void test_closure()
 		const double answer = cases2[i].answer;
 
 		tinyexpr te_instance;
-		int		 err;
-		auto	 ex = te_instance.te_compile(expr, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), &err);
+		te_instance.register_variables({
+			{"c0", clo0, tinyexpr::TE_CLOSURE0, &context},
+			{"c1", clo1, tinyexpr::TE_CLOSURE1, &context},
+			{"c2", clo2, tinyexpr::TE_CLOSURE2, &context},
+			{"cell", cell, tinyexpr::TE_CLOSURE1, c},
+		});
+
+		int	 err;
+		auto ex = te_instance.te_compile(expr, &err);
 		lok(ex);
 		lfequal(te_instance.te_eval(ex), answer);
 		te_instance.te_free(ex);
@@ -590,7 +598,7 @@ void test_optimize()
 
 		tinyexpr te_instance;
 		int		 err;
-		auto	 ex = te_instance.te_compile(expr, 0, 0, &err);
+		auto	 ex = te_instance.te_compile(expr, &err);
 		lok(ex);
 
 		/* The answer should be know without
@@ -628,8 +636,6 @@ void test_pow()
 
 	double a = 2, b = 3;
 
-	tinyexpr::te_variable lookup[] = {{"a", &a}, {"b", &b}};
-
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_equ); ++i)
 	{
@@ -637,8 +643,13 @@ void test_pow()
 		const char* expr2 = cases[i].expr2;
 
 		tinyexpr te_instance;
-		auto ex1 = te_instance.te_compile(expr1, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
-		auto ex2 = te_instance.te_compile(expr2, lookup, sizeof(lookup) / sizeof(tinyexpr::te_variable), 0);
+		te_instance.register_variables({
+			{"a", &a},
+			{"b", &b},
+		});
+
+		auto	 ex1 = te_instance.te_compile(expr1, 0);
+		auto	 ex2 = te_instance.te_compile(expr2, 0);
 
 		lok(ex1);
 		lok(ex2);

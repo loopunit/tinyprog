@@ -16,20 +16,21 @@ int main(int argc, char* argv[])
 
 	/* This shows an example where the variables
 	 * x and y are bound at eval-time. */
-	double		x, y;
-	tinyexpr::te_variable vars[] = {{"x", &x}, {"y", &y}};
+	double x, y;
+	te_instance.register_variable({"x", &x});
+	te_instance.register_variable({"y", &y});
 
 	/* This will compile the expression and check for errors. */
-	int		 err;
-	auto n = te_instance.te_compile(expression, vars, 2, &err);
+	int	 err;
+	auto n = te_instance.te_compile(expression, &err);
 
 	if (n)
 	{
 		/* The variables can be changed here, and eval can be called as many
 		 * times as you like. This is fairly efficient because the parsing has
 		 * already been done. */
-		x			   = 3;
-		y			   = 4;
+		x			 = 3;
+		y			 = 4;
 		const auto r = te_instance.te_eval(n);
 		printf("Result:\n\t%f\n", r);
 

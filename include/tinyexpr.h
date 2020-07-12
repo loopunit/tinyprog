@@ -26,6 +26,9 @@
 #define __TINYEXPR_H__
 
 #include <limits>
+#include <cassert>
+#include <vector>
+#include <algorithm>
 
 #include <math.h>
 #include <stdlib.h>
@@ -292,8 +295,8 @@ struct tinyexpr_defines
 		TE_FUNCTION5,
 		TE_FUNCTION6,
 		TE_FUNCTION7,
-
-		TE_CLOSURE_INIT
+		TE_FUNCTION_MAX,
+		TE_CLOSURE_INIT = TE_FUNCTION_MAX
 	};
 
 	enum
@@ -306,6 +309,7 @@ struct tinyexpr_defines
 		TE_CLOSURE5,
 		TE_CLOSURE6,
 		TE_CLOSURE7,
+		TE_CLOSURE_MAX,
 
 		TE_FLAG_PURE = 32
 	};
@@ -362,7 +366,7 @@ struct tinyexpr_common : public tinyexpr_defines
 		const char* name;
 		const void* address;
 		int			type;
-		void*		context;
+		void*		closure_context;
 	};
 };
 
@@ -526,41 +530,47 @@ struct tinyexpr_compiler
 		return new_expr_impl(type, parameters);
 	}
 
+	static inline int ta_num_parameters_for_type(int type_mask) noexcept
+	{
+		// assume this order for optimizing the conditions
+		static_assert(common::TE_CLOSURE0 >= common::TE_FUNCTION_MAX);
+
+		if (type_mask >= common::TE_FUNCTION1)
+		{
+			if (type_mask < common::TE_FUNCTION_MAX)
+			{
+				return (type_mask - static_cast<int>(common::TE_FUNCTION0));
+			}
+			else if (type_mask > common::TE_CLOSURE0)
+			{
+				assert(type_mask < common::TE_CLOSURE_MAX);
+				return (type_mask - static_cast<int>(common::TE_CLOSURE0));
+			}
+		}
+
+		return 0;
+	}
+
 	static inline void te_free_parameters(common::te_expr* n)
 	{
 		if (!n)
-			return;
-
-		switch (common::type_mask(n->type))
 		{
-		case common::TE_FUNCTION7:
-		case common::TE_CLOSURE7:
-			te_free((common::te_expr*)n->parameters[6]); /* Falls through. */
-		case common::TE_FUNCTION6:
-		case common::TE_CLOSURE6:
-			te_free((common::te_expr*)n->parameters[5]); /* Falls through. */
-		case common::TE_FUNCTION5:
-		case common::TE_CLOSURE5:
-			te_free((common::te_expr*)n->parameters[4]); /* Falls through. */
-		case common::TE_FUNCTION4:
-		case common::TE_CLOSURE4:
-			te_free((common::te_expr*)n->parameters[3]); /* Falls through. */
-		case common::TE_FUNCTION3:
-		case common::TE_CLOSURE3:
-			te_free((common::te_expr*)n->parameters[2]); /* Falls through. */
-		case common::TE_FUNCTION2:
-		case common::TE_CLOSURE2:
-			te_free((common::te_expr*)n->parameters[1]); /* Falls through. */
-		case common::TE_FUNCTION1:
-		case common::TE_CLOSURE1:
-			te_free((common::te_expr*)n->parameters[0]);
+			return;
+		}
+
+		for (int i = ta_num_parameters_for_type(common::type_mask(n->type)); i > 0; --i)
+		{
+			te_free((common::te_expr*)n->parameters[i - 1]);
 		}
 	}
 
 	static inline void te_free(common::te_expr* n)
 	{
 		if (!n)
+		{
 			return;
+		}
+
 		te_free_parameters(n);
 		free(n);
 	}
@@ -696,8 +706,8 @@ struct tinyexpr_compiler
 						case common::TE_CLOSURE4:
 						case common::TE_CLOSURE5:
 						case common::TE_CLOSURE6:
-						case common::TE_CLOSURE7:	   /* Falls through. */
-							s->context = var->context; /* Falls through. */
+						case common::TE_CLOSURE7:			   /* Falls through. */
+							s->context = var->closure_context; /* Falls through. */
 
 						case common::TE_FUNCTION0:
 						case common::TE_FUNCTION1:
@@ -1242,22 +1252,6 @@ struct tinyexpr_compiler
 		}
 	}
 
-	static inline double te_interp(const char* expression, int* error)
-	{
-		common::te_expr* n = te_compile(expression, 0, 0, error);
-		double			 ret;
-		if (n)
-		{
-			ret = eval::te_eval(n);
-			te_free(n);
-		}
-		else
-		{
-			ret = details::nan;
-		}
-		return ret;
-	}
-
 	static inline void pn(const common::te_expr* n, int depth)
 	{
 		int i, arity;
@@ -1319,23 +1313,71 @@ struct tinyexpr : public tinyexpr_defines
 	using te_variable = common::te_variable;
 	using te_expr	  = common::te_expr;
 
-	inline common::te_expr* te_compile(
-		const char* expression, const common::te_variable* variables, int var_count, int* error)
+	std::vector<te_variable> m_variable_cache;
+
+	std::vector<te_variable>::iterator find_variable(const te_variable& v)
 	{
-		return compiler::te_compile(expression, variables, var_count, error);
+		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v](const te_variable& existing) {
+			if (::strcmp(v.name, existing.name) == 0)
+			{
+				assert(v.address == existing.address);
+				return true;
+			}
+			return false;
+		});
+	}
+
+	void register_variable(const te_variable& var)
+	{
+		auto itor = find_variable(var);
+		if (itor == m_variable_cache.end())
+		{
+			m_variable_cache.push_back(var);
+		}
+	}
+
+	template<typename... T_VARS>
+	void register_variables(T_VARS... vars)
+	{
+		(register_variable(vars), ...);
+	}
+
+	void register_variables(std::initializer_list<te_variable> vars)
+	{
+		for (const auto& v : vars)
+		{
+			register_variable(v);
+		}
+	}
+
+	inline common::te_expr* te_compile(const char* expression, int* error)
+	{
+		return compiler::te_compile(
+			expression, m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0, m_variable_cache.size(), error);
 	}
 
 	inline double te_interp(const char* expression, int* error)
 	{
-		return compiler::te_interp(expression, error);
+		auto   n = te_compile(expression, error);
+		double ret;
+		if (n)
+		{
+			ret = eval::te_eval(n);
+			te_free(n);
+		}
+		else
+		{
+			ret = details::nan;
+		}
+		return ret;
 	}
 
-	inline double te_eval(const common::te_expr* n)
+	inline double te_eval(const te_expr* n)
 	{
 		return eval::te_eval(n);
 	}
 
-	inline void te_free(common::te_expr* n)
+	inline void te_free(te_expr* n)
 	{
 		compiler::te_free(n);
 	}
