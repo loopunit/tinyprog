@@ -1,51 +1,51 @@
 --Debug-x64--
 Expression: sqrt(a^1.5+a^2.5)
-native  4.4443e+12       8904ms    11mfps
-interp  4.4443e+12      28441ms     3mfps
-219.42% longer
+native  4.4443e+12       8920ms    11mfps
+interp  4.4443e+12      31865ms     3mfps
+257.23% longer
 
 Expression: a+5
-native  5.0045e+11       1036ms    96mfps
-interp  5.0045e+11       7780ms    12mfps
-650.97% longer
+native  5.0045e+11       1033ms    96mfps
+interp  5.0045e+11       8860ms    11mfps
+757.70% longer
 
 Expression: a+(5*2)
-native  5.0095e+11       1037ms    96mfps
-interp  5.0095e+11       7782ms    12mfps
-650.43% longer
+native  5.0095e+11       1035ms    96mfps
+interp  5.0095e+11       8781ms    11mfps
+748.41% longer
 
 Expression: (a+5)*2
-native  1.0009e+12        986ms   101mfps
-interp  1.0009e+12      12746ms     7mfps
-1192.70% longer
+native  1.0009e+12       1029ms    97mfps
+interp  1.0009e+12      14969ms     6mfps
+1354.71% longer
 
 Expression: (1/(a+1)+2/(a+2)+3/(a+3))
-native  5.2226e+05       1275ms    78mfps
-interp  5.2226e+05      44431ms     2mfps
-3384.78% longer
+native  5.2226e+05       1272ms    78mfps
+interp  5.2226e+05      53053ms     1mfps
+4070.83% longer
 
 --Release-x64--
 Expression: sqrt(a^1.5+a^2.5)
-native  4.4443e+12      10308ms     9mfps
-interp  4.4443e+12      11923ms     8mfps
-15.67% longer
+native  4.4443e+12      10350ms     9mfps
+interp  4.4443e+12      10879ms     9mfps
+5.11% longer
 
 Expression: a+5
-native  5.0045e+11        608ms   164mfps
-interp  5.0045e+11       1168ms    85mfps
-92.11% longer
+native  5.0045e+11        612ms   163mfps
+interp  5.0045e+11       1133ms    88mfps
+85.13% longer
 
 Expression: a+(5*2)
-native  5.0095e+11        238ms   420mfps
-interp  5.0095e+11       1172ms    85mfps
-392.44% longer
+native  5.0095e+11        237ms   421mfps
+interp  5.0095e+11       1129ms    88mfps
+376.37% longer
 
 Expression: (a+5)*2
 native  1.0009e+12        238ms   420mfps
-interp  1.0009e+12       2039ms    49mfps
-756.72% longer
+interp  1.0009e+12       1887ms    52mfps
+692.86% longer
 
 Expression: (1/(a+1)+2/(a+2)+3/(a+3))
-native  5.2226e+05        323ms   309mfps
-interp  5.2226e+05       9432ms    10mfps
-2820.12% longer
+native  5.2226e+05        318ms   314mfps
+interp  5.2226e+05       8785ms    11mfps
+2662.58% longer

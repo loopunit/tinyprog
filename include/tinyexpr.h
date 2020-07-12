@@ -314,6 +314,31 @@ struct tinyexpr_defines
 	{
 		TE_CONSTANT = 1
 	};
+
+	static inline int type_mask(const int i)
+	{
+		return i & 0x0000001F;
+	}
+
+	static inline bool is_pure(const int i)
+	{
+		return (i & TE_FLAG_PURE) != 0;
+	}
+
+	static inline bool is_function(const int i)
+	{
+		return (i & TE_FUNCTION0) != 0;
+	}
+
+	static inline bool is_closure(const int i)
+	{
+		return (i & TE_CLOSURE0) != 0;
+	}
+
+	static inline int arity(const int i)
+	{
+		return (i & (TE_FUNCTION0 | TE_CLOSURE0)) ? (i & 0x00000007) : 0;
+	}
 };
 
 struct tinyexpr_common : public tinyexpr_defines
@@ -339,37 +364,12 @@ struct tinyexpr_common : public tinyexpr_defines
 		int			type;
 		void*		context;
 	};
-
-	/* Parses the input expression, evaluates it, and frees it. */
-	/* Returns NaN on error. */
-	static inline double te_interp(const char* expression, int* error);
-
-	/* Parses the input expression and binds variables. */
-	/* Returns NULL on error. */
-	static inline te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
-
-	///* Evaluates the expression. */
-	// static inline double te_eval(const te_expr* n);
-
-	/* Prints debugging information on the syntax tree. */
-	static inline void te_print(const te_expr* n);
-
-	///* Frees the expression. */
-	///* This is safe to call on NULL pointers. */
-	// static inline void te_free(te_expr* n);
 };
 
 struct tinyexpr_eval
 {
 	using details = tinyexpr_details;
 	using common  = tinyexpr_common;
-
-#define TYPE_MASK(TYPE) ((TYPE)&0x0000001F)
-
-#define IS_PURE(TYPE)	  (((TYPE)&common::TE_FLAG_PURE) != 0)
-#define IS_FUNCTION(TYPE) (((TYPE)&common::TE_FUNCTION0) != 0)
-#define IS_CLOSURE(TYPE)  (((TYPE)&common::TE_CLOSURE0) != 0)
-#define ARITY(TYPE)		  (((TYPE) & (common::TE_FUNCTION0 | common::TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
 
 	static inline double te_eval(const common::te_expr* n)
 	{
@@ -379,7 +379,7 @@ struct tinyexpr_eval
 		if (!n)
 			return details::nan;
 
-		switch (TYPE_MASK(n->type))
+		switch (common::type_mask(n->type))
 		{
 		case common::TE_CONSTANT:
 			return n->value;
@@ -394,7 +394,7 @@ struct tinyexpr_eval
 		case common::TE_FUNCTION5:
 		case common::TE_FUNCTION6:
 		case common::TE_FUNCTION7:
-			switch (ARITY(n->type))
+			switch (common::arity(n->type))
 			{
 			case 0:
 				return TE_FUN(void)();
@@ -425,7 +425,7 @@ struct tinyexpr_eval
 		case common::TE_CLOSURE5:
 		case common::TE_CLOSURE6:
 		case common::TE_CLOSURE7:
-			switch (ARITY(n->type))
+			switch (common::arity(n->type))
 			{
 			case 0:
 				return TE_FUN(void*)(n->parameters[0]);
@@ -497,17 +497,12 @@ struct tinyexpr_compiler
 		int						   lookup_len;
 	};
 
-#define NEW_EXPR(type, ...)                                                                                            \
-	[&]() {                                                                                                            \
-		const common::te_expr* _args[] = {__VA_ARGS__};                                                                \
-		return new_expr((type), _args);                                                                                \
-	}()
-
-	static inline common::te_expr* new_expr(const int type, const common::te_expr* parameters[])
+	static inline common::te_expr* new_expr_impl(const int type, const common::te_expr* parameters[])
 	{
-		const int arity = ARITY(type);
+		const int arity = common::arity(type);
 		const int psize = sizeof(void*) * arity;
-		const int size	= (sizeof(common::te_expr) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+		const int size =
+			(sizeof(common::te_expr) - sizeof(void*)) + psize + (common::is_closure(type) ? sizeof(void*) : 0);
 		common::te_expr* ret = (common::te_expr*)malloc(size);
 		memset(ret, 0, size);
 		if (arity && parameters)
@@ -519,12 +514,24 @@ struct tinyexpr_compiler
 		return ret;
 	}
 
+	static inline common::te_expr* new_expr(const int type)
+	{
+		return new_expr_impl(type, nullptr);
+	}
+
+	template<typename... T_ARGS>
+	static inline common::te_expr* new_expr(const int type, T_ARGS... args)
+	{
+		const common::te_expr* parameters[] = {args...};
+		return new_expr_impl(type, parameters);
+	}
+
 	static inline void te_free_parameters(common::te_expr* n)
 	{
 		if (!n)
 			return;
 
-		switch (TYPE_MASK(n->type))
+		switch (common::type_mask(n->type))
 		{
 		case common::TE_FUNCTION7:
 		case common::TE_CLOSURE7:
@@ -675,7 +682,7 @@ struct tinyexpr_compiler
 					}
 					else
 					{
-						switch (TYPE_MASK(var->type))
+						switch (common::type_mask(var->type))
 						{
 						case common::TE_VARIABLE:
 							s->type	 = TOK_VARIABLE;
@@ -837,25 +844,25 @@ struct tinyexpr_compiler
 		common::te_expr* ret;
 		int				 arity;
 
-		switch (TYPE_MASK(s->type))
+		switch (common::type_mask(s->type))
 		{
 		case TOK_NUMBER:
-			ret		   = new_expr(common::TE_CONSTANT, 0);
+			ret		   = new_expr(common::TE_CONSTANT);
 			ret->value = s->value;
 			next_token(s);
 			break;
 
 		case TOK_VARIABLE:
-			ret		   = new_expr(common::TE_VARIABLE, 0);
+			ret		   = new_expr(common::TE_VARIABLE);
 			ret->bound = s->bound;
 			next_token(s);
 			break;
 
 		case common::TE_FUNCTION0:
 		case common::TE_CLOSURE0:
-			ret			  = new_expr(s->type, 0);
+			ret			  = new_expr(s->type);
 			ret->function = s->function;
-			if (IS_CLOSURE(s->type))
+			if (common::is_closure(s->type))
 				ret->parameters[0] = s->context;
 			next_token(s);
 			if (s->type == TOK_OPEN)
@@ -874,9 +881,9 @@ struct tinyexpr_compiler
 
 		case common::TE_FUNCTION1:
 		case common::TE_CLOSURE1:
-			ret			  = new_expr(s->type, 0);
+			ret			  = new_expr(s->type);
 			ret->function = s->function;
-			if (IS_CLOSURE(s->type))
+			if (common::is_closure(s->type))
 				ret->parameters[1] = s->context;
 			next_token(s);
 			ret->parameters[0] = power(s);
@@ -894,11 +901,11 @@ struct tinyexpr_compiler
 		case common::TE_CLOSURE5:
 		case common::TE_CLOSURE6:
 		case common::TE_CLOSURE7:
-			arity = ARITY(s->type);
+			arity = common::arity(s->type);
 
-			ret			  = new_expr(s->type, 0);
+			ret			  = new_expr(s->type);
 			ret->function = s->function;
-			if (IS_CLOSURE(s->type))
+			if (common::is_closure(s->type))
 				ret->parameters[arity] = s->context;
 			next_token(s);
 
@@ -944,7 +951,7 @@ struct tinyexpr_compiler
 			break;
 
 		default:
-			ret		   = new_expr(0, 0);
+			ret		   = new_expr(0);
 			s->type	   = TOK_ERROR;
 			ret->value = details::nan;
 			break;
@@ -992,12 +999,12 @@ struct tinyexpr_compiler
 			}
 			else if (logical == -1)
 			{
-				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret			  = new_expr(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
 				ret->function = details::logical_not;
 			}
 			else
 			{
-				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret			  = new_expr(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
 				ret->function = details::logical_notnot;
 			}
 		}
@@ -1005,17 +1012,17 @@ struct tinyexpr_compiler
 		{
 			if (logical == 0)
 			{
-				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret			  = new_expr(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
 				ret->function = details::negate;
 			}
 			else if (logical == -1)
 			{
-				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret			  = new_expr(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
 				ret->function = details::negate_logical_not;
 			}
 			else
 			{
-				ret			  = NEW_EXPR(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
+				ret			  = new_expr(common::TE_FUNCTION1 | common::TE_FLAG_PURE, base(s));
 				ret->function = details::negate_logical_notnot;
 			}
 		}
@@ -1051,14 +1058,14 @@ struct tinyexpr_compiler
 			if (insertion)
 			{
 				/* Make exponentiation go right-to-left. */
-				te_expr* insert			 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+				te_expr* insert			 = new_expr(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
 				insert->function		 = t;
 				insertion->parameters[1] = insert;
 				insertion				 = insert;
 			}
 			else
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+				ret			  = new_expr(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
 				ret->function = t;
 				insertion	  = ret;
 			}
@@ -1066,7 +1073,7 @@ struct tinyexpr_compiler
 
 		if (left_function)
 		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
+			ret			  = new_expr(TE_FUNCTION1 | TE_FLAG_PURE, ret);
 			ret->function = left_function;
 		}
 
@@ -1082,7 +1089,7 @@ struct tinyexpr_compiler
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, power(s));
+			ret = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, power(s));
 			ret->function = t;
 		}
 
@@ -1100,7 +1107,7 @@ struct tinyexpr_compiler
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, factor(s));
+			ret			  = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, factor(s));
 			ret->function = t;
 		}
 
@@ -1116,7 +1123,7 @@ struct tinyexpr_compiler
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, term(s));
+			ret			  = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, term(s));
 			ret->function = t;
 		}
 
@@ -1134,7 +1141,7 @@ struct tinyexpr_compiler
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, sum_expr(s));
+			ret			  = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, sum_expr(s));
 			ret->function = t;
 		}
 
@@ -1150,7 +1157,7 @@ struct tinyexpr_compiler
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
-			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, test_expr(s));
+			ret			  = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, test_expr(s));
 			ret->function = t;
 		}
 
@@ -1165,7 +1172,7 @@ struct tinyexpr_compiler
 		while (s->type == TOK_SEP)
 		{
 			next_token(s);
-			ret			  = NEW_EXPR(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, expr(s));
+			ret			  = new_expr(common::TE_FUNCTION2 | common::TE_FLAG_PURE, ret, expr(s));
 			ret->function = details::comma;
 		}
 
@@ -1181,9 +1188,9 @@ struct tinyexpr_compiler
 			return;
 
 		/* Only optimize out functions flagged as pure. */
-		if (IS_PURE(n->type))
+		if (common::is_pure(n->type))
 		{
-			const int arity = ARITY(n->type);
+			const int arity = common::arity(n->type);
 			int		  known = 1;
 			int		  i;
 			for (i = 0; i < arity; ++i)
@@ -1256,7 +1263,7 @@ struct tinyexpr_compiler
 		int i, arity;
 		printf("%*s", depth, "");
 
-		switch (TYPE_MASK(n->type))
+		switch (common::type_mask(n->type))
 		{
 		case common::TE_CONSTANT:
 			printf("%f\n", n->value);
@@ -1281,7 +1288,7 @@ struct tinyexpr_compiler
 		case common::TE_CLOSURE5:
 		case common::TE_CLOSURE6:
 		case common::TE_CLOSURE7:
-			arity = ARITY(n->type);
+			arity = common::arity(n->type);
 			printf("f%d", arity);
 			for (i = 0; i < arity; i++)
 			{
@@ -1315,8 +1322,7 @@ struct tinyexpr : public tinyexpr_defines
 	static inline common::te_expr* te_compile(
 		const char* expression, const common::te_variable* variables, int var_count, int* error)
 	{
-		return compiler::te_compile(
-			expression, variables, var_count, error);
+		return compiler::te_compile(expression, variables, var_count, error);
 	}
 
 	static inline double te_interp(const char* expression, int* error)
