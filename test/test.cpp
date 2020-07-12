@@ -285,9 +285,9 @@ void test_variables()
 	double x, y, test;
 
 	tinyexpr te_instance;
-	te_instance.register_variable({"x", &x});
-	te_instance.register_variable({"y", &y});
-	te_instance.register_variable({"te_st", &test});
+	te_instance.register_variables({{"x", &x}});
+	te_instance.register_variables({{"y", &y}});
+	te_instance.register_variables({{"te_st", &test}});
 
 	int	 err;
 	auto expr1 = te_instance.te_compile("cos x + sin y", &err);
@@ -364,8 +364,8 @@ void test_functions()
 {
 	double	 x, y;
 	tinyexpr te_instance;
-	te_instance.register_variable({"x", &x});
-	te_instance.register_variable({"y", &y});
+	te_instance.register_variables({{"x", &x}});
+	te_instance.register_variables({{"y", &y}});
 
 	int				   err;
 	tinyexpr::te_expr* expr;

@@ -39,7 +39,7 @@ void bench(const char* expr, function1 func)
 	clock_t			start;
 
 	tinyexpr te_instance;
-	te_instance.register_variable({"a", &tmp});
+	te_instance.register_variables({{"a", &tmp}});
 
 	printf("Expression: %s\n", expr);
 

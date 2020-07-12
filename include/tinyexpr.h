@@ -1303,19 +1303,15 @@ struct tinyexpr_compiler
 	}
 };
 
-struct tinyexpr : public tinyexpr_defines
-{
-	using details  = tinyexpr_details;
-	using common   = tinyexpr_common;
-	using eval	   = tinyexpr_eval;
-	using compiler = tinyexpr_compiler;
 
-	using te_variable = common::te_variable;
-	using te_expr	  = common::te_expr;
+template <typename T_VARIABLE>
+struct tinyexpr_registry
+{
+	using te_variable = typename T_VARIABLE;
 
 	std::vector<te_variable> m_variable_cache;
 
-	std::vector<te_variable>::iterator find_variable(const te_variable& v)
+	auto find_variable(const te_variable& v)
 	{
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v](const te_variable& existing) {
 			if (::strcmp(v.name, existing.name) == 0)
@@ -1327,7 +1323,7 @@ struct tinyexpr : public tinyexpr_defines
 		});
 	}
 
-	std::vector<te_variable>::iterator find_variable(const char* v_name)
+	auto find_variable(const char* v_name)
 	{
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v_name](const te_variable& existing) {
 			if (::strcmp(v_name, existing.name) == 0)
@@ -1356,38 +1352,61 @@ struct tinyexpr : public tinyexpr_defines
 		}
 	}
 
+	te_variable* cache_addr()
+	{
+		return m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0;
+	}
+
+	size_t cache_size() const
+	{
+		return m_variable_cache.size();
+	}
+};
+
+
+struct tinyexpr : public tinyexpr_defines
+{
+	using details  = tinyexpr_details;
+	using common   = tinyexpr_common;
+	using eval	   = tinyexpr_eval;
+	using compiler = tinyexpr_compiler;
+
+	using te_variable = common::te_variable;
+	using te_expr	  = common::te_expr;
+
+	tinyexpr_registry<te_variable> m_registry;
+
 	template<typename... T_VARS>
 	void register_variables(T_VARS... vars)
 	{
-		(register_variable(vars), ...);
+		(m_registry.register_variable(vars), ...);
 	}
 
 	void register_variables(std::initializer_list<te_variable> vars)
 	{
 		for (const auto& v : vars)
 		{
-			register_variable(v);
+			m_registry.register_variable(v);
 		}
 	}
 
 	template<typename... T_VARS>
 	void release_variables(T_VARS... vars)
 	{
-		(release_variable(vars), ...);
+		(m_registry.release_variable(vars), ...);
 	}
 
 	void release_variables(std::initializer_list<const char*> vars)
 	{
 		for (const auto& v : vars)
 		{
-			release_variable(v);
+			m_registry.release_variable(v);
 		}
 	}
 
 	inline common::te_expr* te_compile(const char* expression, int* error)
 	{
-		return compiler::te_compile(
-			expression, m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0, m_variable_cache.size(), error);
+		return compiler::te_compile(expression, m_registry.cache_addr(), m_registry.cache_size(), error);
 	}
 
 	inline double te_interp(const char* expression, int* error)

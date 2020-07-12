@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	int		 err;
 	tinyexpr te_instance;
 
-	te_instance.register_variable({"mysum", my_sum, tinyexpr::TE_FUNCTION2});
+	te_instance.register_variables({{"mysum", my_sum, tinyexpr::TE_FUNCTION2}});
 	auto	 n = te_instance.te_compile(expression, &err);
 
 	if (n)

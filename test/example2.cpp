@@ -17,8 +17,8 @@ int main(int argc, char* argv[])
 	/* This shows an example where the variables
 	 * x and y are bound at eval-time. */
 	double x, y;
-	te_instance.register_variable({"x", &x});
-	te_instance.register_variable({"y", &y});
+	te_instance.register_variables({{"x", &x}});
+	te_instance.register_variables({{"y", &y}});
 
 	/* This will compile the expression and check for errors. */
 	int	 err;
