@@ -1327,12 +1327,32 @@ struct tinyexpr : public tinyexpr_defines
 		});
 	}
 
+	std::vector<te_variable>::iterator find_variable(const char* v_name)
+	{
+		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v_name](const te_variable& existing) {
+			if (::strcmp(v_name, existing.name) == 0)
+			{
+				return true;
+			}
+			return false;
+		});
+	}
+
 	void register_variable(const te_variable& var)
 	{
 		auto itor = find_variable(var);
 		if (itor == m_variable_cache.end())
 		{
 			m_variable_cache.push_back(var);
+		}
+	}
+
+	void release_variable(const char* var)
+	{
+		auto itor = find_variable(var);
+		if (itor != m_variable_cache.end())
+		{
+			m_variable_cache.erase(itor);
 		}
 	}
 
@@ -1347,6 +1367,20 @@ struct tinyexpr : public tinyexpr_defines
 		for (const auto& v : vars)
 		{
 			register_variable(v);
+		}
+	}
+
+	template<typename... T_VARS>
+	void release_variables(T_VARS... vars)
+	{
+		(release_variable(vars), ...);
+	}
+
+	void release_variables(std::initializer_list<const char*> vars)
+	{
+		for (const auto& v : vars)
+		{
+			release_variable(v);
 		}
 	}
 
