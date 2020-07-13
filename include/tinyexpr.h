@@ -29,6 +29,7 @@
 #include <cassert>
 #include <vector>
 #include <algorithm>
+#include <string_view>
 
 #include <math.h>
 #include <stdlib.h>
@@ -363,10 +364,10 @@ struct tinyexpr_common : public tinyexpr_defines
 
 	struct te_variable
 	{
-		const char* name;
-		const void* address;
-		int			type;
-		void*		closure_context;
+		std::string_view name;
+		const void*		 address;
+		int				 type;
+		void*			 closure_context;
 	};
 
 	struct te_variable_registry
@@ -505,19 +506,25 @@ struct tinyexpr_compiler
 		void* context;
 
 		common::te_variable_registry* registry;
-		
-		const common::te_variable* find_lookup(const state* s, const char* name, int len) 
+
+		const common::te_variable* find_lookup(const state* s, std::string_view name)
 		{
 			int						   iters;
 			const common::te_variable* var;
+
 			if (!registry->get_variables())
+			{
 				return 0;
+			}
 
 			for (var = registry->get_variables(), iters = registry->get_var_count(); iters; ++var, --iters)
 			{
-				if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
+				if (name.size() == var->name.size())
 				{
-					return var;
+					if (strncmp(name.data(), var->name.data(), name.size()) == 0)
+					{
+						return var;
+					}
 				}
 			}
 			return 0;
@@ -628,35 +635,24 @@ struct tinyexpr_compiler
 		{"sqrt", details::sqrt, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
 		{"tan", details::tan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
 		{"tanh", details::tanh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{0, 0, 0, 0}};
+		{"", 0, 0, 0}};
 
-	static inline const common::te_variable* find_builtin(const char* name, int len)
+	static inline const common::te_variable* find_builtin(std::string_view name)
 	{
-		int imin = 0;
-		int imax = sizeof(functions) / sizeof(common::te_variable) - 2;
+		auto functions_end = &functions[(sizeof(functions) / sizeof(common::te_variable)) - 1];
 
-		/*Binary search.*/
-		while (imax >= imin)
-		{
-			const int i = (imin + ((imax - imin) / 2));
-			int		  c = strncmp(name, functions[i].name, len);
-			if (!c)
-				c = '\0' - functions[i].name[len];
-			if (c == 0)
+		auto itor = std::find_if(&functions[0], functions_end, [&name](const common::te_variable& existing) {
+			if (name.length() == existing.name.length())
 			{
-				return functions + i;
+				if (::strncmp(name.data(), existing.name.data(), name.length()) == 0)
+				{
+					return true;
+				}
 			}
-			else if (c > 0)
-			{
-				imin = i + 1;
-			}
-			else
-			{
-				imax = i - 1;
-			}
-		}
+			return false;
+		});
 
-		return 0;
+		return (itor != functions_end) ? itor : 0;
 	}
 
 	static inline void next_token(state* s)
@@ -688,10 +684,10 @@ struct tinyexpr_compiler
 						   (s->next[0] == '_'))
 						s->next++;
 
-					const common::te_variable* var = s->find_lookup(s, start, s->next - start);
-					
+					const common::te_variable* var = s->find_lookup(s, std::string_view(start, s->next - start));
+
 					if (!var)
-						var = find_builtin(start, s->next - start);
+						var = find_builtin(std::string_view(start, s->next - start));
 
 					if (!var)
 					{
@@ -1228,7 +1224,8 @@ struct tinyexpr_compiler
 		}
 	}
 
-	static inline common::te_expr* te_compile(const char* expression, common::te_variable_registry* registry, int* error)
+	static inline common::te_expr* te_compile(
+		const char* expression, common::te_variable_registry* registry, int* error)
 	{
 		state s;
 		s.start = s.next = expression;
@@ -1318,21 +1315,27 @@ struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
 	auto find_variable(const te_variable& v)
 	{
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v](const te_variable& existing) {
-			if (::strcmp(v.name, existing.name) == 0)
+			if (v.name.size() == existing.name.size())
 			{
-				assert(v.address == existing.address);
-				return true;
+				if (::strncmp(v.name.data(), existing.name.data(), v.name.size()) == 0)
+				{
+					assert(v.address == existing.address);
+					return true;
+				}
 			}
 			return false;
 		});
 	}
 
-	auto find_variable(const char* v_name)
+	auto find_variable(std::string_view v_name)
 	{
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v_name](const te_variable& existing) {
-			if (::strcmp(v_name, existing.name) == 0)
+			if (v_name.size() == existing.name.size())
 			{
-				return true;
+				if (::strncmp(v_name.data(), existing.name.data(), v_name.size()) == 0)
+				{
+					return true;
+				}
 			}
 			return false;
 		});
@@ -1347,7 +1350,7 @@ struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
 		}
 	}
 
-	void release_variable(const char* var)
+	void release_variable(std::string_view var)
 	{
 		auto itor = find_variable(var);
 		if (itor != m_variable_cache.end())
@@ -1404,7 +1407,7 @@ struct tinyexpr : public tinyexpr_defines
 		(m_registry.release_variable(vars), ...);
 	}
 
-	void release_variables(std::initializer_list<const char*> vars)
+	void release_variables(std::initializer_list<std::string_view> vars)
 	{
 		for (const auto& v : vars)
 		{
