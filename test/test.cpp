@@ -354,7 +354,7 @@ void test_variables()
 	{                                                                                                                  \
 		if ((b) != (b))                                                                                                \
 			break;                                                                                                     \
-		expr = te_instance.te_compile((a), &err);                                                                      \
+		auto expr = te_instance.te_compile((a), &err);                                                                 \
 		lfequal(te_instance.te_eval(expr), (b));                                                                       \
 		lok(!err);                                                                                                     \
 		te_instance.te_free(expr);                                                                                     \
@@ -368,7 +368,6 @@ void test_functions()
 	te_instance.register_variables({{"y", &y}});
 
 	int				   err;
-	tinyexpr::te_expr* expr;
 
 	for (x = -5; x < 5; x += .2)
 	{
