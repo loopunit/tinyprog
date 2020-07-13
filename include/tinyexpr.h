@@ -368,6 +368,13 @@ struct tinyexpr_common : public tinyexpr_defines
 		int			type;
 		void*		closure_context;
 	};
+
+	struct te_variable_registry
+	{
+		virtual te_variable*	   get_variables()		 = 0;
+		virtual const te_variable* get_variables() const = 0;
+		virtual int				   get_var_count() const = 0;
+	};
 };
 
 struct tinyexpr_eval
@@ -497,8 +504,24 @@ struct tinyexpr_compiler
 		};
 		void* context;
 
-		const common::te_variable* lookup;
-		int						   lookup_len;
+		common::te_variable_registry* registry;
+		
+		const common::te_variable* find_lookup(const state* s, const char* name, int len) 
+		{
+			int						   iters;
+			const common::te_variable* var;
+			if (!registry->get_variables())
+				return 0;
+
+			for (var = registry->get_variables(), iters = registry->get_var_count(); iters; ++var, --iters)
+			{
+				if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
+				{
+					return var;
+				}
+			}
+			return 0;
+		}
 	};
 
 	static inline common::te_expr* new_expr_impl(const int type, const common::te_expr* parameters[])
@@ -636,23 +659,6 @@ struct tinyexpr_compiler
 		return 0;
 	}
 
-	static inline const common::te_variable* find_lookup(const state* s, const char* name, int len)
-	{
-		int						   iters;
-		const common::te_variable* var;
-		if (!s->lookup)
-			return 0;
-
-		for (var = s->lookup, iters = s->lookup_len; iters; ++var, --iters)
-		{
-			if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
-			{
-				return var;
-			}
-		}
-		return 0;
-	}
-
 	static inline void next_token(state* s)
 	{
 		s->type = TOK_NULL;
@@ -682,7 +688,8 @@ struct tinyexpr_compiler
 						   (s->next[0] == '_'))
 						s->next++;
 
-					const common::te_variable* var = find_lookup(s, start, s->next - start);
+					const common::te_variable* var = s->find_lookup(s, start, s->next - start);
+					
 					if (!var)
 						var = find_builtin(start, s->next - start);
 
@@ -1221,13 +1228,11 @@ struct tinyexpr_compiler
 		}
 	}
 
-	static inline common::te_expr* te_compile(
-		const char* expression, const common::te_variable* variables, int var_count, int* error)
+	static inline common::te_expr* te_compile(const char* expression, common::te_variable_registry* registry, int* error)
 	{
 		state s;
 		s.start = s.next = expression;
-		s.lookup		 = variables;
-		s.lookup_len	 = var_count;
+		s.registry		 = registry;
 
 		next_token(&s);
 		common::te_expr* root = list(&s);
@@ -1303,9 +1308,8 @@ struct tinyexpr_compiler
 	}
 };
 
-
-template <typename T_VARIABLE>
-struct tinyexpr_registry
+template<typename T_VARIABLE>
+struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
 {
 	using te_variable = typename T_VARIABLE;
 
@@ -1352,17 +1356,21 @@ struct tinyexpr_registry
 		}
 	}
 
-	te_variable* cache_addr()
+	virtual te_variable* get_variables()
 	{
 		return m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0;
 	}
 
-	size_t cache_size() const
+	virtual const te_variable* get_variables() const
+	{
+		return m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0;
+	}
+
+	virtual int get_var_count() const
 	{
 		return m_variable_cache.size();
 	}
 };
-
 
 struct tinyexpr : public tinyexpr_defines
 {
@@ -1406,7 +1414,7 @@ struct tinyexpr : public tinyexpr_defines
 
 	inline common::te_expr* te_compile(const char* expression, int* error)
 	{
-		return compiler::te_compile(expression, m_registry.cache_addr(), m_registry.cache_size(), error);
+		return compiler::te_compile(expression, &m_registry, error);
 	}
 
 	inline double te_interp(const char* expression, int* error)
