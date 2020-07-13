@@ -372,9 +372,13 @@ struct tinyexpr_common : public tinyexpr_defines
 
 	struct te_variable_registry
 	{
-		virtual te_variable*	   get_variables()		 = 0;
-		virtual const te_variable* get_variables() const = 0;
-		virtual int				   get_var_count() const = 0;
+		virtual ~te_variable_registry() {}
+
+		virtual te_variable*	   get_variables()							 = 0;
+		virtual const te_variable* get_variables() const					 = 0;
+		virtual int				   get_var_count() const					 = 0;
+		virtual te_variable*	   get_variable(std::string_view name)		 = 0;
+		virtual const te_variable* get_variable(std::string_view name) const = 0;
 	};
 };
 
@@ -507,27 +511,59 @@ struct tinyexpr_compiler
 
 		common::te_variable_registry* registry;
 
-		const common::te_variable* find_lookup(const state* s, std::string_view name)
+		const common::te_variable* find_lookup(std::string_view name)
 		{
-			int						   iters;
-			const common::te_variable* var;
-
-			if (!registry->get_variables())
+			auto var = registry->get_variable(name);
+			if (!var)
 			{
-				return 0;
-			}
+				static constexpr common::te_variable functions[] = {
+					{"abs", details::fabs, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"acos", details::acos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"asin", details::asin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"atan", details::atan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"atan2", details::atan2, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+					{"ceil", details::ceil, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"cos", details::cos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"cosh", details::cosh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"e", details::e, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
+					{"exp", details::exp, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"fac", details::fac, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"floor", details::floor, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"ln", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#ifdef TE_NAT_LOG
+					{"log", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#else
+					{"log", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+#endif
+					{"log10", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"ncr", details::ncr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+					{"npr", details::npr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+					{"pi", details::pi, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
+					{"pow", details::pow, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
+					{"sin", details::sin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"sinh", details::sinh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"sqrt", details::sqrt, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"tan", details::tan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"tanh", details::tanh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
+					{"", 0, 0, 0}};
 
-			for (var = registry->get_variables(), iters = registry->get_var_count(); iters; ++var, --iters)
-			{
-				if (name.size() == var->name.size())
-				{
-					if (strncmp(name.data(), var->name.data(), name.size()) == 0)
+				auto functions_end = &functions[(sizeof(functions) / sizeof(common::te_variable)) - 1];
+
+				auto itor = std::find_if(&functions[0], functions_end, [&name](const common::te_variable& existing) {
+					if (name.length() == existing.name.length())
 					{
-						return var;
+						if (_strnicmp(name.data(), existing.name.data(), name.length()) == 0)
+						{
+							return true;
+						}
 					}
-				}
+					return false;
+				});
+
+				return (itor != functions_end) ? itor : 0;
 			}
-			return 0;
+
+			return var;
 		}
 	};
 
@@ -605,56 +641,6 @@ struct tinyexpr_compiler
 		free(n);
 	}
 
-	static inline const common::te_variable functions[] = {
-		/* must be in alphabetical order */
-		{"abs", details::fabs, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"acos", details::acos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"asin", details::asin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"atan", details::atan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"atan2", details::atan2, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
-		{"ceil", details::ceil, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"cos", details::cos, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"cosh", details::cosh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"e", details::e, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
-		{"exp", details::exp, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"fac", details::fac, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"floor", details::floor, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"ln", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-#ifdef TE_NAT_LOG
-		{"log", details::log, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-#else
-		{"log", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-#endif
-		{"log10", details::log10, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"ncr", details::ncr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
-		{"npr", details::npr, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
-		{"pi", details::pi, common::TE_FUNCTION0 | common::TE_FLAG_PURE, 0},
-		{"pow", details::pow, common::TE_FUNCTION2 | common::TE_FLAG_PURE, 0},
-		{"sin", details::sin, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"sinh", details::sinh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"sqrt", details::sqrt, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"tan", details::tan, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"tanh", details::tanh, common::TE_FUNCTION1 | common::TE_FLAG_PURE, 0},
-		{"", 0, 0, 0}};
-
-	static inline const common::te_variable* find_builtin(std::string_view name)
-	{
-		auto functions_end = &functions[(sizeof(functions) / sizeof(common::te_variable)) - 1];
-
-		auto itor = std::find_if(&functions[0], functions_end, [&name](const common::te_variable& existing) {
-			if (name.length() == existing.name.length())
-			{
-				if (::strncmp(name.data(), existing.name.data(), name.length()) == 0)
-				{
-					return true;
-				}
-			}
-			return false;
-		});
-
-		return (itor != functions_end) ? itor : 0;
-	}
-
 	static inline void next_token(state* s)
 	{
 		s->type = TOK_NULL;
@@ -667,7 +653,7 @@ struct tinyexpr_compiler
 				return;
 			}
 
-			/* Try reading a number. */
+			// Try reading a number
 			if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.')
 			{
 				s->value = strtod(s->next, (char**)&s->next);
@@ -675,7 +661,7 @@ struct tinyexpr_compiler
 			}
 			else
 			{
-				/* Look for a variable or builtin function call. */
+				// Look for a variable or builtin function call.
 				if (s->next[0] >= 'a' && s->next[0] <= 'z')
 				{
 					const char* start;
@@ -684,10 +670,7 @@ struct tinyexpr_compiler
 						   (s->next[0] == '_'))
 						s->next++;
 
-					const common::te_variable* var = s->find_lookup(s, std::string_view(start, s->next - start));
-
-					if (!var)
-						var = find_builtin(std::string_view(start, s->next - start));
+					const common::te_variable* var = s->find_lookup(std::string_view(start, s->next - start));
 
 					if (!var)
 					{
@@ -705,21 +688,21 @@ struct tinyexpr_compiler
 						case common::TE_CLOSURE0:
 						case common::TE_CLOSURE1:
 						case common::TE_CLOSURE2:
-						case common::TE_CLOSURE3: /* Falls through. */
+						case common::TE_CLOSURE3:
 						case common::TE_CLOSURE4:
 						case common::TE_CLOSURE5:
 						case common::TE_CLOSURE6:
-						case common::TE_CLOSURE7:			   /* Falls through. */
-							s->context = var->closure_context; /* Falls through. */
+						case common::TE_CLOSURE7:
+							s->context = var->closure_context;
 
 						case common::TE_FUNCTION0:
 						case common::TE_FUNCTION1:
 						case common::TE_FUNCTION2:
-						case common::TE_FUNCTION3: /* Falls through. */
+						case common::TE_FUNCTION3:
 						case common::TE_FUNCTION4:
 						case common::TE_FUNCTION5:
 						case common::TE_FUNCTION6:
-						case common::TE_FUNCTION7: /* Falls through. */
+						case common::TE_FUNCTION7:
 							s->type		= var->type;
 							s->function = var->address;
 							break;
@@ -728,7 +711,7 @@ struct tinyexpr_compiler
 				}
 				else
 				{
-					/* Look for an operator or special character. */
+					// Look for an operator or special character.
 					switch (s->next++[0])
 					{
 					case '+':
@@ -947,7 +930,6 @@ struct tinyexpr_compiler
 					next_token(s);
 				}
 			}
-
 			break;
 
 		case TOK_OPEN:
@@ -1239,7 +1221,7 @@ struct tinyexpr_compiler
 			te_free(root);
 			if (error)
 			{
-				*error = (s.next - s.start);
+				*error = static_cast<int>(s.next - s.start);
 				if (*error == 0)
 					*error = 1;
 			}
@@ -1306,18 +1288,20 @@ struct tinyexpr_compiler
 };
 
 template<typename T_VARIABLE>
-struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
+struct tinyexpr_registry : tinyexpr_common::te_variable_registry
 {
 	using te_variable = typename T_VARIABLE;
 
 	std::vector<te_variable> m_variable_cache;
+
+	~tinyexpr_registry() {}
 
 	auto find_variable(const te_variable& v)
 	{
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v](const te_variable& existing) {
 			if (v.name.size() == existing.name.size())
 			{
-				if (::strncmp(v.name.data(), existing.name.data(), v.name.size()) == 0)
+				if (_strnicmp(v.name.data(), existing.name.data(), v.name.size()) == 0)
 				{
 					assert(v.address == existing.address);
 					return true;
@@ -1332,7 +1316,21 @@ struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
 		return std::find_if(m_variable_cache.begin(), m_variable_cache.end(), [&v_name](const te_variable& existing) {
 			if (v_name.size() == existing.name.size())
 			{
-				if (::strncmp(v_name.data(), existing.name.data(), v_name.size()) == 0)
+				if (_strnicmp(v_name.data(), existing.name.data(), v_name.size()) == 0)
+				{
+					return true;
+				}
+			}
+			return false;
+		});
+	}
+
+	auto find_variable(std::string_view v_name) const
+	{
+		return std::find_if(m_variable_cache.cbegin(), m_variable_cache.cend(), [&v_name](const te_variable& existing) {
+			if (v_name.size() == existing.name.size())
+			{
+				if (_strnicmp(v_name.data(), existing.name.data(), v_name.size()) == 0)
 				{
 					return true;
 				}
@@ -1359,19 +1357,39 @@ struct tinyexpr_registry : public tinyexpr_common::te_variable_registry
 		}
 	}
 
-	virtual te_variable* get_variables()
+	virtual te_variable* get_variables() override
 	{
 		return m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0;
 	}
 
-	virtual const te_variable* get_variables() const
+	virtual const te_variable* get_variables() const override
 	{
 		return m_variable_cache.size() > 0 ? &m_variable_cache[0] : 0;
 	}
 
-	virtual int get_var_count() const
+	virtual int get_var_count() const override
 	{
-		return m_variable_cache.size();
+		return static_cast<int>(m_variable_cache.size());
+	}
+
+	virtual te_variable* get_variable(std::string_view name) override
+	{
+		auto itor = find_variable(name);
+		if (itor != m_variable_cache.end())
+		{
+			return &(*itor);
+		}
+		return nullptr;
+	}
+
+	virtual const te_variable* get_variable(std::string_view name) const override
+	{
+		auto itor = find_variable(name);
+		if (itor != m_variable_cache.end())
+		{
+			return &(*itor);
+		}
+		return nullptr;
 	}
 };
 

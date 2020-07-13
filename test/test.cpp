@@ -186,8 +186,8 @@ void test_syntax()
 	int i;
 	for (i = 0; i < sizeof(errors) / sizeof(test_case); ++i)
 	{
-		const char* expr = errors[i].expr;
-		const int	e	 = errors[i].answer;
+		auto expr = errors[i].expr;
+		auto e	  = static_cast<int>(errors[i].answer);
 
 		int			 err;
 		tinyexpr	 te_instance;
@@ -648,8 +648,8 @@ void test_pow()
 			{"b", &b},
 		});
 
-		auto	 ex1 = te_instance.te_compile(expr1, 0);
-		auto	 ex2 = te_instance.te_compile(expr2, 0);
+		auto ex1 = te_instance.te_compile(expr1, 0);
+		auto ex2 = te_instance.te_compile(expr2, 0);
 
 		lok(ex1);
 		lok(ex2);
