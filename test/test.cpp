@@ -602,7 +602,7 @@ void test_optimize()
 
 		/* The answer should be know without
 		 * even running eval. */
-		lfequal(ex->value, answer);
+		lfequal(ex->m_expr->value, answer);
 		lfequal(te_instance.te_eval(ex), answer);
 
 		te_instance.te_free(ex);
