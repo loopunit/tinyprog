@@ -1269,15 +1269,15 @@ struct tinyexpr_compiler
 			printf("\n");
 			for (i = 0; i < arity; i++)
 			{
-				pn((const common::te_expr*)n->parameters[i], depth + 1);
+				pn(registry, (const common::te_expr*)n->parameters[i], depth + 1);
 			}
 			break;
 		}
 	}
 
-	static inline void te_print(const common::te_expr* n)
+	static inline void te_print(te_registry* registry, const common::te_expr* n)
 	{
-		pn(n, 0);
+		pn(registry, n, 0);
 	}
 };
 
@@ -1429,6 +1429,11 @@ struct tinyexpr : public tinyexpr_defines
 	inline common::te_expr* te_compile(const char* expression, int* error)
 	{
 		return compiler::te_compile(&m_registry, expression, error);
+	}
+
+	inline void te_print(common::te_expr* expr)
+	{
+		return compiler::te_print(&m_registry, expr);
 	}
 
 	inline double te_interp(const char* expression, int* error)
