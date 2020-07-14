@@ -370,17 +370,15 @@ struct tinyexpr_common : public tinyexpr_defines
 	};
 };
 
-template<typename T_REGISTRY>
 struct tinyexpr_eval
 {
 	using details	  = tinyexpr_details;
 	using common	  = tinyexpr_common;
-	using te_registry = typename T_REGISTRY;
 
-	static inline double te_eval(te_registry* registry, const common::te_expr* n)
+	static inline double te_eval(const common::te_expr* n)
 	{
 #define TE_FUN(...) ((double (*)(__VA_ARGS__))n->bound_function)
-#define M(e)		te_eval(registry, (const common::te_expr*)n->parameters[e])
+#define M(e)		te_eval((const common::te_expr*)n->parameters[e])
 
 		if (!n)
 			return details::nan;
@@ -389,6 +387,7 @@ struct tinyexpr_eval
 		{
 		case common::TE_CONSTANT:
 			return n->value;
+
 		case common::TE_VARIABLE:
 			return *n->bound_variable;
 
@@ -470,7 +469,7 @@ struct tinyexpr_compiler
 {
 	using details	  = tinyexpr_details;
 	using common	  = tinyexpr_common;
-	using eval		  = tinyexpr_eval<typename T_REGISTRY>;
+	using eval		  = tinyexpr_eval;
 	using te_registry = typename T_REGISTRY;
 
 	typedef double (*te_fun2)(double, double);
@@ -1148,7 +1147,7 @@ struct tinyexpr_compiler
 			}
 			if (known)
 			{
-				const double value = eval::te_eval(registry, n);
+				const double value = eval::te_eval(n);
 				te_free_parameters(n);
 				n->type	 = common::TE_CONSTANT;
 				n->value = value;
@@ -1185,18 +1184,25 @@ struct tinyexpr_compiler
 		}
 	}
 
-	static inline void pn(te_registry* registry, const common::te_expr* n, int depth)
+	static inline void pn(te_registry* registry, const common::te_expr* n, int depth, size_t& total_size)
 	{
 		int i, arity;
-		printf("%*s", depth, "");
+		const auto expr_size = registry->lookup_size(n);
+		total_size += expr_size;
+
+		printf("Expression: %p\n", n);
+		printf("\tName: %s\n\tSize: %lld\n", registry->lookup_name(n).data(), expr_size);
 
 		switch (common::type_mask(n->type))
 		{
 		case common::TE_CONSTANT:
-			printf("%f\n", n->value);
+			printf("\tType: constant\n\t\tValue: %f\n", n->value);
+			// nothing needed, the value can be used as-is
 			break;
+		
 		case common::TE_VARIABLE:
-			printf("bound_variable %p->%s\n", n->bound_variable, registry->lookup_name(n->bound_variable).data());
+			printf("\tType: variable\n\t\tAddress: %p\n\t\tName: %s\n", n->bound_variable, registry->lookup_name(n->bound_variable).data());
+			// add variable address/name to remapping table
 			break;
 
 		case common::TE_FUNCTION0:
@@ -1208,15 +1214,19 @@ struct tinyexpr_compiler
 		case common::TE_FUNCTION6:
 		case common::TE_FUNCTION7:
 			arity = common::arity(n->type);
-			printf("function: %s(%d args)", registry->lookup_name(n->bound_function).data(), arity);
+			printf("\tType: function\n\t\tAddress: %p\n\t\tName: %s\n\t\tArgs: %d\n",
+				n->bound_function, registry->lookup_name(n->bound_function).data(),
+				arity);
+
+			// Add function address/name to remapping table
+
 			for (i = 0; i < arity; i++)
 			{
-				printf(" Parameter data at: %p->%s", n->parameters[i], registry->lookup_name(n->parameters[i]).data());
+				printf("\t\t\tAddress: %p\n\t\t\tName: %s\n", n->parameters[i], registry->lookup_name(n->parameters[i]).data());
 			}
-			printf("\n");
 			for (i = 0; i < arity; i++)
 			{
-				pn(registry, (const common::te_expr*)n->parameters[i], depth + 1);
+				pn(registry, (const common::te_expr*)n->parameters[i], depth + 1, total_size);
 			}
 			break;
 
@@ -1229,23 +1239,32 @@ struct tinyexpr_compiler
 		case common::TE_CLOSURE6:
 		case common::TE_CLOSURE7:
 			arity = common::arity(n->type);
-			printf("closure(%d args)", arity);
+			printf("\tType: closure\n\t\tAddress: %p\n\t\tName: %s\n\t\tArgs: %d\n",
+				n->bound_function,
+				registry->lookup_name(n->bound_function).data(),
+				arity);
 			for (i = 0; i < arity; i++)
 			{
-				printf(" %p->%s", n->parameters[i], registry->lookup_name(n->parameters[i]).data());
+				printf("\t\t\tAddress: %p\n\t\t\tName: %s\n",
+					n->parameters[i],
+					registry->lookup_name(n->parameters[i]).data());
 			}
-			printf("\n");
 			for (i = 0; i < arity; i++)
 			{
-				pn(registry, (const common::te_expr*)n->parameters[i], depth + 1);
+				pn(registry, (const common::te_expr*)n->parameters[i], depth + 1, total_size);
 			}
 			break;
+		
+		default:
+			assert(0);
 		}
 	}
 
-	static inline void te_print(te_registry* registry, const common::te_expr* n)
+	static inline size_t te_print(te_registry* registry, const common::te_expr* n)
 	{
-		pn(registry, n, 0);
+		size_t total_size = 0;
+		pn(registry, n, 0, total_size);
+		return total_size;
 	}
 };
 
@@ -1436,6 +1455,7 @@ struct tinyexpr_registry
 	}
 
 	std::unordered_map<const void*, std::string> m_name_map;
+	std::unordered_map<const void*, size_t> m_size_map;
 
 	const te_variable* get_variable(std::string_view name)
 	{
@@ -1465,7 +1485,7 @@ struct tinyexpr_registry
 		return var;
 	}
 
-	const std::string_view lookup_name(const void* addr)
+	std::string_view lookup_name(const void* addr)
 	{
 		auto itor = m_name_map.find(addr);
 		if (itor != m_name_map.end())
@@ -1475,14 +1495,23 @@ struct tinyexpr_registry
 		return "nope";
 	}
 
+	size_t lookup_size(const void* addr) 
+	{
+		auto itor = m_size_map.find(addr);
+		if (itor != m_size_map.end())
+		{
+			return itor->second;
+		}
+		return 0;
+	}
+
 	void track_expr(void* expr, size_t size) 
 	{
 		auto itor = m_name_map.find(expr);
 		if (itor == m_name_map.end())
 		{
-			char tmp[128];
-			sprintf_s(tmp, sizeof(tmp), "te_expr(%lld)", size);
-			m_name_map.emplace(std::make_pair(expr, std::string(tmp)));
+			m_name_map.emplace(std::make_pair(expr, std::string("te_expr")));
+			m_size_map.insert(std::make_pair(expr, size));
 		}
 	}
 };
@@ -1501,7 +1530,7 @@ struct tinyexpr : public tinyexpr_defines
 
 	using te_registry = tinyexpr_registry<te_variable>;
 	using details	  = tinyexpr_details;
-	using eval		  = tinyexpr_eval<te_registry>;
+	using eval		  = tinyexpr_eval;
 	using compiler	  = tinyexpr_compiler<te_registry>;
 
 	te_registry m_registry;
@@ -1546,7 +1575,7 @@ struct tinyexpr : public tinyexpr_defines
 
 	inline void te_print(const te_expr* expr)
 	{
-		return compiler::te_print(&m_registry, expr->m_expr);
+		compiler::te_print(&m_registry, expr->m_expr);
 	}
 
 	inline double te_interp(const char* expression, int* error)
@@ -1555,7 +1584,7 @@ struct tinyexpr : public tinyexpr_defines
 		double ret;
 		if (n)
 		{
-			ret = eval::te_eval(&m_registry, n->m_expr);
+			ret = eval::te_eval(n->m_expr);
 			te_free(n);
 		}
 		else
@@ -1567,13 +1596,13 @@ struct tinyexpr : public tinyexpr_defines
 
 	inline double te_eval(const te_expr* n)
 	{
-		printf("***************************************\n");
+		printf("\n***************************************\n");
 		printf("Evaluating expression:\n");
-		printf("%s\n", n->m_expression_src.c_str());
-		printf("****\n");
-		te_print(n);
-		printf("***************************************\n\n");
-		return eval::te_eval(&m_registry, n->m_expr);
+		printf("%s\n\n", n->m_expression_src.c_str());
+		auto total_size = compiler::te_print(&m_registry, n->m_expr);
+
+		printf("Total size: %4lld***********************\n", total_size);
+		return eval::te_eval(n->m_expr);
 	}
 
 	inline void te_free(te_expr* n)
