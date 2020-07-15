@@ -23,12 +23,13 @@ int main(int argc, char* argv[])
 	{
 		const double r = te_instance.te_eval(n);
 
-		tinyexpr::te_export_dict export_dict;
-		auto					 n_portable = te_instance.te_export_portable(n, export_dict);
+		auto					 n_portable = te_instance.te_compile_portable(n);
 
-		const double r_portable = te_instance.te_eval_portable(n_portable, &export_dict.binding_table_data[0]);
+		const double r_portable = te_instance.te_eval_portable(n_portable);
 
 		printf("Result:\n\t%f::%f\n", r, r_portable);
+		
+		
 		te_instance.te_free_portable(n_portable);
 		te_instance.te_free(n);
 	}

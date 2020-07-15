@@ -350,6 +350,14 @@ struct tinyexpr_defines
 
 struct tinyexpr_common : public tinyexpr_defines
 {
+	struct te_variable
+	{
+		std::string_view name;
+		const void*		 address;
+		int				 type;
+		void*			 closure_context;
+	};
+
 	struct te_expr
 	{
 		int type;
@@ -362,35 +370,6 @@ struct tinyexpr_common : public tinyexpr_defines
 		void* parameters[1];
 	};
 
-	struct te_variable
-	{
-		std::string_view name;
-		const void*		 address;
-		int				 type;
-		void*			 closure_context;
-	};
-
-	struct te_portable_expr_header
-	{
-		size_t string_buffer_size;
-		size_t bind_name_table_count;
-		size_t bind_address_table_count;
-		size_t expr_buffer_size;
-	};
-
-	struct te_portable_expr_info
-	{
-		size_t string_buffer_offset;
-		size_t string_buffer_size;
-
-		size_t bind_name_table_offset;
-		size_t bind_name_table_count;
-		size_t bind_name_table_size;
-
-		size_t expr_buffer_offset;
-		size_t expr_buffer_size;
-	};
-
 	struct te_portable_expr
 	{
 		int type;
@@ -401,37 +380,6 @@ struct tinyexpr_common : public tinyexpr_defines
 		};
 		size_t parameter_offsets[1];
 	};
-
-	template<typename T>
-	T align_to(T t, T round)
-	{
-		return round == T(0) ? t : ((t + (t < T(0) ? T(0) : round - T(1))) / round) * round;
-	}
-
-	static inline constexpr size_t te_portable_alignment = 4;
-
-	size_t get_portable_expr_size(const te_portable_expr_info& info)
-	{
-		return align_to(info.expr_buffer_offset + info.expr_buffer_size, te_portable_alignment);
-	}
-
-	te_portable_expr_info produce_info(const te_portable_expr_header& header)
-	{
-		te_portable_expr_info res;
-
-		res.string_buffer_offset = 0;
-		res.string_buffer_size	 = header.string_buffer_size;
-
-		res.bind_name_table_offset = align_to(res.string_buffer_offset + res.string_buffer_size, te_portable_alignment);
-		res.bind_name_table_count  = header.bind_name_table_count;
-		res.bind_name_table_size   = header.bind_name_table_count * sizeof(size_t);
-
-		res.expr_buffer_offset = align_to(res.bind_name_table_offset + res.bind_name_table_size, te_portable_alignment);
-
-		res.expr_buffer_size = header.expr_buffer_size;
-
-		return res;
-	}
 };
 
 struct tinyexpr_eval
@@ -439,32 +387,34 @@ struct tinyexpr_eval
 	using details = tinyexpr_details;
 	using common  = tinyexpr_common;
 
-	static inline double te_eval_portable(const std::uint8_t* portable_buffer,
-		const common::te_portable_expr*						  portable_expr,
-		const void*											  portable_binding_table[])
+	static inline double te_eval_portable(
+		const common::te_portable_expr* n, const std::uint8_t* portable_buffer, const void* portable_binding_table[])
 	{
-#define TE_FUN(...) ((double (*)(__VA_ARGS__))portable_binding_table[portable_expr->bound_index])
+		if (!n)
+			return details::nan;
+
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))portable_binding_table[n->bound_index])
 
 		auto M = [&](size_t e) -> double {
-			return te_eval_portable(portable_buffer,
-				(const common::te_portable_expr*)&portable_buffer[portable_expr->parameter_offsets[e]],
+			return te_eval_portable((const common::te_portable_expr*)&portable_buffer[n->parameter_offsets[e]],
+				portable_buffer,
 				portable_binding_table);
 		};
 
 		auto V = [&](size_t e) -> const void* {
-			return portable_binding_table[portable_expr->parameter_offsets[e]];
+			return portable_binding_table[n->parameter_offsets[e]];
 		};
 
-		switch (common::type_mask(portable_expr->type))
+		switch (common::type_mask(n->type))
 		{
 		case common::TE_CONSTANT:
 		{
-			return portable_expr->value;
+			return n->value;
 		}
 
 		case common::TE_VARIABLE:
 		{
-			return *(const double*)(portable_binding_table[portable_expr->bound_index]);
+			return *(const double*)(portable_binding_table[n->bound_index]);
 		}
 
 		case common::TE_FUNCTION0:
@@ -475,7 +425,7 @@ struct tinyexpr_eval
 		case common::TE_FUNCTION5:
 		case common::TE_FUNCTION6:
 		case common::TE_FUNCTION7:
-			switch (common::arity(portable_expr->type))
+			switch (common::arity(n->type))
 			{
 			case 0:
 				return TE_FUN(void)();
@@ -506,7 +456,7 @@ struct tinyexpr_eval
 		case common::TE_CLOSURE5:
 		case common::TE_CLOSURE6:
 		case common::TE_CLOSURE7:
-			switch (common::arity(portable_expr->type))
+			switch (common::arity(n->type))
 			{
 			case 0:
 				return TE_FUN(const void*)(V(0));
@@ -536,123 +486,32 @@ struct tinyexpr_eval
 #undef TE_FUN
 	}
 
-	//	static inline double te_compare(const common::te_expr* n,
-	//		const std::uint8_t*								   portable_buffer,
-	//		const common::te_portable_expr*					   portable_expr,
-	//		const void*										   portable_binding_table[])
-	//	{
-	//		if (!n)
-	//			return details::nan;
-	//
-	//#define TE_FUN(...) ((double (*)(__VA_ARGS__))portable_binding_table[portable_expr->bound_index])
-	//
-	//		auto M = [&](size_t e) -> double {
-	//			return te_compare((const common::te_expr*)n->parameters[e],
-	//				portable_buffer,
-	//				(const common::te_portable_expr*)&portable_buffer[portable_expr->parameter_offsets[e]],
-	//				portable_binding_table);
-	//		};
-	//
-	//		auto V = [&](size_t e) -> const void* {
-	//			return portable_binding_table[portable_expr->parameter_offsets[e]];
-	//		};
-	//
-	//		switch (common::type_mask(n->type))
-	//		{
-	//		case common::TE_CONSTANT:
-	//		{
-	//			assert(n->value == portable_expr->value);
-	//			return portable_expr->value;
-	//		}
-	//
-	//		case common::TE_VARIABLE:
-	//		{
-	//			const double* portable_var = (const double*)(portable_binding_table[portable_expr->bound_index]);
-	//			assert(*n->bound_variable == *portable_var);
-	//			return *portable_var;
-	//		}
-	//
-	//		case common::TE_FUNCTION0:
-	//		case common::TE_FUNCTION1:
-	//		case common::TE_FUNCTION2:
-	//		case common::TE_FUNCTION3:
-	//		case common::TE_FUNCTION4:
-	//		case common::TE_FUNCTION5:
-	//		case common::TE_FUNCTION6:
-	//		case common::TE_FUNCTION7:
-	//			switch (common::arity(n->type))
-	//			{
-	//			case 0:
-	//				return TE_FUN(void)();
-	//			case 1:
-	//				return TE_FUN(double)(M(0));
-	//			case 2:
-	//				return TE_FUN(double, double)(M(0), M(1));
-	//			case 3:
-	//				return TE_FUN(double, double, double)(M(0), M(1), M(2));
-	//			case 4:
-	//				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
-	//			case 5:
-	//				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
-	//			case 6:
-	//				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
-	//			case 7:
-	//				return TE_FUN(double, double, double, double, double, double, double)(
-	//					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-	//			default:
-	//				return details::nan;
-	//			}
-	//
-	//		case common::TE_CLOSURE0:
-	//		case common::TE_CLOSURE1:
-	//		case common::TE_CLOSURE2:
-	//		case common::TE_CLOSURE3:
-	//		case common::TE_CLOSURE4:
-	//		case common::TE_CLOSURE5:
-	//		case common::TE_CLOSURE6:
-	//		case common::TE_CLOSURE7:
-	//			switch (common::arity(n->type))
-	//			{
-	//			case 0:
-	//				return TE_FUN(const void*)(V(0));
-	//			case 1:
-	//				return TE_FUN(const void*, double)(V(1), M(0));
-	//			case 2:
-	//				return TE_FUN(const void*, double, double)(V(2), M(0), M(1));
-	//			case 3:
-	//				return TE_FUN(const void*, double, double, double)(V(3), M(0), M(1), M(2));
-	//			case 4:
-	//				return TE_FUN(const void*, double, double, double, double)(V(4), M(0), M(1), M(2), M(3));
-	//			case 5:
-	//				return TE_FUN(const void*, double, double, double, double, double)(V(5), M(0), M(1), M(2), M(3),
-	// M(4)); 			case 6: 				return TE_FUN(const void*, double, double, double, double, double,
-	// double)( V(6), M(0), M(1), M(2), M(3), M(4), M(5)); 			case 7: 				return TE_FUN(const void*,
-	// double, double,
-	// double, double, double, double, double)( 					V(7), M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-	// default: return details::nan;
-	//			}
-	//
-	//		default:
-	//			return details::nan;
-	//		}
-	//#undef TE_FUN
-	//	}
-
 	static inline double te_eval(const common::te_expr* n)
 	{
-#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->bound_function)
-#define M(e)		te_eval((const common::te_expr*)n->parameters[e])
-
 		if (!n)
 			return details::nan;
+
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->bound_function)
+
+		auto M = [&](size_t e) -> double {
+			return te_eval((const common::te_expr*)n->parameters[e]);
+		};
+
+		auto V = [&](size_t e) -> const void* {
+			return n->parameters[e];
+		};
 
 		switch (common::type_mask(n->type))
 		{
 		case common::TE_CONSTANT:
+		{
 			return n->value;
+		}
 
 		case common::TE_VARIABLE:
+		{
 			return *n->bound_variable;
+		}
 
 		case common::TE_FUNCTION0:
 		case common::TE_FUNCTION1:
@@ -696,24 +555,23 @@ struct tinyexpr_eval
 			switch (common::arity(n->type))
 			{
 			case 0:
-				return TE_FUN(void*)(n->parameters[0]);
+				return TE_FUN(const void*)(V(0));
 			case 1:
-				return TE_FUN(void*, double)(n->parameters[1], M(0));
+				return TE_FUN(const void*, double)(V(1), M(0));
 			case 2:
-				return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
+				return TE_FUN(const void*, double, double)(V(2), M(0), M(1));
 			case 3:
-				return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+				return TE_FUN(const void*, double, double, double)(V(3), M(0), M(1), M(2));
 			case 4:
-				return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+				return TE_FUN(const void*, double, double, double, double)(V(4), M(0), M(1), M(2), M(3));
 			case 5:
-				return TE_FUN(void*, double, double, double, double, double)(
-					n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+				return TE_FUN(const void*, double, double, double, double, double)(V(5), M(0), M(1), M(2), M(3), M(4));
 			case 6:
-				return TE_FUN(void*, double, double, double, double, double, double)(
-					n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+				return TE_FUN(const void*, double, double, double, double, double, double)(
+					V(6), M(0), M(1), M(2), M(3), M(4), M(5));
 			case 7:
-				return TE_FUN(void*, double, double, double, double, double, double, double)(
-					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+				return TE_FUN(const void*, double, double, double, double, double, double, double)(
+					V(7), M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
 				return details::nan;
 			}
@@ -721,9 +579,113 @@ struct tinyexpr_eval
 		default:
 			return details::nan;
 		}
-
 #undef TE_FUN
-#undef M
+	}
+
+	static inline double te_eval_compare(const common::te_expr* n,
+		const common::te_portable_expr*							n_portable,
+		const std::uint8_t*										portable_buffer,
+		const void*												portable_binding_table[])
+	{
+		if (!n)
+			return details::nan;
+
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->bound_function)
+
+		auto M = [&](size_t e) -> double {
+			return te_eval_compare((const common::te_expr*)n->parameters[e],
+				(const common::te_portable_expr*)&portable_buffer[n_portable->parameter_offsets[e]],
+				portable_buffer,
+				portable_binding_table);
+		};
+
+		auto V = [&](size_t e) -> const void* {
+			assert(portable_binding_table[n_portable->parameter_offsets[e]] == n->parameters[e]);
+			return n->parameters[e];
+		};
+
+		switch (common::type_mask(n->type))
+		{
+		case common::TE_CONSTANT:
+		{
+			return n->value;
+		}
+
+		case common::TE_VARIABLE:
+		{
+			assert(*(const double*)(portable_binding_table[n_portable->bound_index]) == *n->bound_variable);
+			return *n->bound_variable;
+		}
+
+		case common::TE_FUNCTION0:
+		case common::TE_FUNCTION1:
+		case common::TE_FUNCTION2:
+		case common::TE_FUNCTION3:
+		case common::TE_FUNCTION4:
+		case common::TE_FUNCTION5:
+		case common::TE_FUNCTION6:
+		case common::TE_FUNCTION7:
+			assert(portable_binding_table[n_portable->bound_index] == n->bound_function);
+			switch (common::arity(n->type))
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(double)(M(0));
+			case 2:
+				return TE_FUN(double, double)(M(0), M(1));
+			case 3:
+				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(double, double, double, double, double, double, double)(
+					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return details::nan;
+			}
+
+		case common::TE_CLOSURE0:
+		case common::TE_CLOSURE1:
+		case common::TE_CLOSURE2:
+		case common::TE_CLOSURE3:
+		case common::TE_CLOSURE4:
+		case common::TE_CLOSURE5:
+		case common::TE_CLOSURE6:
+		case common::TE_CLOSURE7:
+			assert(portable_binding_table[n_portable->bound_index] == n->bound_function);
+			switch (common::arity(n->type))
+			{
+			case 0:
+				return TE_FUN(const void*)(V(0));
+			case 1:
+				return TE_FUN(const void*, double)(V(1), M(0));
+			case 2:
+				return TE_FUN(const void*, double, double)(V(2), M(0), M(1));
+			case 3:
+				return TE_FUN(const void*, double, double, double)(V(3), M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(const void*, double, double, double, double)(V(4), M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(const void*, double, double, double, double, double)(V(5), M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(const void*, double, double, double, double, double, double)(
+					V(6), M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(const void*, double, double, double, double, double, double, double)(
+					V(7), M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return details::nan;
+			}
+
+		default:
+			return details::nan;
+		}
+#undef TE_FUN
 	}
 };
 
@@ -1922,6 +1884,66 @@ struct tinyexpr : public tinyexpr_defines
 
 	te_registry m_registry;
 
+#if 0
+	static inline constexpr size_t guard_size = 16;
+#else
+	static inline constexpr size_t guard_size = 0;
+#endif
+
+	struct te_export_dict
+	{
+		std::unordered_map<std::string_view, size_t> binding_table_lookup;
+		std::vector<std::string>					 binding_table_names;
+		std::vector<const void*>					 binding_table_data;
+	};
+
+	inline te_portable_expr* te_export_portable(const te_expr* n, te_export_dict& export_dict)
+	{
+		auto sz = compiler::te_sizeof(&m_registry, n->m_expr);
+
+		auto export_buffer = (std::uint8_t*)::malloc(sz + (guard_size * 2));
+#if 0
+		::memset(export_buffer, 0xffffffff, guard_size);
+		::memset(export_buffer + guard_size, 0x0, sz);
+		::memset(export_buffer + guard_size + sz, 0xffffffff, guard_size);
+#endif
+
+		compiler::te_export(
+			&m_registry,
+			n->m_expr,
+			export_buffer + guard_size,
+			[&export_dict](const void* data, std::string_view name) -> size_t {
+				auto existing = export_dict.binding_table_lookup.find(name);
+				if (existing != export_dict.binding_table_lookup.end())
+				{
+					return existing->second;
+				}
+
+				auto idx = export_dict.binding_table_data.size();
+				export_dict.binding_table_data.push_back(data);
+				export_dict.binding_table_names.emplace_back(std::string(name));
+				export_dict.binding_table_lookup.insert(
+					std::make_pair(std::string_view(export_dict.binding_table_names[idx]), idx));
+				return idx;
+			},
+			0);
+
+#if 0
+		for (int i = 0; i < guard_size; ++i)
+		{
+			assert(export_buffer[i] == 0xff);
+			assert(export_buffer[guard_size + sz + i] == 0xff);
+		}
+#endif
+
+		return new te_portable_expr {
+			(common::te_portable_expr*)&export_buffer[guard_size], export_dict.binding_table_data.size()};
+	}
+
+	te_export_dict m_export_dict;
+
+	/////////////////
+
 	template<typename... T_VARS>
 	void register_variables(T_VARS... vars)
 	{
@@ -1992,76 +2014,12 @@ struct tinyexpr : public tinyexpr_defines
 		return eval::te_eval(n->m_expr);
 	}
 
-#if 0
-	static inline constexpr size_t guard_size = 0;
-#endif
-
-	struct te_export_dict
+	inline te_portable_expr* te_compile_portable(const te_expr* n)
 	{
-		std::unordered_map<std::string_view, size_t> binding_table_lookup;
-		std::vector<std::string>					 binding_table_names;
-		std::vector<const void*>					 binding_table_data;
-	};
-
-	inline te_portable_expr* te_export_portable(const te_expr* n, te_export_dict& export_dict)
-	{
-		auto sz = compiler::te_sizeof(&m_registry, n->m_expr);
-
-		auto export_buffer = (std::uint8_t*)::malloc(sz
-#if 0
-			+ (guard_size * 2)
-#endif
-		);
-#if 0
-		::memset(export_buffer, 0xffffffff, guard_size);
-		::memset(export_buffer + guard_size, 0x0, sz);
-		::memset(export_buffer + guard_size + sz, 0xffffffff, guard_size);
-#endif
-
-		compiler::te_export(
-			&m_registry,
-			n->m_expr,
-			export_buffer
-#if 0
-				+ guard_size
-#endif
-			,
-			[&export_dict](const void* data, std::string_view name) -> size_t {
-				auto existing = export_dict.binding_table_lookup.find(name);
-				if (existing != export_dict.binding_table_lookup.end())
-				{
-					return existing->second;
-				}
-
-				auto idx = export_dict.binding_table_data.size();
-				export_dict.binding_table_data.push_back(data);
-				export_dict.binding_table_names.emplace_back(std::string(name));
-				export_dict.binding_table_lookup.insert(
-					std::make_pair(std::string_view(export_dict.binding_table_names[idx]), idx));
-				return idx;
-			},
-			0);
-
-#if 0
-		for (int i = 0; i < guard_size; ++i)
-		{
-			assert(export_buffer[i] == 0xff);
-			assert(export_buffer[guard_size + sz + i] == 0xff);
-		}
-#endif
-
-		return new te_portable_expr
-		{
-			(common::te_portable_expr*)&export_buffer[0
-#if 0
-					+ guard_size
-#endif
-			],
-				export_dict.binding_table_data.size()
-		};
+		return te_export_portable(n, m_export_dict);
 	}
 
-	inline double te_eval_portable(const te_portable_expr* n, const void* binding_table[])
+	inline double te_eval_portable(const te_portable_expr* n)
 	{
 		// printf("\n***************************************\n");
 		// printf("Evaluating expression:\n");
@@ -2069,7 +2027,13 @@ struct tinyexpr : public tinyexpr_defines
 		// compiler::te_print(&m_registry, n->m_expr);
 		//
 		// printf("Total size: %4lld***********************\n", compiler::te_sizeof(&m_registry, n->m_expr));
-		return eval::te_eval_portable((const std::uint8_t*)n->m_expr, n->m_expr, binding_table);
+		return eval::te_eval_portable(n->m_expr, (const std::uint8_t*)n->m_expr, &m_export_dict.binding_table_data[0]);
+	}
+
+	inline double te_eval_compare(const te_expr* n, const te_portable_expr* n_portable)
+	{
+		return eval::te_eval_compare(
+			n->m_expr, n_portable->m_expr, (const std::uint8_t*)n->m_expr, &m_export_dict.binding_table_data[0]);
 	}
 
 	inline void te_free_portable(te_portable_expr* n)
