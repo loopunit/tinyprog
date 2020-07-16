@@ -25,7 +25,7 @@
 #ifndef __TINYEXPR_H__
 #define __TINYEXPR_H__
 
-struct te_expr
+struct te_expr_native
 {
 	int type;
 	union
@@ -88,16 +88,16 @@ double te_interp(const char* expression, int* error);
 
 /* Parses the input expression and binds variables. */
 /* Returns NULL on error. */
-te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
+te_expr_native* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
 
 /* Evaluates the expression. */
-double te_eval(const te_expr* n);
+double te_eval(const te_expr_native* n);
 
 /* Prints debugging information on the syntax tree. */
-void te_print(const te_expr* n);
+void te_print(const te_expr_native* n);
 
 /* Frees the expression. */
 /* This is safe to call on NULL pointers. */
-void te_free(te_expr* n);
+void te_free(te_expr_native* n);
 
 #endif /*__TINYEXPR_H__*/

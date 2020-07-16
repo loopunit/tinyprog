@@ -95,16 +95,16 @@ typedef struct state
 #define ARITY(TYPE)		  (((TYPE) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((TYPE)&0x00000007) : 0)
 #define NEW_EXPR(type, ...)                                                                                            \
 	[&]() {                                                                                                            \
-		const te_expr* _args[] = {__VA_ARGS__};                                                                        \
+		const te_expr_native* _args[] = {__VA_ARGS__};                                                                 \
 		return new_expr((type), _args);                                                                                \
 	}()
 
-static te_expr* new_expr(const int type, const te_expr* parameters[])
+static te_expr_native* new_expr(const int type, const te_expr_native* parameters[])
 {
-	const int arity = ARITY(type);
-	const int psize = sizeof(void*) * arity;
-	const int size	= (sizeof(te_expr) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-	te_expr*  ret	= (te_expr*)malloc(size);
+	const int		arity = ARITY(type);
+	const int		psize = sizeof(void*) * arity;
+	const int		size  = (sizeof(te_expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+	te_expr_native* ret	  = (te_expr_native*)malloc(size);
 	memset(ret, 0, size);
 	if (arity && parameters)
 	{
@@ -115,7 +115,7 @@ static te_expr* new_expr(const int type, const te_expr* parameters[])
 	return ret;
 }
 
-void te_free_parameters(te_expr* n)
+void te_free_parameters(te_expr_native* n)
 {
 	if (!n)
 		return;
@@ -123,29 +123,29 @@ void te_free_parameters(te_expr* n)
 	{
 	case TE_FUNCTION7:
 	case TE_CLOSURE7:
-		te_free((te_expr*)n->parameters[6]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[6]); /* Falls through. */
 	case TE_FUNCTION6:
 	case TE_CLOSURE6:
-		te_free((te_expr*)n->parameters[5]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[5]); /* Falls through. */
 	case TE_FUNCTION5:
 	case TE_CLOSURE5:
-		te_free((te_expr*)n->parameters[4]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[4]); /* Falls through. */
 	case TE_FUNCTION4:
 	case TE_CLOSURE4:
-		te_free((te_expr*)n->parameters[3]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[3]); /* Falls through. */
 	case TE_FUNCTION3:
 	case TE_CLOSURE3:
-		te_free((te_expr*)n->parameters[2]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[2]); /* Falls through. */
 	case TE_FUNCTION2:
 	case TE_CLOSURE2:
-		te_free((te_expr*)n->parameters[1]); /* Falls through. */
+		te_free((te_expr_native*)n->parameters[1]); /* Falls through. */
 	case TE_FUNCTION1:
 	case TE_CLOSURE1:
-		te_free((te_expr*)n->parameters[0]);
+		te_free((te_expr_native*)n->parameters[0]);
 	}
 }
 
-void te_free(te_expr* n)
+void te_free(te_expr_native* n)
 {
 	if (!n)
 		return;
@@ -614,16 +614,16 @@ void next_token(state* s)
 	} while (s->type == TOK_NULL);
 }
 
-static te_expr* list(state* s);
-static te_expr* expr(state* s);
-static te_expr* power(state* s);
+static te_expr_native* list(state* s);
+static te_expr_native* expr(state* s);
+static te_expr_native* power(state* s);
 
-static te_expr* base(state* s)
+static te_expr_native* base(state* s)
 {
 	/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "("
 	 * <expr> {"," <expr>} ")" | "(" <list> ")" */
-	te_expr* ret;
-	int		 arity;
+	te_expr_native* ret;
+	int				arity;
 
 	switch (TYPE_MASK(s->type))
 	{
@@ -741,7 +741,7 @@ static te_expr* base(state* s)
 	return ret;
 }
 
-static te_expr* power(state* s)
+static te_expr_native* power(state* s)
 {
 	/* <power>     =    {("-" | "+" | "!")} <base> */
 	int sign = 1;
@@ -769,7 +769,7 @@ static te_expr* power(state* s)
 		next_token(s);
 	}
 
-	te_expr* ret;
+	te_expr_native* ret;
 
 	if (sign == 1)
 	{
@@ -811,20 +811,20 @@ static te_expr* power(state* s)
 }
 
 #ifdef TE_POW_FROM_RIGHT
-static te_expr* factor(state* s)
+static te_expr_native* factor(state* s)
 {
 	/* <factor>    =    <power> {"^" <power>} */
-	te_expr* ret = power(s);
+	te_expr_native* ret = power(s);
 
-	const void* left_function = NULL;
-	te_expr*	insertion	  = 0;
+	const void*		left_function = NULL;
+	te_expr_native* insertion	  = 0;
 
 	if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
 		(ret->function == negate || ret->function == logical_not || ret->function == logical_notnot ||
 			ret->function == negate_logical_not || ret->function == negate_logical_notnot))
 	{
-		left_function = ret->function;
-		te_expr* se	  = ret->parameters[0];
+		left_function	   = ret->function;
+		te_expr_native* se = ret->parameters[0];
 		free(ret);
 		ret = se;
 	}
@@ -837,7 +837,7 @@ static te_expr* factor(state* s)
 		if (insertion)
 		{
 			/* Make exponentiation go right-to-left. */
-			te_expr* insert			 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+			te_expr_native* insert	 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
 			insert->function		 = t;
 			insertion->parameters[1] = insert;
 			insertion				 = insert;
@@ -859,10 +859,10 @@ static te_expr* factor(state* s)
 	return ret;
 }
 #else
-static te_expr* factor(state* s)
+static te_expr_native* factor(state* s)
 {
 	/* <factor>    =    <power> {"^" <power>} */
-	te_expr* ret = power(s);
+	te_expr_native* ret = power(s);
 
 	while (s->type == TOK_INFIX && (s->function == pow))
 	{
@@ -876,10 +876,10 @@ static te_expr* factor(state* s)
 }
 #endif
 
-static te_expr* term(state* s)
+static te_expr_native* term(state* s)
 {
 	/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
-	te_expr* ret = factor(s);
+	te_expr_native* ret = factor(s);
 
 	while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod))
 	{
@@ -892,10 +892,10 @@ static te_expr* term(state* s)
 	return ret;
 }
 
-static te_expr* sum_expr(state* s)
+static te_expr_native* sum_expr(state* s)
 {
 	/* <expr>      =    <term> {("+" | "-") <term>} */
-	te_expr* ret = term(s);
+	te_expr_native* ret = term(s);
 
 	while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
 	{
@@ -908,10 +908,10 @@ static te_expr* sum_expr(state* s)
 	return ret;
 }
 
-static te_expr* test_expr(state* s)
+static te_expr_native* test_expr(state* s)
 {
 	/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
-	te_expr* ret = sum_expr(s);
+	te_expr_native* ret = sum_expr(s);
 
 	while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq || s->function == lower ||
 									   s->function == lower_eq || s->function == equal || s->function == not_equal))
@@ -925,10 +925,10 @@ static te_expr* test_expr(state* s)
 	return ret;
 }
 
-static te_expr* expr(state* s)
+static te_expr_native* expr(state* s)
 {
 	/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
-	te_expr* ret = test_expr(s);
+	te_expr_native* ret = test_expr(s);
 
 	while (s->type == TOK_INFIX && (s->function == logical_and || s->function == logical_or))
 	{
@@ -941,10 +941,10 @@ static te_expr* expr(state* s)
 	return ret;
 }
 
-static te_expr* list(state* s)
+static te_expr_native* list(state* s)
 {
 	/* <list>      =    <expr> {"," <expr>} */
-	te_expr* ret = expr(s);
+	te_expr_native* ret = expr(s);
 
 	while (s->type == TOK_SEP)
 	{
@@ -957,9 +957,9 @@ static te_expr* list(state* s)
 }
 
 #define TE_FUN(...) ((double (*)(__VA_ARGS__))n->function)
-#define M(e)		te_eval((const te_expr*)n->parameters[e])
+#define M(e)		te_eval((const te_expr_native*)n->parameters[e])
 
-double te_eval(const te_expr* n)
+double te_eval(const te_expr_native* n)
 {
 	if (!n)
 		return NAN;
@@ -1043,7 +1043,7 @@ double te_eval(const te_expr* n)
 #undef TE_FUN
 #undef M
 
-static void optimize(te_expr* n)
+static void optimize(te_expr_native* n)
 {
 	/* Evaluates as much as possible. */
 	if (n->type == TE_CONSTANT)
@@ -1059,8 +1059,8 @@ static void optimize(te_expr* n)
 		int		  i;
 		for (i = 0; i < arity; ++i)
 		{
-			optimize((te_expr*)n->parameters[i]);
-			if (((te_expr*)(n->parameters[i]))->type != TE_CONSTANT)
+			optimize((te_expr_native*)n->parameters[i]);
+			if (((te_expr_native*)(n->parameters[i]))->type != TE_CONSTANT)
 			{
 				known = 0;
 			}
@@ -1075,9 +1075,9 @@ static void optimize(te_expr* n)
 	}
 }
 
-void te_export(const te_expr* n, const te_variable* lookup, int lookup_len);
+void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len);
 
-te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
+te_expr_native* te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
 {
 	state s;
 	s.start = s.next = expression;
@@ -1085,7 +1085,7 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 	s.lookup_len	 = var_count;
 
 	next_token(&s);
-	te_expr* root = list(&s);
+	te_expr_native* root = list(&s);
 
 	if (s.type != TOK_END)
 	{
@@ -1112,8 +1112,8 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 
 double te_interp(const char* expression, int* error)
 {
-	te_expr* n = te_compile(expression, 0, 0, error);
-	double	 ret;
+	te_expr_native* n = te_compile(expression, 0, 0, error);
+	double			ret;
 	if (n)
 	{
 		ret = te_eval(n);
@@ -1126,7 +1126,7 @@ double te_interp(const char* expression, int* error)
 	return ret;
 }
 
-static void pn(const te_expr* n, int depth)
+static void pn(const te_expr_native* n, int depth)
 {
 	int i, arity;
 	printf("%*s", depth, "");
@@ -1165,13 +1165,13 @@ static void pn(const te_expr* n, int depth)
 		printf("\n");
 		for (i = 0; i < arity; i++)
 		{
-			pn((const te_expr*)n->parameters[i], depth + 1);
+			pn((const te_expr_native*)n->parameters[i], depth + 1);
 		}
 		break;
 	}
 }
 
-void te_print(const te_expr* n)
+void te_print(const te_expr_native* n)
 {
 	pn(n, 0);
 }
@@ -1235,22 +1235,22 @@ static const te_variable* find_bind_by_addr(const void* addr, const te_variable*
 using te_name_map  = std::unordered_map<const void*, std::string>;
 using te_index_map = std::unordered_map<const void*, int>;
 
-size_t te_export_estimate(const te_expr* n,
-	size_t&								 export_size,
-	const te_variable*					 lookup,
-	int									 lookup_len,
-	te_name_map&						 name_map,
-	te_index_map&						 index_map,
-	int&								 index_counter)
+size_t te_export_estimate(const te_expr_native* n,
+	size_t&										export_size,
+	const te_variable*							lookup,
+	int											lookup_len,
+	te_name_map&								name_map,
+	te_index_map&								index_map,
+	int&										index_counter)
 {
 #define M(e)                                                                                                           \
 	te_export_estimate(                                                                                                \
-		(const te_expr*)n->parameters[e], export_size, lookup, lookup_len, name_map, index_map, index_counter)
+		(const te_expr_native*)n->parameters[e], export_size, lookup, lookup_len, name_map, index_map, index_counter)
 
 	if (!n)
 		return export_size;
 
-	export_size += sizeof(te_expr);
+	export_size += sizeof(te_expr_native);
 
 	auto handle_addr = [&](const te_variable* var) -> bool {
 		if (var)
@@ -1326,22 +1326,22 @@ size_t te_export_estimate(const te_expr* n,
 }
 
 template<typename T_REGISTER_FUNC>
-size_t te_export_write(const te_expr* n,
-	size_t&							  export_size,
-	const te_variable*				  lookup,
-	int								  lookup_len,
-	const std::uint8_t*				  out_buffer,
-	T_REGISTER_FUNC					  register_func)
+size_t te_export_write(const te_expr_native* n,
+	size_t&									 export_size,
+	const te_variable*						 lookup,
+	int										 lookup_len,
+	const std::uint8_t*						 out_buffer,
+	T_REGISTER_FUNC							 register_func)
 {
 #define M(e)                                                                                                           \
-	te_export_write((const te_expr*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
+	te_export_write((const te_expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
 
 	if (!n)
 		return export_size;
 
 	te_expr_portable* n_out = (te_expr_portable*)(out_buffer + export_size);
 
-	export_size += sizeof(te_expr);
+	export_size += sizeof(te_expr_native);
 	n_out->type = n->type;
 	switch (TYPE_MASK(n->type))
 	{
@@ -1420,7 +1420,7 @@ struct te_expr_portable_expression
 	std::vector<std::uint8_t> export_buffer;
 };
 
-void te_export(const te_expr* n, const te_variable* lookup, int lookup_len)
+void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len)
 {
 	te_expr_portable_expression_builder builder;
 	te_expr_portable_expression			expression;
@@ -1451,7 +1451,7 @@ void te_export(const te_expr* n, const te_variable* lookup, int lookup_len)
 		lookup,
 		lookup_len,
 		&expression.export_buffer[0],
-		[&](const te_expr* n, size_t& out, const te_variable* v) -> void {
+		[&](const te_expr_native* n, size_t& out, const te_variable* v) -> void {
 			assert(v != nullptr);
 			auto itor = builder.index_map.find(v->address);
 			assert(itor != builder.index_map.end());
