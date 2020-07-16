@@ -1405,57 +1405,56 @@ size_t te_export_write(const te_expr* n,
 #undef M
 }
 
-void te_export(const te_expr* n, const te_variable* lookup, int lookup_len)
+struct te_expr_portable_expression_builder
 {
 	te_name_map	 name_map;
 	te_index_map index_map;
+	int			 index_counter = 0;
+
 	std::vector<const void*> index_to_address;
 	std::vector<std::string> index_to_name;
+};
 
-	size_t export_size	 = 0;
-	int	   index_counter = 0;
-	te_export_estimate(n, export_size, lookup, lookup_len, name_map, index_map, index_counter);
+struct te_expr_portable_expression
+{
+	std::vector<std::uint8_t> export_buffer;
+};
 
-	index_to_address.resize(index_counter);
-	for (const auto& itor : index_map)
+void te_export(const te_expr* n, const te_variable* lookup, int lookup_len)
+{
+	te_expr_portable_expression_builder builder;
+	te_expr_portable_expression			expression;
+	size_t								export_size = 0;
+
+	te_export_estimate(n, export_size, lookup, lookup_len, builder.name_map, builder.index_map, builder.index_counter);
+
+	builder.index_to_address.resize(builder.index_counter);
+	for (const auto& itor : builder.index_map)
 	{
-		index_to_address[itor.second] = itor.first;
-	}
-	
-	index_to_name.resize(index_counter);
-	for (int i = 0; i < index_counter; ++i)
-	{
-		auto itor = name_map.find(index_to_address[i]);
-		assert(itor != name_map.end());
-		index_to_name[i] = itor->second;
+		builder.index_to_address[itor.second] = itor.first;
 	}
 
-	static constexpr size_t guard_size		   = 64;
-	std::uint8_t*			export_buffer = (std::uint8_t*)::malloc(export_size + (guard_size * 2));
-	
-	::memset(export_buffer, 0xffffffff, guard_size);
-	::memset(export_buffer + guard_size, 0x0, export_size);
-	::memset(export_buffer + guard_size + export_size, 0xffffffff, guard_size);
-	
+	builder.index_to_name.resize(builder.index_counter);
+	for (int i = 0; i < builder.index_counter; ++i)
+	{
+		auto itor = builder.name_map.find(builder.index_to_address[i]);
+		assert(itor != builder.name_map.end());
+		builder.index_to_name[i] = itor->second;
+	}
+
+	expression.export_buffer.resize(export_size);
+	::memset(&expression.export_buffer[0], 0x0, export_size);
+
 	size_t actual_export_size = 0;
 	te_export_write(n,
 		actual_export_size,
 		lookup,
 		lookup_len,
-		export_buffer + guard_size,
-		[&](const te_expr* n, size_t &out, const te_variable* v) -> void 
-		{ 
-			assert(v != nullptr); 
-			auto itor = index_map.find(v->address);
-			assert(itor != index_map.end());
+		&expression.export_buffer[0],
+		[&](const te_expr* n, size_t& out, const te_variable* v) -> void {
+			assert(v != nullptr);
+			auto itor = builder.index_map.find(v->address);
+			assert(itor != builder.index_map.end());
 			out = itor->second;
 		});
-
-	for (int i = 0; i < guard_size; ++i)
-	{
-		assert(export_buffer[i] == 0xff);
-		assert(export_buffer[guard_size + export_size + i] == 0xff);
-	}
-	
-	::free(export_buffer);
 }
