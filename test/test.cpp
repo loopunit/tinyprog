@@ -2,7 +2,7 @@
  * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
  *
  * Copyright (c) 2020 Nathan Rausch
- * http://looupunit.com
+ * http://loopunit.com
  *
  * Copyright (c) 2015-2018 Lewis Van Winkle
  * http://CodePlea.com
