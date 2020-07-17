@@ -36,12 +36,19 @@ For log = natural log uncomment the next line. */
 
 #include "tinyexpr.h"
 #include <stdlib.h>
-#include <math.h>
+//#include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <limits.h>
 #include <assert.h>
 
+enum
+{
+	TE_CONSTANT = 1
+};
+
+namespace te_details
+{
 #ifndef NAN
 #	define NAN (0.0 / 0.0)
 #endif
@@ -50,42 +57,39 @@ For log = natural log uncomment the next line. */
 #	define INFINITY (1.0 / 0.0)
 #endif
 
-typedef double (*te_fun2)(double, double);
+	typedef double (*te_fun2)(double, double);
 
-enum
-{
-	TOK_NULL = TE_CLOSURE7 + 1,
-	TOK_ERROR,
-	TOK_END,
-	TOK_SEP,
-	TOK_OPEN,
-	TOK_CLOSE,
-	TOK_NUMBER,
-	TOK_VARIABLE,
-	TOK_INFIX
-};
-
-enum
-{
-	TE_CONSTANT = 1
-};
-
-typedef struct state
-{
-	const char* start;
-	const char* next;
-	int			type;
-	union
+	enum
 	{
-		double		  value;
-		const double* bound;
-		const void*	  function;
+		TOK_NULL = TE_CLOSURE7 + 1,
+		TOK_ERROR,
+		TOK_END,
+		TOK_SEP,
+		TOK_OPEN,
+		TOK_CLOSE,
+		TOK_NUMBER,
+		TOK_VARIABLE,
+		TOK_INFIX
 	};
-	void* context;
 
-	const te_variable* lookup;
-	int				   lookup_len;
-} state;
+	struct state
+	{
+		const char* start;
+		const char* next;
+		int			type;
+		union
+		{
+			double		  value;
+			const double* bound;
+			const void*	  function;
+		};
+		void* context;
+
+		const te_variable* lookup;
+		int				   lookup_len;
+	};
+
+	void te_free_native(te_expr_native* n);
 
 #define TYPE_MASK(TYPE) ((TYPE)&0x0000001F)
 
@@ -99,250 +103,360 @@ typedef struct state
 		return new_expr((type), _args);                                                                                \
 	}()
 
-static te_expr_native* new_expr(const int type, const te_expr_native* parameters[])
-{
-	const int		arity = ARITY(type);
-	const int		psize = sizeof(void*) * arity;
-	const int		size  = (sizeof(te_expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
-	te_expr_native* ret	  = (te_expr_native*)malloc(size);
-	memset(ret, 0, size);
-	if (arity && parameters)
+	static te_expr_native* new_expr(const int type, const te_expr_native* parameters[])
 	{
-		memcpy(ret->parameters, parameters, psize);
+		const int arity		= ARITY(type);
+		const int psize		= sizeof(void*) * arity;
+		const int size		= (sizeof(te_expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+		te_expr_native* ret = (te_expr_native*)malloc(size);
+		memset(ret, 0, size);
+		if (arity && parameters)
+		{
+			memcpy(ret->parameters, parameters, psize);
+		}
+		ret->type  = type;
+		ret->bound = 0;
+		return ret;
 	}
-	ret->type  = type;
-	ret->bound = 0;
-	return ret;
-}
 
-void te_free_parameters(te_expr_native* n)
-{
-	if (!n)
-		return;
-	switch (TYPE_MASK(n->type))
+	void te_free_parameters(te_expr_native* n)
 	{
-	case TE_FUNCTION7:
-	case TE_CLOSURE7:
-		te_free((te_expr_native*)n->parameters[6]); /* Falls through. */
-	case TE_FUNCTION6:
-	case TE_CLOSURE6:
-		te_free((te_expr_native*)n->parameters[5]); /* Falls through. */
-	case TE_FUNCTION5:
-	case TE_CLOSURE5:
-		te_free((te_expr_native*)n->parameters[4]); /* Falls through. */
-	case TE_FUNCTION4:
-	case TE_CLOSURE4:
-		te_free((te_expr_native*)n->parameters[3]); /* Falls through. */
-	case TE_FUNCTION3:
-	case TE_CLOSURE3:
-		te_free((te_expr_native*)n->parameters[2]); /* Falls through. */
-	case TE_FUNCTION2:
-	case TE_CLOSURE2:
-		te_free((te_expr_native*)n->parameters[1]); /* Falls through. */
-	case TE_FUNCTION1:
-	case TE_CLOSURE1:
-		te_free((te_expr_native*)n->parameters[0]);
+		if (!n)
+			return;
+		switch (TYPE_MASK(n->type))
+		{
+		case TE_FUNCTION7:
+		case TE_CLOSURE7:
+			te_free_native((te_expr_native*)n->parameters[6]); /* Falls through. */
+		case TE_FUNCTION6:
+		case TE_CLOSURE6:
+			te_free_native((te_expr_native*)n->parameters[5]); /* Falls through. */
+		case TE_FUNCTION5:
+		case TE_CLOSURE5:
+			te_free_native((te_expr_native*)n->parameters[4]); /* Falls through. */
+		case TE_FUNCTION4:
+		case TE_CLOSURE4:
+			te_free_native((te_expr_native*)n->parameters[3]); /* Falls through. */
+		case TE_FUNCTION3:
+		case TE_CLOSURE3:
+			te_free_native((te_expr_native*)n->parameters[2]); /* Falls through. */
+		case TE_FUNCTION2:
+		case TE_CLOSURE2:
+			te_free_native((te_expr_native*)n->parameters[1]); /* Falls through. */
+		case TE_FUNCTION1:
+		case TE_CLOSURE1:
+			te_free_native((te_expr_native*)n->parameters[0]);
+		}
 	}
-}
 
-void te_free(te_expr_native* n)
-{
-	if (!n)
-		return;
-	te_free_parameters(n);
-	free(n);
-}
-
-static double pi(void)
-{
-	return 3.14159265358979323846;
-}
-static double e(void)
-{
-	return 2.71828182845904523536;
-}
-static double fac(double a)
-{ /* simplest version of fac */
-	if (a < 0.0)
-		return NAN;
-	if (a > UINT_MAX)
-		return INFINITY;
-	unsigned int	  ua	 = (unsigned int)(a);
-	unsigned long int result = 1, i;
-	for (i = 1; i <= ua; i++)
+	void te_free_native(te_expr_native* n)
 	{
-		if (i > ULONG_MAX / result)
+		if (!n)
+			return;
+		te_free_parameters(n);
+		free(n);
+	}
+
+	static double te_pi(void)
+	{
+		return 3.14159265358979323846;
+	}
+
+	static double te_e(void)
+	{
+		return 2.71828182845904523536;
+	}
+
+	static double te_fac(double a)
+	{ /* simplest version of fac */
+		if (a < 0.0)
+			return NAN;
+		if (a > UINT_MAX)
 			return INFINITY;
-		result *= i;
+		unsigned int	  ua	 = (unsigned int)(a);
+		unsigned long int result = 1, i;
+		for (i = 1; i <= ua; i++)
+		{
+			if (i > ULONG_MAX / result)
+				return INFINITY;
+			result *= i;
+		}
+		return (double)result;
 	}
-	return (double)result;
-}
-static double ncr(double n, double r)
-{
-	if (n < 0.0 || r < 0.0 || n < r)
-		return NAN;
-	if (n > UINT_MAX || r > UINT_MAX)
-		return INFINITY;
-	unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-	unsigned long int result = 1;
-	if (ur > un / 2)
-		ur = un - ur;
-	for (i = 1; i <= ur; i++)
+
+	static double te_ncr(double n, double r)
 	{
-		if (result > ULONG_MAX / (un - ur + i))
+		if (n < 0.0 || r < 0.0 || n < r)
+			return NAN;
+		if (n > UINT_MAX || r > UINT_MAX)
 			return INFINITY;
-		result *= un - ur + i;
-		result /= i;
+		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+		unsigned long int result = 1;
+		if (ur > un / 2)
+			ur = un - ur;
+		for (i = 1; i <= ur; i++)
+		{
+			if (result > ULONG_MAX / (un - ur + i))
+				return INFINITY;
+			result *= un - ur + i;
+			result /= i;
+		}
+		return result;
 	}
-	return result;
-}
-static double npr(double n, double r)
-{
-	return ncr(n, r) * fac(r);
-}
 
-static double te_floor(double d)
-{
-	return floor(d);
-}
+	static double te_npr(double n, double r)
+	{
+		return te_ncr(n, r) * te_fac(r);
+	}
 
-static double te_ceil(double d)
-{
-	return ceil(d);
-}
+	static double te_fabs(double n)
+	{
+		return ::fabs(n);
+	}
 
-static double add(double a, double b)
-{
-	return a + b;
-}
-static double sub(double a, double b)
-{
-	return a - b;
-}
-static double mul(double a, double b)
-{
-	return a * b;
-}
-static double divide(double a, double b)
-{
-	return a / b;
-}
-static double negate(double a)
-{
-	return -a;
-}
-static double comma(double a, double b)
-{
-	(void)a;
-	return b;
-}
+	static double te_acos(double n)
+	{
+		return ::acos(n);
+	}
 
-static double greater(double a, double b)
-{
-	return a > b;
-}
-static double greater_eq(double a, double b)
-{
-	return a >= b;
-}
-static double lower(double a, double b)
-{
-	return a < b;
-}
-static double lower_eq(double a, double b)
-{
-	return a <= b;
-}
-static double equal(double a, double b)
-{
-	return a == b;
-}
-static double not_equal(double a, double b)
-{
-	return a != b;
-}
-static double logical_and(double a, double b)
-{
-	return a != 0.0 && b != 0.0;
-}
-static double logical_or(double a, double b)
-{
-	return a != 0.0 || b != 0.0;
-}
-static double logical_not(double a)
-{
-	return a == 0.0;
-}
-static double logical_notnot(double a)
-{
-	return a != 0.0;
-}
-static double negate_logical_not(double a)
-{
-	return -(a == 0.0);
-}
-static double negate_logical_notnot(double a)
-{
-	return -(a != 0.0);
-}
+	static double te_cosh(double n)
+	{
+		return ::cosh(n);
+	}
 
-static const te_variable functions[] = {
-	/* must be in alphabetical order */
-	{"abs", fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"acos", acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"asin", asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"atan", atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"atan2", atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"ceil", te_ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"cos", cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"cosh", cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"e", e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-	{"exp", exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"fac", fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"floor", te_floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"ln", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+	static double te_cos(double n)
+	{
+		return ::cos(n);
+	}
+
+	static double te_exp(double n)
+	{
+		return ::exp(n);
+	}
+
+	static double te_asin(double n)
+	{
+		return ::asin(n);
+	}
+
+	static double te_sinh(double n)
+	{
+		return ::sinh(n);
+	}
+
+	static double te_sin(double n)
+	{
+		return ::sin(n);
+	}
+
+	static double te_sqrt(double n)
+	{
+		return ::sqrt(n);
+	}
+
+	static double te_log(double n)
+	{
+		return ::log(n);
+	}
+
+	static double te_log10(double n)
+	{
+		return ::log10(n);
+	}
+
+	static double te_atan(double n)
+	{
+		return ::atan(n);
+	}
+
+	static double te_tanh(double n)
+	{
+		return ::tanh(n);
+	}
+
+	static double te_fmod(double n, double m)
+	{
+		return ::fmod(n, m);
+	}
+
+	static double te_tan(double n)
+	{
+		return ::tan(n);
+	}
+
+	static double te_atan2(double n, double m)
+	{
+		return ::atan2(n, m);
+	}
+
+	static double te_pow(double n, double m)
+	{
+		return ::pow(n, m);
+	}
+
+	static double te_floor(double d)
+	{
+		return floor(d);
+	}
+
+	static double te_ceil(double d)
+	{
+		return ceil(d);
+	}
+
+	static double te_add(double a, double b)
+	{
+		return a + b;
+	}
+
+	static double te_sub(double a, double b)
+	{
+		return a - b;
+	}
+
+	static double te_mul(double a, double b)
+	{
+		return a * b;
+	}
+
+	static double te_divide(double a, double b)
+	{
+		return a / b;
+	}
+
+	static double te_negate(double a)
+	{
+		return -a;
+	}
+
+	static double te_comma(double a, double b)
+	{
+		(void)a;
+		return b;
+	}
+
+	static double te_greater(double a, double b)
+	{
+		return a > b;
+	}
+
+	static double te_greater_eq(double a, double b)
+	{
+		return a >= b;
+	}
+
+	static double te_lower(double a, double b)
+	{
+		return a < b;
+	}
+
+	static double te_lower_eq(double a, double b)
+	{
+		return a <= b;
+	}
+
+	static double te_equal(double a, double b)
+	{
+		return a == b;
+	}
+
+	static double te_not_equal(double a, double b)
+	{
+		return a != b;
+	}
+
+	static double te_logical_and(double a, double b)
+	{
+		return a != 0.0 && b != 0.0;
+	}
+
+	static double te_logical_or(double a, double b)
+	{
+		return a != 0.0 || b != 0.0;
+	}
+
+	static double te_logical_not(double a)
+	{
+		return a == 0.0;
+	}
+
+	static double te_logical_notnot(double a)
+	{
+		return a != 0.0;
+	}
+
+	static double te_negate_logical_not(double a)
+	{
+		return -(a == 0.0);
+	}
+
+	static double te_negate_logical_notnot(double a)
+	{
+		return -(a != 0.0);
+	}
+
+	static double te_nul()
+	{
+		return 0.0f;
+	}
+
+	static const te_variable functions[] = {
+		/* must be in alphabetical order */
+		{"abs", te_fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"acos", te_acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"asin", te_asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan", te_atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"atan2", te_atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"ceil", te_ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cos", te_cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"cosh", te_cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"e", te_e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"exp", te_exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"fac", te_fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"floor", te_floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ln", te_log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
-	{"log", log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", te_log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
-	{"log", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"log", te_log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-	{"log10", log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"ncr", ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"npr", npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"pi", pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-	{"pow", pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"sin", sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"sinh", sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"sqrt", sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"tan", tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"tanh", tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{0, 0, 0, 0}};
+		{"log10", te_log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"ncr", te_ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"npr", te_npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"pi", te_pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+		{"pow", te_pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"sin", te_sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sinh", te_sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"sqrt", te_sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tan", te_tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"tanh", te_tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{0, 0, 0, 0}};
 
-static const te_variable operators[] = {
-	/* must be in alphabetical order */
-	{"add", add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"comma", comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"divide", divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"equal", equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"fmod", fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"greater", greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"greater_eq", greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"logical_and", logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"logical_not", logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"logical_notnot", logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"logical_or", logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"lower", lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"lower_eq", lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"mul", mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"negate", negate, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"negate_logical_not", negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"negate_logical_notnot", negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-	{"not_equal", not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"pow", pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-	{"sub", sub}};
+	static const te_variable operators[] = {
+		/* must be in alphabetical order */
+		{"add", te_add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"comma", te_comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"divide", te_divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"equal", te_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"fmod", te_fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"greater", te_greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"greater_eq", te_greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"logical_and", te_logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"logical_not", te_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"logical_notnot", te_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"logical_or", te_logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"lower", te_lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"lower_eq", te_lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"mul", te_mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"negate", te_negate, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"negate_logical_not", te_negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"negate_logical_notnot", te_negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+		{"not_equal", te_not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"pow", te_pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{"sub", te_sub, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+		{0, 0, 0, 0}};
 
-static const te_variable* find_builtin(const char* name, int len)
-{
+	static const te_variable* find_builtin_function(const char* name, int len)
 	{
 		int imin = 0;
 		int imax = sizeof(functions) / sizeof(te_variable) - 2;
@@ -367,8 +481,10 @@ static const te_variable* find_builtin(const char* name, int len)
 				imax = i - 1;
 			}
 		}
+		return nullptr;
 	}
 
+	static const te_variable* find_builtin_operator(const char* name, int len)
 	{
 		int imin = 0;
 		int imax = sizeof(operators) / sizeof(te_variable) - 2;
@@ -380,6 +496,7 @@ static const te_variable* find_builtin(const char* name, int len)
 			int		  c = strncmp(name, operators[i].name, len);
 			if (!c)
 				c = '\0' - operators[i].name[len];
+
 			if (c == 0)
 			{
 				return operators + i;
@@ -393,262 +510,347 @@ static const te_variable* find_builtin(const char* name, int len)
 				imax = i - 1;
 			}
 		}
+		return nullptr;
 	}
 
-	return 0;
-}
-
-static const te_variable* find_lookup(const te_variable* lookup, int lookup_len, const char* name, int len)
-{
-	if (!lookup)
-		return 0;
-
-	const te_variable* var	 = lookup;
-	int				   iters = lookup_len;
-	for (; iters; ++var, --iters)
+	static const te_variable* find_builtin(const char* name, int len)
 	{
-		if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
+		auto res = find_builtin_function(name, len);
+		if (!res)
 		{
-			return var;
+			res = find_builtin_operator(name, len);
 		}
+		return res;
 	}
-	return 0;
-}
 
-static const te_variable* find_lookup(const state* s, const char* name, int len)
-{
-	return find_lookup(s->lookup, s->lookup_len, name, len);
-}
-
-void next_token(state* s)
-{
-	s->type = TOK_NULL;
-
-	do
+	static const te_variable* find_builtin(const char* name)
 	{
-		if (!*s->next)
-		{
-			s->type = TOK_END;
-			return;
-		}
+		return find_builtin(name, ::strlen(name));
+	}
 
-		/* Try reading a number. */
-		if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.')
+	static const te_variable* find_lookup(const te_variable* lookup, int lookup_len, const char* name, int len)
+	{
+		if (!lookup)
+			return 0;
+
+		const te_variable* var	 = lookup;
+		int				   iters = lookup_len;
+		for (; iters; ++var, --iters)
 		{
-			s->value = strtod(s->next, (char**)&s->next);
-			s->type	 = TOK_NUMBER;
-		}
-		else
-		{
-			/* Look for a variable or builtin function call. */
-			if (s->next[0] >= 'a' && s->next[0] <= 'z')
+			if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
 			{
-				const char* start;
-				start = s->next;
-				while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') ||
-					   (s->next[0] == '_'))
-					s->next++;
+				return var;
+			}
+		}
+		return 0;
+	}
 
-				const te_variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
-				if (!var)
-					var = find_builtin(start, static_cast<int>(s->next - start));
+	static const te_variable* find_lookup(const state* s, const char* name, int len)
+	{
+		return find_lookup(s->lookup, s->lookup_len, name, len);
+	}
 
-				if (!var)
+	void next_token(state* s)
+	{
+		s->type = TOK_NULL;
+
+		do
+		{
+			if (!*s->next)
+			{
+				s->type = TOK_END;
+				return;
+			}
+
+			/* Try reading a number. */
+			if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.')
+			{
+				s->value = strtod(s->next, (char**)&s->next);
+				s->type	 = TOK_NUMBER;
+			}
+			else
+			{
+				/* Look for a variable or builtin function call. */
+				if (s->next[0] >= 'a' && s->next[0] <= 'z')
+				{
+					const char* start;
+					start = s->next;
+					while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') ||
+						   (s->next[0] == '_'))
+						s->next++;
+
+					const te_variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
+					if (!var)
+						var = find_builtin(start, static_cast<int>(s->next - start));
+
+					if (!var)
+					{
+						s->type = TOK_ERROR;
+					}
+					else
+					{
+						switch (TYPE_MASK(var->type))
+						{
+						case TE_VARIABLE:
+							s->type	 = TOK_VARIABLE;
+							s->bound = (const double*)var->address;
+							break;
+
+						case TE_CLOSURE0:
+						case TE_CLOSURE1:
+						case TE_CLOSURE2:
+						case TE_CLOSURE3: /* Falls through. */
+						case TE_CLOSURE4:
+						case TE_CLOSURE5:
+						case TE_CLOSURE6:
+						case TE_CLOSURE7:			   /* Falls through. */
+							s->context = var->context; /* Falls through. */
+
+						case TE_FUNCTION0:
+						case TE_FUNCTION1:
+						case TE_FUNCTION2:
+						case TE_FUNCTION3: /* Falls through. */
+						case TE_FUNCTION4:
+						case TE_FUNCTION5:
+						case TE_FUNCTION6:
+						case TE_FUNCTION7: /* Falls through. */
+							s->type		= var->type;
+							s->function = var->address;
+							break;
+						}
+					}
+				}
+				else
+				{
+					/* Look for an operator or special character. */
+					switch (s->next++[0])
+					{
+					case '+':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("add")->address;
+						break;
+					case '-':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("sub")->address;
+						break;
+					case '*':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("mul")->address;
+						break;
+					case '/':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("divide")->address;
+						break;
+					case '^':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("pow")->address;
+						break;
+					case '%':
+						s->type		= TOK_INFIX;
+						s->function = find_builtin("fmod")->address;
+						break;
+					case '!':
+						if (s->next++[0] == '=')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("not_equal")->address;
+						}
+						else
+						{
+							s->next--;
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("logical_not")->address;
+						}
+						break;
+					case '=':
+						if (s->next++[0] == '=')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("equal")->address;
+						}
+						else
+						{
+							s->type = TOK_ERROR;
+						}
+						break;
+					case '<':
+						if (s->next++[0] == '=')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("lower_eq")->address;
+						}
+						else
+						{
+							s->next--;
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("lower")->address;
+						}
+						break;
+					case '>':
+						if (s->next++[0] == '=')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("greater_eq")->address;
+						}
+						else
+						{
+							s->next--;
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("greater")->address;
+						}
+						break;
+					case '&':
+						if (s->next++[0] == '&')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("logical_and")->address;
+						}
+						else
+						{
+							s->type = TOK_ERROR;
+						}
+						break;
+					case '|':
+						if (s->next++[0] == '|')
+						{
+							s->type		= TOK_INFIX;
+							s->function = find_builtin("logical_or")->address;
+						}
+						else
+						{
+							s->type = TOK_ERROR;
+						}
+						break;
+					case '(':
+						s->type = TOK_OPEN;
+						break;
+					case ')':
+						s->type = TOK_CLOSE;
+						break;
+					case ',':
+						s->type = TOK_SEP;
+						break;
+					case ' ':
+					case '\t':
+					case '\n':
+					case '\r':
+						break;
+					default:
+						s->type = TOK_ERROR;
+						break;
+					}
+				}
+			}
+		} while (s->type == TOK_NULL);
+	}
+
+	static te_expr_native* list(state* s);
+	static te_expr_native* expr(state* s);
+	static te_expr_native* power(state* s);
+
+	static te_expr_native* base(state* s)
+	{
+		/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "("
+		 * <expr> {"," <expr>} ")" | "(" <list> ")" */
+		te_expr_native* ret;
+		int				arity;
+
+		switch (TYPE_MASK(s->type))
+		{
+		case TOK_NUMBER:
+			ret		   = new_expr(TE_CONSTANT, 0);
+			ret->value = s->value;
+			next_token(s);
+			break;
+
+		case TOK_VARIABLE:
+			ret		   = new_expr(TE_VARIABLE, 0);
+			ret->bound = s->bound;
+			next_token(s);
+			break;
+
+		case TE_FUNCTION0:
+		case TE_CLOSURE0:
+			ret			  = new_expr(s->type, 0);
+			ret->function = s->function;
+			if (IS_CLOSURE(s->type))
+				ret->parameters[0] = s->context;
+			next_token(s);
+			if (s->type == TOK_OPEN)
+			{
+				next_token(s);
+				if (s->type != TOK_CLOSE)
 				{
 					s->type = TOK_ERROR;
 				}
 				else
 				{
-					switch (TYPE_MASK(var->type))
-					{
-					case TE_VARIABLE:
-						s->type	 = TOK_VARIABLE;
-						s->bound = (const double*)var->address;
-						break;
-
-					case TE_CLOSURE0:
-					case TE_CLOSURE1:
-					case TE_CLOSURE2:
-					case TE_CLOSURE3: /* Falls through. */
-					case TE_CLOSURE4:
-					case TE_CLOSURE5:
-					case TE_CLOSURE6:
-					case TE_CLOSURE7:			   /* Falls through. */
-						s->context = var->context; /* Falls through. */
-
-					case TE_FUNCTION0:
-					case TE_FUNCTION1:
-					case TE_FUNCTION2:
-					case TE_FUNCTION3: /* Falls through. */
-					case TE_FUNCTION4:
-					case TE_FUNCTION5:
-					case TE_FUNCTION6:
-					case TE_FUNCTION7: /* Falls through. */
-						s->type		= var->type;
-						s->function = var->address;
-						break;
-					}
+					next_token(s);
 				}
+			}
+			break;
+
+		case TE_FUNCTION1:
+		case TE_CLOSURE1:
+			ret			  = new_expr(s->type, 0);
+			ret->function = s->function;
+			if (IS_CLOSURE(s->type))
+				ret->parameters[1] = s->context;
+			next_token(s);
+			ret->parameters[0] = power(s);
+			break;
+
+		case TE_FUNCTION2:
+		case TE_FUNCTION3:
+		case TE_FUNCTION4:
+		case TE_FUNCTION5:
+		case TE_FUNCTION6:
+		case TE_FUNCTION7:
+		case TE_CLOSURE2:
+		case TE_CLOSURE3:
+		case TE_CLOSURE4:
+		case TE_CLOSURE5:
+		case TE_CLOSURE6:
+		case TE_CLOSURE7:
+			arity = ARITY(s->type);
+
+			ret			  = new_expr(s->type, 0);
+			ret->function = s->function;
+			if (IS_CLOSURE(s->type))
+				ret->parameters[arity] = s->context;
+			next_token(s);
+
+			if (s->type != TOK_OPEN)
+			{
+				s->type = TOK_ERROR;
 			}
 			else
 			{
-				/* Look for an operator or special character. */
-				switch (s->next++[0])
+				int i;
+				for (i = 0; i < arity; i++)
 				{
-				case '+':
-					s->type		= TOK_INFIX;
-					s->function = add;
-					break;
-				case '-':
-					s->type		= TOK_INFIX;
-					s->function = sub;
-					break;
-				case '*':
-					s->type		= TOK_INFIX;
-					s->function = mul;
-					break;
-				case '/':
-					s->type		= TOK_INFIX;
-					s->function = divide;
-					break;
-				case '^':
-					s->type		= TOK_INFIX;
-					s->function = pow;
-					break;
-				case '%':
-					s->type		= TOK_INFIX;
-					s->function = fmod;
-					break;
-				case '!':
-					if (s->next++[0] == '=')
+					next_token(s);
+					ret->parameters[i] = expr(s);
+					if (s->type != TOK_SEP)
 					{
-						s->type		= TOK_INFIX;
-						s->function = not_equal;
+						break;
 					}
-					else
-					{
-						s->next--;
-						s->type		= TOK_INFIX;
-						s->function = logical_not;
-					}
-					break;
-				case '=':
-					if (s->next++[0] == '=')
-					{
-						s->type		= TOK_INFIX;
-						s->function = equal;
-					}
-					else
-					{
-						s->type = TOK_ERROR;
-					}
-					break;
-				case '<':
-					if (s->next++[0] == '=')
-					{
-						s->type		= TOK_INFIX;
-						s->function = lower_eq;
-					}
-					else
-					{
-						s->next--;
-						s->type		= TOK_INFIX;
-						s->function = lower;
-					}
-					break;
-				case '>':
-					if (s->next++[0] == '=')
-					{
-						s->type		= TOK_INFIX;
-						s->function = greater_eq;
-					}
-					else
-					{
-						s->next--;
-						s->type		= TOK_INFIX;
-						s->function = greater;
-					}
-					break;
-				case '&':
-					if (s->next++[0] == '&')
-					{
-						s->type		= TOK_INFIX;
-						s->function = logical_and;
-					}
-					else
-					{
-						s->type = TOK_ERROR;
-					}
-					break;
-				case '|':
-					if (s->next++[0] == '|')
-					{
-						s->type		= TOK_INFIX;
-						s->function = logical_or;
-					}
-					else
-					{
-						s->type = TOK_ERROR;
-					}
-					break;
-				case '(':
-					s->type = TOK_OPEN;
-					break;
-				case ')':
-					s->type = TOK_CLOSE;
-					break;
-				case ',':
-					s->type = TOK_SEP;
-					break;
-				case ' ':
-				case '\t':
-				case '\n':
-				case '\r':
-					break;
-				default:
+				}
+				if (s->type != TOK_CLOSE || i != arity - 1)
+				{
 					s->type = TOK_ERROR;
-					break;
+				}
+				else
+				{
+					next_token(s);
 				}
 			}
-		}
-	} while (s->type == TOK_NULL);
-}
 
-static te_expr_native* list(state* s);
-static te_expr_native* expr(state* s);
-static te_expr_native* power(state* s);
+			break;
 
-static te_expr_native* base(state* s)
-{
-	/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X> "("
-	 * <expr> {"," <expr>} ")" | "(" <list> ")" */
-	te_expr_native* ret;
-	int				arity;
-
-	switch (TYPE_MASK(s->type))
-	{
-	case TOK_NUMBER:
-		ret		   = new_expr(TE_CONSTANT, 0);
-		ret->value = s->value;
-		next_token(s);
-		break;
-
-	case TOK_VARIABLE:
-		ret		   = new_expr(TE_VARIABLE, 0);
-		ret->bound = s->bound;
-		next_token(s);
-		break;
-
-	case TE_FUNCTION0:
-	case TE_CLOSURE0:
-		ret			  = new_expr(s->type, 0);
-		ret->function = s->function;
-		if (IS_CLOSURE(s->type))
-			ret->parameters[0] = s->context;
-		next_token(s);
-		if (s->type == TOK_OPEN)
-		{
+		case TOK_OPEN:
 			next_token(s);
+			ret = list(s);
 			if (s->type != TOK_CLOSE)
 			{
 				s->type = TOK_ERROR;
@@ -657,583 +859,541 @@ static te_expr_native* base(state* s)
 			{
 				next_token(s);
 			}
-		}
-		break;
+			break;
 
-	case TE_FUNCTION1:
-	case TE_CLOSURE1:
-		ret			  = new_expr(s->type, 0);
-		ret->function = s->function;
-		if (IS_CLOSURE(s->type))
-			ret->parameters[1] = s->context;
-		next_token(s);
-		ret->parameters[0] = power(s);
-		break;
-
-	case TE_FUNCTION2:
-	case TE_FUNCTION3:
-	case TE_FUNCTION4:
-	case TE_FUNCTION5:
-	case TE_FUNCTION6:
-	case TE_FUNCTION7:
-	case TE_CLOSURE2:
-	case TE_CLOSURE3:
-	case TE_CLOSURE4:
-	case TE_CLOSURE5:
-	case TE_CLOSURE6:
-	case TE_CLOSURE7:
-		arity = ARITY(s->type);
-
-		ret			  = new_expr(s->type, 0);
-		ret->function = s->function;
-		if (IS_CLOSURE(s->type))
-			ret->parameters[arity] = s->context;
-		next_token(s);
-
-		if (s->type != TOK_OPEN)
-		{
-			s->type = TOK_ERROR;
-		}
-		else
-		{
-			int i;
-			for (i = 0; i < arity; i++)
-			{
-				next_token(s);
-				ret->parameters[i] = expr(s);
-				if (s->type != TOK_SEP)
-				{
-					break;
-				}
-			}
-			if (s->type != TOK_CLOSE || i != arity - 1)
-			{
-				s->type = TOK_ERROR;
-			}
-			else
-			{
-				next_token(s);
-			}
+		default:
+			ret		   = new_expr(0, 0);
+			s->type	   = TOK_ERROR;
+			ret->value = NAN;
+			break;
 		}
 
-		break;
+		return ret;
+	}
 
-	case TOK_OPEN:
-		next_token(s);
-		ret = list(s);
-		if (s->type != TOK_CLOSE)
+	static te_expr_native* power(state* s)
+	{
+		/* <power>     =    {("-" | "+" | "!")} <base> */
+		int sign = 1;
+		while (s->type == TOK_INFIX &&
+			   (s->function == find_builtin("add")->address || s->function == find_builtin("sub")->address))
 		{
-			s->type = TOK_ERROR;
-		}
-		else
-		{
+			if (s->function == find_builtin("sub")->address)
+				sign = -sign;
 			next_token(s);
 		}
-		break;
 
-	default:
-		ret		   = new_expr(0, 0);
-		s->type	   = TOK_ERROR;
-		ret->value = NAN;
-		break;
-	}
+		int logical = 0;
+		while (s->type == TOK_INFIX &&
+			   (s->function == find_builtin("add")->address || s->function == find_builtin("sub")->address ||
+				   s->function == find_builtin("logical_not")->address))
+		{
+			if (s->function == find_builtin("logical_not")->address)
+			{
+				if (logical == 0)
+				{
+					logical = -1;
+				}
+				else
+				{
+					logical = -logical;
+				}
+			}
+			next_token(s);
+		}
 
-	return ret;
-}
+		te_expr_native* ret;
 
-static te_expr_native* power(state* s)
-{
-	/* <power>     =    {("-" | "+" | "!")} <base> */
-	int sign = 1;
-	while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
-	{
-		if (s->function == sub)
-			sign = -sign;
-		next_token(s);
-	}
-
-	int logical = 0;
-	while (s->type == TOK_INFIX && (s->function == add || s->function == sub || s->function == logical_not))
-	{
-		if (s->function == logical_not)
+		if (sign == 1)
 		{
 			if (logical == 0)
 			{
-				logical = -1;
+				ret = base(s);
+			}
+			else if (logical == -1)
+			{
+				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+				ret->function = find_builtin("logical_not")->address;
 			}
 			else
 			{
-				logical = -logical;
+				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+				ret->function = find_builtin("logical_notnot")->address;
 			}
 		}
-		next_token(s);
-	}
-
-	te_expr_native* ret;
-
-	if (sign == 1)
-	{
-		if (logical == 0)
-		{
-			ret = base(s);
-		}
-		else if (logical == -1)
-		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-			ret->function = logical_not;
-		}
 		else
 		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-			ret->function = logical_notnot;
+			if (logical == 0)
+			{
+				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+				ret->function = find_builtin("negate")->address;
+			}
+			else if (logical == -1)
+			{
+				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+				ret->function = find_builtin("negate_logical_not")->address;
+			}
+			else
+			{
+				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+				ret->function = find_builtin("negate_logical_notnot")->address;
+			}
 		}
-	}
-	else
-	{
-		if (logical == 0)
-		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-			ret->function = negate;
-		}
-		else if (logical == -1)
-		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-			ret->function = negate_logical_not;
-		}
-		else
-		{
-			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-			ret->function = negate_logical_notnot;
-		}
-	}
 
-	return ret;
-}
+		return ret;
+	}
 
 #ifdef TE_POW_FROM_RIGHT
-static te_expr_native* factor(state* s)
-{
-	/* <factor>    =    <power> {"^" <power>} */
-	te_expr_native* ret = power(s);
-
-	const void*		left_function = NULL;
-	te_expr_native* insertion	  = 0;
-
-	if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
-		(ret->function == negate || ret->function == logical_not || ret->function == logical_notnot ||
-			ret->function == negate_logical_not || ret->function == negate_logical_notnot))
+	static te_expr_native* factor(state* s)
 	{
-		left_function	   = ret->function;
-		te_expr_native* se = ret->parameters[0];
-		free(ret);
-		ret = se;
-	}
+		/* <factor>    =    <power> {"^" <power>} */
+		te_expr_native* ret = power(s);
 
-	while (s->type == TOK_INFIX && (s->function == pow))
-	{
-		te_fun2 t = s->function;
-		next_token(s);
+		const void*		left_function = NULL;
+		te_expr_native* insertion	  = 0;
 
-		if (insertion)
+		if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
+			(ret->function == find_builtin("negate")->address ||
+				ret->function == find_builtin("logical_not")->address ||
+				ret->function == find_builtin("logical_notnot")->address ||
+				ret->function == find_builtin("negate_logical_not")->address ||
+				ret->function == find_builtin("negate_logical_notnot")->address))
 		{
-			/* Make exponentiation go right-to-left. */
-			te_expr_native* insert	 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
-			insert->function		 = t;
-			insertion->parameters[1] = insert;
-			insertion				 = insert;
+			left_function	   = ret->function;
+			te_expr_native* se = ret->parameters[0];
+			free(ret);
+			ret = se;
 		}
-		else
+
+		while (s->type == TOK_INFIX && (s->function == find_builtin("pow")->address))
 		{
-			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
-			ret->function = t;
-			insertion	  = ret;
+			te_fun2 t = s->function;
+			next_token(s);
+
+			if (insertion)
+			{
+				/* Make exponentiation go right-to-left. */
+				te_expr_native* insert	 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+				insert->function		 = t;
+				insertion->parameters[1] = insert;
+				insertion				 = insert;
+			}
+			else
+			{
+				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+				ret->function = t;
+				insertion	  = ret;
+			}
 		}
-	}
 
-	if (left_function)
-	{
-		ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
-		ret->function = left_function;
-	}
+		if (left_function)
+		{
+			ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
+			ret->function = left_function;
+		}
 
-	return ret;
-}
+		return ret;
+	}
 #else
-static te_expr_native* factor(state* s)
-{
-	/* <factor>    =    <power> {"^" <power>} */
-	te_expr_native* ret = power(s);
-
-	while (s->type == TOK_INFIX && (s->function == pow))
+	static te_expr_native* factor(state* s)
 	{
-		te_fun2 t = (te_fun2)s->function;
-		next_token(s);
-		ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
-		ret->function = t;
-	}
+		/* <factor>    =    <power> {"^" <power>} */
+		te_expr_native* ret = power(s);
 
-	return ret;
-}
+		while (s->type == TOK_INFIX && (s->function == find_builtin("pow")->address))
+		{
+			te_fun2 t = (te_fun2)s->function;
+			next_token(s);
+			ret = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+			ret->function = t;
+		}
+
+		return ret;
+	}
 #endif
 
-static te_expr_native* term(state* s)
-{
-	/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
-	te_expr_native* ret = factor(s);
-
-	while (s->type == TOK_INFIX && (s->function == mul || s->function == divide || s->function == fmod))
+	static te_expr_native* term(state* s)
 	{
-		te_fun2 t = (te_fun2)s->function;
-		next_token(s);
-		ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
-		ret->function = t;
+		/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
+		te_expr_native* ret = factor(s);
+
+		while (s->type == TOK_INFIX &&
+			   (s->function == find_builtin("mul")->address || s->function == find_builtin("divide")->address ||
+				   s->function == find_builtin("fmod")->address))
+		{
+			te_fun2 t = (te_fun2)s->function;
+			next_token(s);
+			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
+			ret->function = t;
+		}
+
+		return ret;
 	}
 
-	return ret;
-}
-
-static te_expr_native* sum_expr(state* s)
-{
-	/* <expr>      =    <term> {("+" | "-") <term>} */
-	te_expr_native* ret = term(s);
-
-	while (s->type == TOK_INFIX && (s->function == add || s->function == sub))
+	static te_expr_native* sum_expr(state* s)
 	{
-		te_fun2 t = (te_fun2)s->function;
-		next_token(s);
-		ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
-		ret->function = t;
+		/* <expr>      =    <term> {("+" | "-") <term>} */
+		te_expr_native* ret = term(s);
+
+		while (s->type == TOK_INFIX &&
+			   (s->function == find_builtin("add")->address || s->function == find_builtin("sub")->address))
+		{
+			te_fun2 t = (te_fun2)s->function;
+			next_token(s);
+			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
+			ret->function = t;
+		}
+
+		return ret;
 	}
 
-	return ret;
-}
-
-static te_expr_native* test_expr(state* s)
-{
-	/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
-	te_expr_native* ret = sum_expr(s);
-
-	while (s->type == TOK_INFIX && (s->function == greater || s->function == greater_eq || s->function == lower ||
-									   s->function == lower_eq || s->function == equal || s->function == not_equal))
+	static te_expr_native* test_expr(state* s)
 	{
-		te_fun2 t = (te_fun2)s->function;
-		next_token(s);
-		ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, sum_expr(s));
-		ret->function = t;
+		/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
+		te_expr_native* ret = sum_expr(s);
+
+		while (s->type == TOK_INFIX &&
+			   (s->function == find_builtin("greater")->address || s->function == find_builtin("greater_eq")->address ||
+				   s->function == find_builtin("lower")->address || s->function == find_builtin("lower_eq")->address ||
+				   s->function == find_builtin("equal")->address || s->function == find_builtin("not_equal")->address))
+		{
+			te_fun2 t = (te_fun2)s->function;
+			next_token(s);
+			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, sum_expr(s));
+			ret->function = t;
+		}
+
+		return ret;
 	}
 
-	return ret;
-}
-
-static te_expr_native* expr(state* s)
-{
-	/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
-	te_expr_native* ret = test_expr(s);
-
-	while (s->type == TOK_INFIX && (s->function == logical_and || s->function == logical_or))
+	static te_expr_native* expr(state* s)
 	{
-		te_fun2 t = (te_fun2)s->function;
-		next_token(s);
-		ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, test_expr(s));
-		ret->function = t;
+		/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
+		te_expr_native* ret = test_expr(s);
+
+		while (s->type == TOK_INFIX && (s->function == find_builtin("logical_and")->address ||
+										   s->function == find_builtin("logical_or")->address))
+		{
+			te_fun2 t = (te_fun2)s->function;
+			next_token(s);
+			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, test_expr(s));
+			ret->function = t;
+		}
+
+		return ret;
 	}
 
-	return ret;
-}
-
-static te_expr_native* list(state* s)
-{
-	/* <list>      =    <expr> {"," <expr>} */
-	te_expr_native* ret = expr(s);
-
-	while (s->type == TOK_SEP)
+	static te_expr_native* list(state* s)
 	{
-		next_token(s);
-		ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-		ret->function = comma;
-	}
+		/* <list>      =    <expr> {"," <expr>} */
+		te_expr_native* ret = expr(s);
 
-	return ret;
-}
+		while (s->type == TOK_SEP)
+		{
+			next_token(s);
+			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
+			ret->function = find_builtin("comma")->address;
+		}
+
+		return ret;
+	}
 
 #define TE_FUN(...) ((double (*)(__VA_ARGS__))n->function)
-#define M(e)		te_eval((const te_expr_native*)n->parameters[e])
+#define M(e)		te_eval_native((const te_expr_native*)n->parameters[e])
 
-double te_eval(const te_expr_native* n)
-{
-	if (!n)
-		return NAN;
-
-	switch (TYPE_MASK(n->type))
+	double te_eval_native(const te_expr_native* n)
 	{
-	case TE_CONSTANT:
-		return n->value;
-	case TE_VARIABLE:
-		return *n->bound;
+		if (!n)
+			return NAN;
 
-	case TE_FUNCTION0:
-	case TE_FUNCTION1:
-	case TE_FUNCTION2:
-	case TE_FUNCTION3:
-	case TE_FUNCTION4:
-	case TE_FUNCTION5:
-	case TE_FUNCTION6:
-	case TE_FUNCTION7:
-		switch (ARITY(n->type))
+		switch (TYPE_MASK(n->type))
 		{
-		case 0:
-			return TE_FUN(void)();
-		case 1:
-			return TE_FUN(double)(M(0));
-		case 2:
-			return TE_FUN(double, double)(M(0), M(1));
-		case 3:
-			return TE_FUN(double, double, double)(M(0), M(1), M(2));
-		case 4:
-			return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
-		case 5:
-			return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
-		case 6:
-			return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
-		case 7:
-			return TE_FUN(double, double, double, double, double, double, double)(
-				M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+		case TE_CONSTANT:
+			return n->value;
+		case TE_VARIABLE:
+			return *n->bound;
+
+		case TE_FUNCTION0:
+		case TE_FUNCTION1:
+		case TE_FUNCTION2:
+		case TE_FUNCTION3:
+		case TE_FUNCTION4:
+		case TE_FUNCTION5:
+		case TE_FUNCTION6:
+		case TE_FUNCTION7:
+			switch (ARITY(n->type))
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(double)(M(0));
+			case 2:
+				return TE_FUN(double, double)(M(0), M(1));
+			case 3:
+				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(double, double, double, double, double, double, double)(
+					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return NAN;
+			}
+
+		case TE_CLOSURE0:
+		case TE_CLOSURE1:
+		case TE_CLOSURE2:
+		case TE_CLOSURE3:
+		case TE_CLOSURE4:
+		case TE_CLOSURE5:
+		case TE_CLOSURE6:
+		case TE_CLOSURE7:
+			switch (ARITY(n->type))
+			{
+			case 0:
+				return TE_FUN(void*)(n->parameters[0]);
+			case 1:
+				return TE_FUN(void*, double)(n->parameters[1], M(0));
+			case 2:
+				return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
+			case 3:
+				return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(void*, double, double, double, double, double)(
+					n->parameters[5], M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(void*, double, double, double, double, double, double)(
+					n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(void*, double, double, double, double, double, double, double)(
+					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return NAN;
+			}
+
 		default:
 			return NAN;
 		}
-
-	case TE_CLOSURE0:
-	case TE_CLOSURE1:
-	case TE_CLOSURE2:
-	case TE_CLOSURE3:
-	case TE_CLOSURE4:
-	case TE_CLOSURE5:
-	case TE_CLOSURE6:
-	case TE_CLOSURE7:
-		switch (ARITY(n->type))
-		{
-		case 0:
-			return TE_FUN(void*)(n->parameters[0]);
-		case 1:
-			return TE_FUN(void*, double)(n->parameters[1], M(0));
-		case 2:
-			return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
-		case 3:
-			return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
-		case 4:
-			return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
-		case 5:
-			return TE_FUN(void*, double, double, double, double, double)(
-				n->parameters[5], M(0), M(1), M(2), M(3), M(4));
-		case 6:
-			return TE_FUN(void*, double, double, double, double, double, double)(
-				n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
-		case 7:
-			return TE_FUN(void*, double, double, double, double, double, double, double)(
-				n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-		default:
-			return NAN;
-		}
-
-	default:
-		return NAN;
 	}
-}
 
 #undef TE_FUN
 #undef M
 
-static void optimize(te_expr_native* n)
-{
-	/* Evaluates as much as possible. */
-	if (n->type == TE_CONSTANT)
-		return;
-	if (n->type == TE_VARIABLE)
-		return;
-
-	/* Only optimize out functions flagged as pure. */
-	if (IS_PURE(n->type))
+	static void optimize(te_expr_native* n)
 	{
-		const int arity = ARITY(n->type);
-		int		  known = 1;
-		int		  i;
-		for (i = 0; i < arity; ++i)
+		/* Evaluates as much as possible. */
+		if (n->type == TE_CONSTANT)
+			return;
+		if (n->type == TE_VARIABLE)
+			return;
+
+		/* Only optimize out functions flagged as pure. */
+		if (IS_PURE(n->type))
 		{
-			optimize((te_expr_native*)n->parameters[i]);
-			if (((te_expr_native*)(n->parameters[i]))->type != TE_CONSTANT)
+			const int arity = ARITY(n->type);
+			int		  known = 1;
+			int		  i;
+			for (i = 0; i < arity; ++i)
 			{
-				known = 0;
+				optimize((te_expr_native*)n->parameters[i]);
+				if (((te_expr_native*)(n->parameters[i]))->type != TE_CONSTANT)
+				{
+					known = 0;
+				}
+			}
+			if (known)
+			{
+				const double value = te_eval_native(n);
+				te_free_parameters(n);
+				n->type	 = TE_CONSTANT;
+				n->value = value;
 			}
 		}
-		if (known)
+	}
+
+	te_expr_native* te_compile_native(const char* expression, const te_variable* variables, int var_count, int* error)
+	{
+		state s;
+		s.start = s.next = expression;
+		s.lookup		 = variables;
+		s.lookup_len	 = var_count;
+
+		next_token(&s);
+		te_expr_native* root = list(&s);
+
+		if (s.type != TOK_END)
 		{
-			const double value = te_eval(n);
-			te_free_parameters(n);
-			n->type	 = TE_CONSTANT;
-			n->value = value;
+			te_free_native(root);
+			if (error)
+			{
+				*error = static_cast<int>(s.next - s.start);
+				if (*error == 0)
+					*error = 1;
+			}
+			return 0;
+		}
+		else
+		{
+			optimize(root);
+			if (error)
+				*error = 0;
+
+			return root;
 		}
 	}
-}
 
-void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len);
-
-te_expr_native* te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
-{
-	state s;
-	s.start = s.next = expression;
-	s.lookup		 = variables;
-	s.lookup_len	 = var_count;
-
-	next_token(&s);
-	te_expr_native* root = list(&s);
-
-	if (s.type != TOK_END)
+	double te_interp_native(const char* expression, int* error)
 	{
-		te_free(root);
-		if (error)
+		te_expr_native* n = te_compile_native(expression, 0, 0, error);
+		double			ret;
+		if (n)
 		{
-			*error = static_cast<int>(s.next - s.start);
-			if (*error == 0)
-				*error = 1;
+			ret = te_eval_native(n);
+			te_free_native(n);
 		}
-		return 0;
-	}
-	else
-	{
-		optimize(root);
-		if (error)
-			*error = 0;
-
-		te_export(root, s.lookup, s.lookup_len);
-
-		return root;
-	}
-}
-
-double te_interp(const char* expression, int* error)
-{
-	te_expr_native* n = te_compile(expression, 0, 0, error);
-	double			ret;
-	if (n)
-	{
-		ret = te_eval(n);
-		te_free(n);
-	}
-	else
-	{
-		ret = NAN;
-	}
-	return ret;
-}
-
-static void pn(const te_expr_native* n, int depth)
-{
-	int i, arity;
-	printf("%*s", depth, "");
-
-	switch (TYPE_MASK(n->type))
-	{
-	case TE_CONSTANT:
-		printf("%f\n", n->value);
-		break;
-	case TE_VARIABLE:
-		printf("bound %p\n", n->bound);
-		break;
-
-	case TE_FUNCTION0:
-	case TE_FUNCTION1:
-	case TE_FUNCTION2:
-	case TE_FUNCTION3:
-	case TE_FUNCTION4:
-	case TE_FUNCTION5:
-	case TE_FUNCTION6:
-	case TE_FUNCTION7:
-	case TE_CLOSURE0:
-	case TE_CLOSURE1:
-	case TE_CLOSURE2:
-	case TE_CLOSURE3:
-	case TE_CLOSURE4:
-	case TE_CLOSURE5:
-	case TE_CLOSURE6:
-	case TE_CLOSURE7:
-		arity = ARITY(n->type);
-		printf("f%d", arity);
-		for (i = 0; i < arity; i++)
+		else
 		{
-			printf(" %p", n->parameters[i]);
+			ret = NAN;
 		}
-		printf("\n");
-		for (i = 0; i < arity; i++)
-		{
-			pn((const te_expr_native*)n->parameters[i], depth + 1);
-		}
-		break;
+		return ret;
 	}
-}
 
-void te_print(const te_expr_native* n)
-{
-	pn(n, 0);
-}
-
-////
-
-static const te_variable* find_function_by_addr(const void* addr)
-{
-	for (auto var = &functions[0]; var->name != 0; ++var)
+	static void pn(const te_expr_native* n, int depth)
 	{
-		if (var->address == addr)
+		int i, arity;
+		printf("%*s", depth, "");
+
+		switch (TYPE_MASK(n->type))
 		{
-			return var;
+		case TE_CONSTANT:
+			printf("%f\n", n->value);
+			break;
+		case TE_VARIABLE:
+			printf("bound %p\n", n->bound);
+			break;
+
+		case TE_FUNCTION0:
+		case TE_FUNCTION1:
+		case TE_FUNCTION2:
+		case TE_FUNCTION3:
+		case TE_FUNCTION4:
+		case TE_FUNCTION5:
+		case TE_FUNCTION6:
+		case TE_FUNCTION7:
+		case TE_CLOSURE0:
+		case TE_CLOSURE1:
+		case TE_CLOSURE2:
+		case TE_CLOSURE3:
+		case TE_CLOSURE4:
+		case TE_CLOSURE5:
+		case TE_CLOSURE6:
+		case TE_CLOSURE7:
+			arity = ARITY(n->type);
+			printf("f%d", arity);
+			for (i = 0; i < arity; i++)
+			{
+				printf(" %p", n->parameters[i]);
+			}
+			printf("\n");
+			for (i = 0; i < arity; i++)
+			{
+				pn((const te_expr_native*)n->parameters[i], depth + 1);
+			}
+			break;
 		}
 	}
-	return nullptr;
-}
 
-static const te_variable* find_operator_by_addr(const void* addr)
-{
-	for (auto var = &operators[0]; var->name != 0; ++var)
+	void te_print(const te_expr_native* n)
 	{
-		if (var->address == addr)
-		{
-			return var;
-		}
+		pn(n, 0);
 	}
-	return nullptr;
-}
 
-static const te_variable nul_variable {"add", add, TE_FUNCTION2 | TE_FLAG_PURE, 0};
+	////
 
-static const te_variable* find_any_by_addr(const void* addr)
-{
-	const te_variable* var = find_function_by_addr(addr);
-	if (!var)
+	static const te_variable* find_function_by_addr(const void* addr)
 	{
-		var = find_operator_by_addr(addr);
+		for (auto var = &functions[0]; var->name != 0; ++var)
+		{
+			if (var->address == addr)
+			{
+				return var;
+			}
+		}
+		return nullptr;
+	}
+
+	static const te_variable* find_operator_by_addr(const void* addr)
+	{
+		for (auto var = &operators[0]; var->name != 0; ++var)
+		{
+			if (var->address == addr)
+			{
+				return var;
+			}
+		}
+		return nullptr;
+	}
+
+	static const te_variable* find_any_by_addr(const void* addr)
+	{
+		const te_variable* var = find_function_by_addr(addr);
 		if (!var)
 		{
-			return &nul_variable;
+			var = find_operator_by_addr(addr);
+			if (!var)
+			{
+				return find_builtin("nul");
+			}
 		}
+		return var;
 	}
-	return var;
-}
 
-static const te_variable* find_bind_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
-{
-	for (int i = 0; i < lookup_len; ++i)
+	static const te_variable* find_bind_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
 	{
-		if (lookup[i].address == addr)
+		for (int i = 0; i < lookup_len; ++i)
 		{
-			return &lookup[i];
+			if (lookup[i].address == addr)
+			{
+				return &lookup[i];
+			}
 		}
+		return nullptr;
 	}
-	return nullptr;
-}
 
-#include <unordered_map>
+	static const te_variable* find_closure_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
+	{
+		for (int i = 0; i < lookup_len; ++i)
+		{
+			if (lookup[i].context == addr)
+			{
+				return &lookup[i];
+			}
+		}
+		return nullptr;
+	}
 
-using te_name_map  = std::unordered_map<const void*, std::string>;
-using te_index_map = std::unordered_map<const void*, int>;
+	static const te_variable* find_bind_or_any_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
+	{
+		auto res = find_any_by_addr(addr);
+		if (!res)
+		{
+			res = find_bind_by_addr(addr, lookup, lookup_len);
+			if (!res)
+			{
+				// maybe this is a closure?
+				res = find_closure_by_addr(addr, lookup, lookup_len);
+			}
+		}
+		return res;
+	}
+
+} // namespace te_details
 
 size_t te_export_estimate(const te_expr_native* n,
 	size_t&										export_size,
@@ -1261,6 +1421,17 @@ size_t te_export_estimate(const te_expr_native* n,
 				name_map.emplace(std::make_pair(var->address, std::string(var->name)));
 				index_map.insert(std::make_pair(var->address, index_counter++));
 			}
+
+			if (var->type >= TE_CLOSURE0 && var->type <= TE_CLOSURE7)
+			{
+				auto itor = name_map.find(var->context);
+				if (itor == name_map.end())
+				{
+					name_map.emplace(std::make_pair(var->context, std::string(var->name) + "_closure"));
+					index_map.insert(std::make_pair(var->context, index_counter++));
+				}
+			}
+
 			return true;
 		}
 		return false;
@@ -1275,7 +1446,7 @@ size_t te_export_estimate(const te_expr_native* n,
 
 	case TE_VARIABLE:
 	{
-		assert(handle_addr(find_bind_by_addr(n->bound, lookup, lookup_len)));
+		assert(handle_addr(te_details::find_bind_by_addr(n->bound, lookup, lookup_len)));
 		return export_size;
 	}
 
@@ -1288,9 +1459,8 @@ size_t te_export_estimate(const te_expr_native* n,
 	case TE_FUNCTION6:
 	case TE_FUNCTION7:
 	{
-		assert(handle_addr(find_any_by_addr(n->function)));
-
-		export_size += sizeof(n->parameters[0]) * ARITY(n->type);
+		assert(handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len)));
+		export_size += sizeof(n->parameters[0]) * (ARITY(n->type));
 
 		for (int i = 0; i < ARITY(n->type); ++i)
 		{
@@ -1308,8 +1478,8 @@ size_t te_export_estimate(const te_expr_native* n,
 	case TE_CLOSURE6:
 	case TE_CLOSURE7:
 	{
-		assert(handle_addr(find_any_by_addr(n->function)));
-		assert(handle_addr(find_any_by_addr(n->parameters[ARITY(n->type)])));
+		assert(handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len)));
+		// assert(handle_addr(n->parameters[ARITY(n->type)]));
 
 		export_size += sizeof(n->parameters[0]) * ARITY(n->type);
 
@@ -1353,7 +1523,7 @@ size_t te_export_write(const te_expr_native* n,
 
 	case TE_VARIABLE:
 	{
-		register_func(n, n_out->bound, find_bind_by_addr(n->bound, lookup, lookup_len));
+		register_func(n->bound, n_out, te_details::find_bind_by_addr(n->bound, lookup, lookup_len));
 		return export_size;
 	}
 
@@ -1366,7 +1536,7 @@ size_t te_export_write(const te_expr_native* n,
 	case TE_FUNCTION6:
 	case TE_FUNCTION7:
 	{
-		register_func(n, n_out->function, find_any_by_addr(n->function));
+		register_func(n->function, n_out, te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
 		export_size += sizeof(n->parameters[0]) * ARITY(n->type);
 
@@ -1387,8 +1557,11 @@ size_t te_export_write(const te_expr_native* n,
 	case TE_CLOSURE6:
 	case TE_CLOSURE7:
 	{
-		register_func(n, n_out->function, find_any_by_addr(n->function));
-		register_func(n, n_out->parameters[ARITY(n->type)], find_any_by_addr(n->parameters[ARITY(n->type)]));
+		register_func(n->function, n_out, te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+
+		// register_func(n->parameters[ARITY(n->type)],
+		//	n_out->parameters[ARITY(n->type)],
+		//	te_details::find_bind_or_any_by_addr(n->parameters[ARITY(n->type)], lookup, lookup_len));
 
 		export_size += sizeof(n->parameters[0]) * ARITY(n->type);
 
@@ -1405,56 +1578,324 @@ size_t te_export_write(const te_expr_native* n,
 #undef M
 }
 
-struct te_expr_portable_expression_builder
+double te_eval_compare(const te_expr_native* n,
+	const te_expr_portable*					 n_portable,
+	const std::uint8_t*						 expr_buffer,
+	const void* const						 expr_context[])
 {
-	te_name_map	 name_map;
-	te_index_map index_map;
-	int			 index_counter = 0;
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))expr_context[n_portable->function])
 
-	std::vector<const void*> index_to_address;
-	std::vector<std::string> index_to_name;
-};
+#define M(e)                                                                                                           \
+	te_eval_compare((const te_expr_native*)n->parameters[e],                                                           \
+		(const te_expr_portable*)&expr_buffer[n_portable->parameters[e]],                                              \
+		expr_buffer,                                                                                                   \
+		expr_context)
 
-struct te_expr_portable_expression
-{
-	std::vector<std::uint8_t> export_buffer;
-};
+	if (!n)
+		return NAN;
 
-void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len)
-{
-	te_expr_portable_expression_builder builder;
-	te_expr_portable_expression			expression;
-	size_t								export_size = 0;
+	assert(n->type == n_portable->type);
 
-	te_export_estimate(n, export_size, lookup, lookup_len, builder.name_map, builder.index_map, builder.index_counter);
-
-	builder.index_to_address.resize(builder.index_counter);
-	for (const auto& itor : builder.index_map)
+	switch (TYPE_MASK(n_portable->type))
 	{
-		builder.index_to_address[itor.second] = itor.first;
+	case TE_CONSTANT:
+		return n_portable->value;
+	case TE_VARIABLE:
+		assert(n->bound == expr_context[n_portable->bound]);
+		return *((const double*)(expr_context[n_portable->bound]));
+
+	case TE_FUNCTION0:
+	case TE_FUNCTION1:
+	case TE_FUNCTION2:
+	case TE_FUNCTION3:
+	case TE_FUNCTION4:
+	case TE_FUNCTION5:
+	case TE_FUNCTION6:
+	case TE_FUNCTION7:
+
+		assert(n->function == expr_context[n_portable->function]);
+
+		switch (ARITY(n_portable->type))
+		{
+		case 0:
+			return TE_FUN(void)();
+		case 1:
+			return TE_FUN(double)(M(0));
+		case 2:
+			return TE_FUN(double, double)(M(0), M(1));
+		case 3:
+			return TE_FUN(double, double, double)(M(0), M(1), M(2));
+		case 4:
+			return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+		case 5:
+			return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+		case 6:
+			return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+		case 7:
+			return TE_FUN(double, double, double, double, double, double, double)(
+				M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+		default:
+			return NAN;
+		}
+
+	case TE_CLOSURE0:
+	case TE_CLOSURE1:
+	case TE_CLOSURE2:
+	case TE_CLOSURE3:
+	case TE_CLOSURE4:
+	case TE_CLOSURE5:
+	case TE_CLOSURE6:
+	case TE_CLOSURE7:
+	{
+		assert(n->function == expr_context[n_portable->function]);
+		assert(n->parameters[ARITY(n->type)] == expr_context[n_portable->parameters[ARITY(n->type)]]);
+
+		auto arity_params = (void*)expr_context[n_portable->parameters[ARITY(n->type)]];
+
+		switch (ARITY(n_portable->type))
+		{
+		case 0:
+			return TE_FUN(void*)(arity_params);
+		case 1:
+			return TE_FUN(void*, double)(arity_params, M(0));
+		case 2:
+			return TE_FUN(void*, double, double)(arity_params, M(0), M(1));
+		case 3:
+			return TE_FUN(void*, double, double, double)(arity_params, M(0), M(1), M(2));
+		case 4:
+			return TE_FUN(void*, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3));
+		case 5:
+			return TE_FUN(void*, double, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3), M(4));
+		case 6:
+			return TE_FUN(void*, double, double, double, double, double, double)(
+				arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
+		case 7:
+			return TE_FUN(void*, double, double, double, double, double, double, double)(
+				arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+		default:
+			return NAN;
+		}
 	}
 
-	builder.index_to_name.resize(builder.index_counter);
-	for (int i = 0; i < builder.index_counter; ++i)
-	{
-		auto itor = builder.name_map.find(builder.index_to_address[i]);
-		assert(itor != builder.name_map.end());
-		builder.index_to_name[i] = itor->second;
+	default:
+		return NAN;
 	}
-
-	expression.export_buffer.resize(export_size);
-	::memset(&expression.export_buffer[0], 0x0, export_size);
-
-	size_t actual_export_size = 0;
-	te_export_write(n,
-		actual_export_size,
-		lookup,
-		lookup_len,
-		&expression.export_buffer[0],
-		[&](const te_expr_native* n, size_t& out, const te_variable* v) -> void {
-			assert(v != nullptr);
-			auto itor = builder.index_map.find(v->address);
-			assert(itor != builder.index_map.end());
-			out = itor->second;
-		});
+#undef TE_FUN
+#undef M
 }
+
+double te_eval_portable(
+	const te_expr_portable* n_portable, const std::uint8_t* expr_buffer, const void* const expr_context[])
+{
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))expr_context[n_portable->function])
+
+#define M(e)                                                                                                           \
+	te_eval_portable((const te_expr_portable*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
+
+	switch (TYPE_MASK(n_portable->type))
+	{
+	case TE_CONSTANT:
+		return n_portable->value;
+	case TE_VARIABLE:
+		return *((const double*)(expr_context[n_portable->bound]));
+
+	case TE_FUNCTION0:
+	case TE_FUNCTION1:
+	case TE_FUNCTION2:
+	case TE_FUNCTION3:
+	case TE_FUNCTION4:
+	case TE_FUNCTION5:
+	case TE_FUNCTION6:
+	case TE_FUNCTION7:
+
+		switch (ARITY(n_portable->type))
+		{
+		case 0:
+			return TE_FUN(void)();
+		case 1:
+			return TE_FUN(double)(M(0));
+		case 2:
+			return TE_FUN(double, double)(M(0), M(1));
+		case 3:
+			return TE_FUN(double, double, double)(M(0), M(1), M(2));
+		case 4:
+			return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+		case 5:
+			return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+		case 6:
+			return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+		case 7:
+			return TE_FUN(double, double, double, double, double, double, double)(
+				M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+		default:
+			return NAN;
+		}
+
+	case TE_CLOSURE0:
+	case TE_CLOSURE1:
+	case TE_CLOSURE2:
+	case TE_CLOSURE3:
+	case TE_CLOSURE4:
+	case TE_CLOSURE5:
+	case TE_CLOSURE6:
+	case TE_CLOSURE7:
+	{
+		auto arity_params = (void*)expr_context[n_portable->parameters[ARITY(n_portable->type)]];
+
+		switch (ARITY(n_portable->type))
+		{
+		case 0:
+			return TE_FUN(void*)(arity_params);
+		case 1:
+			return TE_FUN(void*, double)(arity_params, M(0));
+		case 2:
+			return TE_FUN(void*, double, double)(arity_params, M(0), M(1));
+		case 3:
+			return TE_FUN(void*, double, double, double)(arity_params, M(0), M(1), M(2));
+		case 4:
+			return TE_FUN(void*, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3));
+		case 5:
+			return TE_FUN(void*, double, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3), M(4));
+		case 6:
+			return TE_FUN(void*, double, double, double, double, double, double)(
+				arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
+		case 7:
+			return TE_FUN(void*, double, double, double, double, double, double, double)(
+				arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+		default:
+			return NAN;
+		}
+	}
+
+	default:
+		return NAN;
+	}
+#undef TE_FUN
+#undef M
+}
+
+double te_interp(const char* expression, int* error)
+{
+	return te_details::te_interp_native(expression, error);
+}
+
+te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
+{
+	te_expr_native* native_expr = te_details::te_compile_native(expression, variables, var_count, error);
+	if (native_expr)
+	{
+		auto expr	   = new te_expr;
+		expr->m_native = native_expr;
+
+		size_t export_size = 0;
+		te_export_estimate(native_expr,
+			export_size,
+			variables,
+			var_count,
+			expr->m_indexer.name_map,
+			expr->m_indexer.index_map,
+			expr->m_indexer.index_counter);
+
+		expr->m_bindings.index_to_address.resize(expr->m_indexer.index_counter);
+		for (const auto& itor : expr->m_indexer.index_map)
+		{
+			expr->m_bindings.index_to_address[itor.second] = itor.first;
+		}
+
+		expr->m_bindings.index_to_name.resize(expr->m_indexer.index_counter);
+		for (int i = 0; i < expr->m_indexer.index_counter; ++i)
+		{
+			auto itor = expr->m_indexer.name_map.find(expr->m_bindings.index_to_address[i]);
+			assert(itor != expr->m_indexer.name_map.end());
+			expr->m_bindings.index_to_name[i] = itor->second;
+		}
+
+		expr->m_build_buffer.reset(new uint8_t[export_size]);
+		::memset(expr->m_build_buffer.get(), 0x0, export_size);
+
+		size_t actual_export_size = 0;
+		te_export_write(expr->m_native,
+			actual_export_size,
+			variables,
+			var_count,
+			expr->m_build_buffer.get(),
+			[&](const void* addr, te_expr_portable* out, const te_variable* v) -> void {
+				assert(v != nullptr);
+				auto itor = expr->m_indexer.index_map.find(addr);
+				assert(itor != expr->m_indexer.index_map.end());
+				out->function = itor->second;
+
+				if (v->type >= TE_CLOSURE0 && v->type <= TE_CLOSURE7)
+				{
+					auto itor2 = expr->m_indexer.index_map.find(v->context);
+					assert(itor2 != expr->m_indexer.index_map.end());
+					out->parameters[ARITY(v->type)] = itor2->second;
+				}
+			});
+
+		return expr;
+	}
+	return nullptr;
+}
+
+double te_eval(const te_expr* n)
+{
+	// return te_eval_compare(n->m_native,
+	//	(const te_expr_portable*)n->m_build_buffer.get(),
+	//	n->m_build_buffer.get(),
+	//	(n->m_bindings.index_to_address.size() > 0) ? &n->m_bindings.index_to_address[0] : nullptr);
+
+	return te_eval_portable((const te_expr_portable*)n->m_build_buffer.get(),
+		n->m_build_buffer.get(),
+		(n->m_bindings.index_to_address.size() > 0) ? &n->m_bindings.index_to_address[0] : nullptr);
+
+	// return te_details::te_eval_native(n->m_native);
+}
+
+void te_free(te_expr* n)
+{
+	if (n)
+	{
+		te_details::te_free_native(n->m_native);
+		delete n;
+	}
+}
+
+// void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len)
+//{
+//	te_expr_portable_expression_builder builder;
+//	te_expr_portable_expression			expression;
+//	size_t								export_size = 0;
+//
+//	te_export_estimate(n, export_size, lookup, lookup_len, builder.name_map, builder.index_map, builder.index_counter);
+//
+//	builder.index_to_address.resize(builder.index_counter);
+//	for (const auto& itor : builder.index_map)
+//	{
+//		builder.index_to_address[itor.second] = itor.first;
+//	}
+//
+//	builder.index_to_name.resize(builder.index_counter);
+//	for (int i = 0; i < builder.index_counter; ++i)
+//	{
+//		auto itor = builder.name_map.find(builder.index_to_address[i]);
+//		assert(itor != builder.name_map.end());
+//		builder.index_to_name[i] = itor->second;
+//	}
+//
+//	expression.export_buffer.resize(export_size);
+//	::memset(&expression.export_buffer[0], 0x0, export_size);
+//
+//	size_t actual_export_size = 0;
+//	te_export_write(n,
+//		actual_export_size,
+//		lookup,
+//		lookup_len,
+//		&expression.export_buffer[0],
+//		[&](const te_expr_native* n, size_t& out, const te_variable* v) -> void {
+//			assert(v != nullptr);
+//			auto itor = builder.index_map.find(v->address);
+//			assert(itor != builder.index_map.end());
+//			out = itor->second;
+//		});
+//}

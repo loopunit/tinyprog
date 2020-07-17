@@ -25,30 +25,6 @@
 #ifndef __TINYEXPR_H__
 #define __TINYEXPR_H__
 
-struct te_expr_native
-{
-	int type;
-	union
-	{
-		double		  value;
-		const double* bound;
-		const void*	  function;
-	};
-	void* parameters[1];
-};
-
-struct te_expr_portable
-{
-	int type;
-	union
-	{
-		double value;
-		size_t bound;
-		size_t function;
-	};
-	size_t parameters[1];
-};
-
 enum
 {
 	TE_VARIABLE = 0,
@@ -74,13 +50,72 @@ enum
 	TE_FLAG_PURE = 32
 };
 
-typedef struct te_variable
+struct te_variable
 {
 	const char* name;
 	const void* address;
 	int			type;
 	void*		context;
-} te_variable;
+};
+
+#define TE_COMPILER_ENABLED 1
+
+#if TE_COMPILER_ENABLED
+#	include <unordered_map>
+#	include <vector>
+#	include <memory>
+
+using te_name_map = std::unordered_map<const void*, std::string>;
+
+using te_index_map = std::unordered_map<const void*, int>;
+
+struct te_expr_portable_expression_build_indexer
+{
+	te_name_map	 name_map;
+	te_index_map index_map;
+	int			 index_counter = 0;
+};
+
+struct te_expr_portable_expression_build_bindings
+{
+	std::vector<const void*> index_to_address; // this contains the native function/value address as originally compiled
+	std::vector<std::string> index_to_name;
+};
+
+using te_expr_portable_expression_context = const void*[];
+
+struct te_expr_portable
+{
+	int type;
+	union
+	{
+		double value;
+		size_t bound;
+		size_t function;
+	};
+	size_t parameters[1];
+};
+
+struct te_expr_native
+{
+	int type;
+	union
+	{
+		double		  value;
+		const double* bound;
+		const void*	  function;
+	};
+	void* parameters[1];
+};
+
+struct te_expr
+{
+	te_expr_portable_expression_build_indexer  m_indexer;
+	te_expr_portable_expression_build_bindings m_bindings;
+	std::unique_ptr<std::uint8_t>			   m_build_buffer;
+
+	te_expr_native* m_native;
+};
 
 /* Parses the input expression, evaluates it, and frees it. */
 /* Returns NaN on error. */
@@ -88,16 +123,15 @@ double te_interp(const char* expression, int* error);
 
 /* Parses the input expression and binds variables. */
 /* Returns NULL on error. */
-te_expr_native* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
+te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
 
 /* Evaluates the expression. */
-double te_eval(const te_expr_native* n);
-
-/* Prints debugging information on the syntax tree. */
-void te_print(const te_expr_native* n);
+double te_eval(const te_expr* n);
 
 /* Frees the expression. */
 /* This is safe to call on NULL pointers. */
-void te_free(te_expr_native* n);
+void te_free(te_expr* n);
+
+#endif // #if TE_COMPILER_ENABLED
 
 #endif /*__TINYEXPR_H__*/
