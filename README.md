@@ -2,8 +2,12 @@
 
 TinyExprpp is a C++ refactor of Tinyexpr, and the documentation will gradually be refactored along with the code.
 
+```Beyond the refactor, this adds support for:
+	- Portable expressions that can be compiled, then loaded & run elsewhere, with a binding lookup table for functions and data.
+	- Compile time data type selection. Double & float implemented.
+```
 
-# TinyExpr
+# TinyExpr - legacy documentation
 
 TinyExpr is a very small recursive descent parser and evaluation engine for
 math expressions. It's handy when you want to add the ability to evaluation
