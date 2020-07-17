@@ -25,6 +25,10 @@
 #ifndef __TINYEXPR_H__
 #define __TINYEXPR_H__
 
+#include <limits>
+
+#define TE_COMPILER_ENABLED 1
+
 enum
 {
 	TE_VARIABLE = 0,
@@ -50,6 +54,11 @@ enum
 	TE_FLAG_PURE = 32
 };
 
+enum
+{
+	TE_CONSTANT = 1
+};
+
 struct te_variable
 {
 	const char* name;
@@ -57,32 +66,6 @@ struct te_variable
 	int			type;
 	void*		context;
 };
-
-#define TE_COMPILER_ENABLED 1
-
-#if TE_COMPILER_ENABLED
-#	include <unordered_map>
-#	include <vector>
-#	include <memory>
-
-using te_name_map = std::unordered_map<const void*, std::string>;
-
-using te_index_map = std::unordered_map<const void*, int>;
-
-struct te_expr_portable_expression_build_indexer
-{
-	te_name_map	 name_map;
-	te_index_map index_map;
-	int			 index_counter = 0;
-};
-
-struct te_expr_portable_expression_build_bindings
-{
-	std::vector<const void*> index_to_address; // this contains the native function/value address as originally compiled
-	std::vector<std::string> index_to_name;
-};
-
-using te_expr_portable_expression_context = const void*[];
 
 struct te_expr_portable
 {
@@ -96,40 +79,153 @@ struct te_expr_portable
 	size_t parameters[1];
 };
 
-struct te_expr_native
+static inline constexpr auto te_nan = std::numeric_limits<double>::quiet_NaN();
+
+template<typename T>
+inline T te_type_mask(const T t) noexcept
 {
-	int type;
-	union
+	return ((t)&0x0000001F);
+}
+
+template<typename T>
+inline T te_arity(const T t) noexcept
+{
+	return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
+}
+
+namespace details
+{
+	inline double te_eval_portable_impl(
+		const te_expr_portable* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept
 	{
-		double		  value;
-		const double* bound;
-		const void*	  function;
-	};
-	void* parameters[1];
-};
+#define TE_FUN(...) ((double (*)(__VA_ARGS__))expr_context[n_portable->function])
+#define M(e)                                                                                                           \
+	te_eval_portable_impl((const te_expr_portable*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
 
-struct te_expr
+		switch (te_type_mask(n_portable->type))
+		{
+		case TE_CONSTANT:
+			return n_portable->value;
+
+		case TE_VARIABLE:
+			return (expr_context != nullptr) ? *((const double*)(expr_context[n_portable->bound])) : te_nan;
+
+		case TE_FUNCTION0:
+		case TE_FUNCTION1:
+		case TE_FUNCTION2:
+		case TE_FUNCTION3:
+		case TE_FUNCTION4:
+		case TE_FUNCTION5:
+		case TE_FUNCTION6:
+		case TE_FUNCTION7:
+
+			switch (te_arity(n_portable->type))
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(double)(M(0));
+			case 2:
+				return TE_FUN(double, double)(M(0), M(1));
+			case 3:
+				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(double, double, double, double, double, double, double)(
+					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return te_nan;
+			}
+
+		case TE_CLOSURE0:
+		case TE_CLOSURE1:
+		case TE_CLOSURE2:
+		case TE_CLOSURE3:
+		case TE_CLOSURE4:
+		case TE_CLOSURE5:
+		case TE_CLOSURE6:
+		case TE_CLOSURE7:
+		{
+			auto arity_params = (void*)expr_context[n_portable->parameters[te_arity(n_portable->type)]];
+
+			switch (te_arity(n_portable->type))
+			{
+			case 0:
+				return TE_FUN(void*)(arity_params);
+			case 1:
+				return TE_FUN(void*, double)(arity_params, M(0));
+			case 2:
+				return TE_FUN(void*, double, double)(arity_params, M(0), M(1));
+			case 3:
+				return TE_FUN(void*, double, double, double)(arity_params, M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(void*, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(void*, double, double, double, double, double)(
+					arity_params, M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(void*, double, double, double, double, double, double)(
+					arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(void*, double, double, double, double, double, double, double)(
+					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return te_nan;
+			}
+		}
+
+		default:
+			return te_nan;
+		}
+#undef TE_FUN
+#undef M
+	}
+} // namespace details
+
+inline double te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 {
-	te_expr_portable_expression_build_indexer  m_indexer;
-	te_expr_portable_expression_build_bindings m_bindings;
-	std::unique_ptr<std::uint8_t>			   m_build_buffer;
-};
+	return details::te_eval_portable_impl(
+		(const te_expr_portable*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
+}
 
-/* Parses the input expression, evaluates it, and frees it. */
-/* Returns NaN on error. */
-double te_interp(const char* expression, int* error);
+#if (TE_COMPILER_ENABLED)
+using te_compiled_expr = void*;
 
-/* Parses the input expression and binds variables. */
-/* Returns NULL on error. */
-te_expr* te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
+te_compiled_expr	 te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
+size_t				 te_get_binding_array_size(const te_compiled_expr n);
+const void* const*	 te_get_binding_addresses(const te_compiled_expr n);
+const char* const*	 te_get_binding_names(const te_compiled_expr n);
+size_t				 te_get_expr_data_size(const te_compiled_expr n);
+const unsigned char* te_get_expr_data(const te_compiled_expr n);
+void				 te_free(te_compiled_expr n);
 
-/* Evaluates the expression. */
-double te_eval(const te_expr* n);
+inline double te_eval(const te_compiled_expr n)
+{
+	return te_eval(te_get_expr_data(n), te_get_binding_addresses(n));
+}
 
-/* Frees the expression. */
-/* This is safe to call on NULL pointers. */
-void te_free(te_expr* n);
+inline double te_interp(const char* expression, int* error)
+{
+	te_compiled_expr n = te_compile(expression, 0, 0, error);
+	double			 ret;
+	if (n)
+	{
+		ret = te_eval(n);
+		te_free(n);
+	}
+	else
+	{
+		ret = te_nan;
+	}
+	return ret;
+}
 
-#endif // #if TE_COMPILER_ENABLED
+
+#endif // #if (TE_COMPILER_ENABLED)
 
 #endif /*__TINYEXPR_H__*/
