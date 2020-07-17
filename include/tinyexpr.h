@@ -113,8 +113,6 @@ struct te_expr
 	te_expr_portable_expression_build_indexer  m_indexer;
 	te_expr_portable_expression_build_bindings m_bindings;
 	std::unique_ptr<std::uint8_t>			   m_build_buffer;
-
-	te_expr_native* m_native;
 };
 
 /* Parses the input expression, evaluates it, and frees it. */

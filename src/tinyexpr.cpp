@@ -1446,7 +1446,8 @@ size_t te_export_estimate(const te_expr_native* n,
 
 	case TE_VARIABLE:
 	{
-		assert(handle_addr(te_details::find_bind_by_addr(n->bound, lookup, lookup_len)));
+		auto res = handle_addr(te_details::find_bind_by_addr(n->bound, lookup, lookup_len));
+		assert(res);
 		return export_size;
 	}
 
@@ -1459,7 +1460,8 @@ size_t te_export_estimate(const te_expr_native* n,
 	case TE_FUNCTION6:
 	case TE_FUNCTION7:
 	{
-		assert(handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len)));
+		auto res = handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+		assert(res);
 		export_size += sizeof(n->parameters[0]) * (ARITY(n->type));
 
 		for (int i = 0; i < ARITY(n->type); ++i)
@@ -1478,8 +1480,8 @@ size_t te_export_estimate(const te_expr_native* n,
 	case TE_CLOSURE6:
 	case TE_CLOSURE7:
 	{
-		assert(handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len)));
-		// assert(handle_addr(n->parameters[ARITY(n->type)]));
+		auto res = handle_addr(te_details::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+		assert(res);
 
 		export_size += sizeof(n->parameters[0]) * ARITY(n->type);
 
@@ -1577,6 +1579,7 @@ size_t te_export_write(const te_expr_native* n,
 #undef TE_FUN
 #undef M
 }
+
 
 double te_eval_compare(const te_expr_native* n,
 	const te_expr_portable*					 n_portable,
@@ -1684,6 +1687,7 @@ double te_eval_compare(const te_expr_native* n,
 #undef M
 }
 
+
 double te_eval_portable(
 	const te_expr_portable* n_portable, const std::uint8_t* expr_buffer, const void* const expr_context[])
 {
@@ -1696,8 +1700,9 @@ double te_eval_portable(
 	{
 	case TE_CONSTANT:
 		return n_portable->value;
+
 	case TE_VARIABLE:
-		return *((const double*)(expr_context[n_portable->bound]));
+		return (expr_context != nullptr) ? *((const double*)(expr_context[n_portable->bound])) : NAN;
 
 	case TE_FUNCTION0:
 	case TE_FUNCTION1:
@@ -1785,7 +1790,6 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 	if (native_expr)
 	{
 		auto expr	   = new te_expr;
-		expr->m_native = native_expr;
 
 		size_t export_size = 0;
 		te_export_estimate(native_expr,
@@ -1814,7 +1818,7 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 		::memset(expr->m_build_buffer.get(), 0x0, export_size);
 
 		size_t actual_export_size = 0;
-		te_export_write(expr->m_native,
+		te_export_write(native_expr,
 			actual_export_size,
 			variables,
 			var_count,
@@ -1833,6 +1837,7 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 				}
 			});
 
+		te_details::te_free_native(native_expr);
 		return expr;
 	}
 	return nullptr;
@@ -1840,62 +1845,15 @@ te_expr* te_compile(const char* expression, const te_variable* variables, int va
 
 double te_eval(const te_expr* n)
 {
-	// return te_eval_compare(n->m_native,
-	//	(const te_expr_portable*)n->m_build_buffer.get(),
-	//	n->m_build_buffer.get(),
-	//	(n->m_bindings.index_to_address.size() > 0) ? &n->m_bindings.index_to_address[0] : nullptr);
-
-	return te_eval_portable((const te_expr_portable*)n->m_build_buffer.get(),
+	return te_eval_portable((const te_expr_portable*)(n->m_build_buffer.get()),
 		n->m_build_buffer.get(),
 		(n->m_bindings.index_to_address.size() > 0) ? &n->m_bindings.index_to_address[0] : nullptr);
-
-	// return te_details::te_eval_native(n->m_native);
 }
 
 void te_free(te_expr* n)
 {
 	if (n)
 	{
-		te_details::te_free_native(n->m_native);
 		delete n;
 	}
 }
-
-// void te_export(const te_expr_native* n, const te_variable* lookup, int lookup_len)
-//{
-//	te_expr_portable_expression_builder builder;
-//	te_expr_portable_expression			expression;
-//	size_t								export_size = 0;
-//
-//	te_export_estimate(n, export_size, lookup, lookup_len, builder.name_map, builder.index_map, builder.index_counter);
-//
-//	builder.index_to_address.resize(builder.index_counter);
-//	for (const auto& itor : builder.index_map)
-//	{
-//		builder.index_to_address[itor.second] = itor.first;
-//	}
-//
-//	builder.index_to_name.resize(builder.index_counter);
-//	for (int i = 0; i < builder.index_counter; ++i)
-//	{
-//		auto itor = builder.name_map.find(builder.index_to_address[i]);
-//		assert(itor != builder.name_map.end());
-//		builder.index_to_name[i] = itor->second;
-//	}
-//
-//	expression.export_buffer.resize(export_size);
-//	::memset(&expression.export_buffer[0], 0x0, export_size);
-//
-//	size_t actual_export_size = 0;
-//	te_export_write(n,
-//		actual_export_size,
-//		lookup,
-//		lookup_len,
-//		&expression.export_buffer[0],
-//		[&](const te_expr_native* n, size_t& out, const te_variable* v) -> void {
-//			assert(v != nullptr);
-//			auto itor = builder.index_map.find(v->address);
-//			assert(itor != builder.index_map.end());
-//			out = itor->second;
-//		});
-//}
