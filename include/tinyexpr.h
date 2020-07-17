@@ -27,11 +27,15 @@
 
 #include <limits>
 
-#define TE_COMPILER_ENABLED 1
+#ifndef TE_COMPILER_ENABLED
+#	define TE_COMPILER_ENABLED 1
+#endif // TE_COMPILER_ENABLED
 
 enum
 {
 	TE_VARIABLE = 0,
+	
+	TE_CONSTANT = 1,
 
 	TE_FUNCTION0 = 8,
 	TE_FUNCTION1,
@@ -52,11 +56,6 @@ enum
 	TE_CLOSURE7,
 
 	TE_FLAG_PURE = 32
-};
-
-enum
-{
-	TE_CONSTANT = 1
 };
 
 struct te_variable
@@ -224,7 +223,6 @@ inline double te_interp(const char* expression, int* error)
 	}
 	return ret;
 }
-
 
 #endif // #if (TE_COMPILER_ENABLED)
 
