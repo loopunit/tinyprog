@@ -31,22 +31,6 @@
 #	define TE_COMPILER_ENABLED 1
 #endif // TE_COMPILER_ENABLED
 
-struct te_traits
-{
-	using t_atom   = double;
-	using t_vector = double;
-
-	static inline t_vector load_atom(t_atom a) noexcept
-	{
-		return a;
-	}
-
-	static inline const t_vector nan() noexcept
-	{
-		return load_atom(std::numeric_limits<t_atom>::quiet_NaN());
-	}
-};
-
 enum
 {
 	TE_VARIABLE = 0,
@@ -82,14 +66,34 @@ struct te_variable
 	void*		context;
 };
 
+struct te_traits
+{
+	using t_atom   = double;
+	using t_vector = double;
+
+	static inline t_vector load_atom(t_atom a) noexcept
+	{
+		return a;
+	}
+
+	static inline const t_vector nan() noexcept
+	{
+		return load_atom(std::numeric_limits<t_atom>::quiet_NaN());
+	}
+};
+
+template<typename T_TRAITS>
 struct te_expr_portable
 {
+	using t_traits = T_TRAITS;
+	using t_atom   = typename T_TRAITS::t_atom;
+
 	int type;
 	union
 	{
-		te_traits::t_atom value;
-		size_t			  bound;
-		size_t			  function;
+		t_atom value;
+		size_t bound;
+		size_t function;
 	};
 	size_t parameters[1];
 };
@@ -109,9 +113,9 @@ inline T te_arity(const T t) noexcept
 namespace details
 {
 	template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
-	static inline auto te_eval_portable_impl(
-		const te_expr_portable* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept
-		-> typename T_VECTOR
+	static inline auto te_eval_portable_impl(const te_expr_portable<T_TRAITS>* n_portable,
+		const unsigned char*												   expr_buffer,
+		const void* const expr_context[]) noexcept -> typename T_VECTOR
 	{
 		using t_atom   = T_ATOM;
 		using t_vector = T_VECTOR;
@@ -121,7 +125,7 @@ namespace details
 
 #define M(e)                                                                                                           \
 	te_eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(                                                                 \
-		(const te_expr_portable*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
+		(const te_expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
 
 		switch (te_type_mask(n_portable->type))
 		{
@@ -129,8 +133,8 @@ namespace details
 			return t_traits::load_atom(n_portable->value);
 
 		case TE_VARIABLE:
-			return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound]))
-																 : t_traits::nan());
+			return t_traits::load_atom(
+				(expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_traits::nan());
 
 		case TE_FUNCTION0:
 		case TE_FUNCTION1:
@@ -162,7 +166,7 @@ namespace details
 				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 
 		case TE_CLOSURE0:
@@ -198,12 +202,12 @@ namespace details
 				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 		}
 
 		default:
-			return te_traits::nan();
+			return t_traits::nan();
 		}
 #undef TE_FUN
 #undef M
@@ -213,7 +217,7 @@ namespace details
 inline te_traits::t_atom te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 {
 	return details::te_eval_portable_impl<te_traits, te_traits::t_atom, te_traits::t_vector>(
-		(const te_expr_portable*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
+		(const te_expr_portable<te_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
 }
 
 #if (TE_COMPILER_ENABLED)
@@ -234,7 +238,7 @@ inline te_traits::t_atom te_eval(const te_compiled_expr n)
 
 inline te_traits::t_atom te_interp(const char* expression, int* error)
 {
-	te_compiled_expr n = te_compile(expression, 0, 0, error);
+	te_compiled_expr  n = te_compile(expression, 0, 0, error);
 	te_traits::t_atom ret;
 	if (n)
 	{

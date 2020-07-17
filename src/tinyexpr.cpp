@@ -47,10 +47,10 @@ For log = natural log uncomment the next line. */
 #include <assert.h>
 
 #if (TE_COMPILER_ENABLED)
-template <typename T_VECTOR>
+template<typename T_VECTOR>
 struct te_native_builtins;
 
-template <>
+template<>
 struct te_native_builtins<double>
 {
 	static double te_pi(void)
@@ -296,8 +296,7 @@ struct te_native_builtins<double>
 		return 0.0f;
 	}
 
-	static constexpr inline te_variable functions[] = {
-		/* must be in alphabetical order */
+	static constexpr inline te_variable functions[] = {/* must be in alphabetical order */
 		{"abs", te_fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 		{"acos", te_acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 		{"asin", te_asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
@@ -328,8 +327,7 @@ struct te_native_builtins<double>
 		{"tanh", te_tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 		{0, 0, 0, 0}};
 
-	static constexpr inline te_variable operators[] = {
-		/* must be in alphabetical order */
+	static constexpr inline te_variable operators[] = {/* must be in alphabetical order */
 		{"add", te_add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
 		{"comma", te_comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
 		{"divide", te_divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
@@ -463,25 +461,30 @@ struct te_native_builtins<double>
 	}
 };
 
+template<typename T_TRAITS>
 struct te_native
 {
+	using t_traits = T_TRAITS;
+	using t_atom   = typename T_TRAITS::t_atom;
+	using t_vector = typename T_TRAITS::t_vector;
+
 	struct te_expr_native
 	{
 		int type;
 		union
 		{
-			double		  value;
-			const double* bound;
+			t_atom		  value;
+			const t_atom* bound;
 			const void*	  function;
 		};
 		void* parameters[1];
 	};
 
-#ifndef INFINITY
-#	define INFINITY (1.0 / 0.0)
-#endif
+#	ifndef INFINITY
+#		define INFINITY (1.0 / 0.0)
+#	endif
 
-	typedef double (*te_fun2)(double, double);
+	typedef t_vector (*te_fun2)(t_vector, t_vector);
 
 	enum
 	{
@@ -503,8 +506,8 @@ struct te_native
 		int			type;
 		union
 		{
-			double		  value;
-			const double* bound;
+			t_atom		  value;
+			const t_atom* bound;
 			const void*	  function;
 		};
 		void* context;
@@ -513,14 +516,14 @@ struct te_native
 		int				   lookup_len;
 	};
 
-#define IS_PURE(TYPE)	  (((TYPE)&TE_FLAG_PURE) != 0)
-#define IS_FUNCTION(TYPE) (((TYPE)&TE_FUNCTION0) != 0)
-#define IS_CLOSURE(TYPE)  (((TYPE)&TE_CLOSURE0) != 0)
-#define NEW_EXPR(type, ...)                                                                                            \
-	[&]() {                                                                                                            \
-		const te_expr_native* _args[] = {__VA_ARGS__};                                                                 \
-		return new_expr((type), _args);                                                                                \
-	}()
+#	define IS_PURE(TYPE)	  (((TYPE)&TE_FLAG_PURE) != 0)
+#	define IS_FUNCTION(TYPE) (((TYPE)&TE_FUNCTION0) != 0)
+#	define IS_CLOSURE(TYPE)  (((TYPE)&TE_CLOSURE0) != 0)
+#	define NEW_EXPR(type, ...)                                                                                        \
+		[&]() {                                                                                                        \
+			const te_expr_native* _args[] = {__VA_ARGS__};                                                             \
+			return new_expr((type), _args);                                                                            \
+		}()
 
 	static te_expr_native* new_expr(const int type, const te_expr_native* parameters[])
 	{
@@ -629,7 +632,7 @@ struct te_native
 
 					const te_variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
 					if (!var)
-						var = te_native_builtins<te_traits::t_vector>::find_builtin(start, static_cast<int>(s->next - start));
+						var = te_native_builtins<t_vector>::find_builtin(start, static_cast<int>(s->next - start));
 
 					if (!var)
 					{
@@ -641,7 +644,7 @@ struct te_native
 						{
 						case TE_VARIABLE:
 							s->type	 = TOK_VARIABLE;
-							s->bound = (const double*)var->address;
+							s->bound = (const t_atom*)var->address;
 							break;
 
 						case TE_CLOSURE0:
@@ -675,46 +678,46 @@ struct te_native
 					{
 					case '+':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("add")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("add")->address;
 						break;
 					case '-':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("sub")->address;
 						break;
 					case '*':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("mul")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("mul")->address;
 						break;
 					case '/':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("divide")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("divide")->address;
 						break;
 					case '^':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("pow")->address;
 						break;
 					case '%':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("fmod")->address;
+						s->function = te_native_builtins<t_vector>::find_builtin("fmod")->address;
 						break;
 					case '!':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("not_equal")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("not_equal")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("logical_not")->address;
 						}
 						break;
 					case '=':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("equal")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("equal")->address;
 						}
 						else
 						{
@@ -725,33 +728,33 @@ struct te_native
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("lower_eq")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("lower_eq")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("lower")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("lower")->address;
 						}
 						break;
 					case '>':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("greater_eq")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("greater_eq")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("greater")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("greater")->address;
 						}
 						break;
 					case '&':
 						if (s->next++[0] == '&')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_and")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("logical_and")->address;
 						}
 						else
 						{
@@ -762,7 +765,7 @@ struct te_native
 						if (s->next++[0] == '|')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_or")->address;
+							s->function = te_native_builtins<t_vector>::find_builtin("logical_or")->address;
 						}
 						else
 						{
@@ -792,9 +795,9 @@ struct te_native
 		} while (s->type == TOK_NULL);
 	}
 
-	//static te_expr_native* list(state* s);
-	//static te_expr_native* expr(state* s);
-	//static te_expr_native* power(state* s);
+	// static te_expr_native* list(state* s);
+	// static te_expr_native* expr(state* s);
+	// static te_expr_native* power(state* s);
 
 	static te_expr_native* base(state* s)
 	{
@@ -912,7 +915,7 @@ struct te_native
 		default:
 			ret		   = new_expr(0, 0);
 			s->type	   = TOK_ERROR;
-			ret->value = te_traits::nan();
+			ret->value = t_traits::nan();
 			break;
 		}
 
@@ -923,22 +926,21 @@ struct te_native
 	{
 		/* <power>     =    {("-" | "+" | "!")} <base> */
 		int sign = 1;
-		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address))
+		while (s->type == TOK_INFIX && (s->function == te_native_builtins<t_vector>::find_builtin("add")->address ||
+										   s->function == te_native_builtins<t_vector>::find_builtin("sub")->address))
 		{
-			if (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address)
+			if (s->function == te_native_builtins<t_vector>::find_builtin("sub")->address)
 				sign = -sign;
 			next_token(s);
 		}
 
 		int logical = 0;
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address))
+			   (s->function == te_native_builtins<t_vector>::find_builtin("add")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("sub")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("logical_not")->address))
 		{
-			if (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address)
+			if (s->function == te_native_builtins<t_vector>::find_builtin("logical_not")->address)
 			{
 				if (logical == 0)
 				{
@@ -963,12 +965,12 @@ struct te_native
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address;
+				ret->function = te_native_builtins<t_vector>::find_builtin("logical_not")->address;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_notnot")->address;
+				ret->function = te_native_builtins<t_vector>::find_builtin("logical_notnot")->address;
 			}
 		}
 		else
@@ -976,24 +978,24 @@ struct te_native
 			if (logical == 0)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate")->address;
+				ret->function = te_native_builtins<t_vector>::find_builtin("negate")->address;
 			}
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_not")->address;
+				ret->function = te_native_builtins<t_vector>::find_builtin("negate_logical_not")->address;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_notnot")->address;
+				ret->function = te_native_builtins<t_vector>::find_builtin("negate_logical_notnot")->address;
 			}
 		}
 
 		return ret;
 	}
 
-#ifdef TE_POW_FROM_RIGHT
+#	ifdef TE_POW_FROM_RIGHT
 	static te_expr_native* factor(state* s)
 	{
 		/* <factor>    =    <power> {"^" <power>} */
@@ -1003,12 +1005,11 @@ struct te_native
 		te_expr_native* insertion	  = 0;
 
 		if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
-			(ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("negate")->address ||
-				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address ||
-				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_notnot")->address ||
-				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_not")->address ||
-				ret->function ==
-					te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_notnot")->address))
+			(ret->function == te_native_builtins<t_vector>::find_builtin("negate")->address ||
+				ret->function == te_native_builtins<t_vector>::find_builtin("logical_not")->address ||
+				ret->function == te_native_builtins<t_vector>::find_builtin("logical_notnot")->address ||
+				ret->function == te_native_builtins<t_vector>::find_builtin("negate_logical_not")->address ||
+				ret->function == te_native_builtins<t_vector>::find_builtin("negate_logical_notnot")->address))
 		{
 			left_function	   = ret->function;
 			te_expr_native* se = ret->parameters[0];
@@ -1016,8 +1017,7 @@ struct te_native
 			ret = se;
 		}
 
-		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address))
+		while (s->type == TOK_INFIX && (s->function == te_native_builtins<t_vector>::find_builtin("pow")->address))
 		{
 			te_fun2 t = s->function;
 			next_token(s);
@@ -1046,14 +1046,13 @@ struct te_native
 
 		return ret;
 	}
-#else
+#	else
 	static te_expr_native* factor(state* s)
 	{
 		/* <factor>    =    <power> {"^" <power>} */
 		te_expr_native* ret = power(s);
 
-		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address))
+		while (s->type == TOK_INFIX && (s->function == te_native_builtins<t_vector>::find_builtin("pow")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1063,17 +1062,17 @@ struct te_native
 
 		return ret;
 	}
-#endif
+#	endif
 
 	static te_expr_native* term(state* s)
 	{
 		/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 		te_expr_native* ret = factor(s);
 
-		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("mul")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("divide")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("fmod")->address))
+		while (
+			s->type == TOK_INFIX && (s->function == te_native_builtins<t_vector>::find_builtin("mul")->address ||
+										s->function == te_native_builtins<t_vector>::find_builtin("divide")->address ||
+										s->function == te_native_builtins<t_vector>::find_builtin("fmod")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1089,9 +1088,8 @@ struct te_native
 		/* <expr>      =    <term> {("+" | "-") <term>} */
 		te_expr_native* ret = term(s);
 
-		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address))
+		while (s->type == TOK_INFIX && (s->function == te_native_builtins<t_vector>::find_builtin("add")->address ||
+										   s->function == te_native_builtins<t_vector>::find_builtin("sub")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1108,12 +1106,12 @@ struct te_native
 		te_expr_native* ret = sum_expr(s);
 
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("greater")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("greater_eq")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("lower")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("lower_eq")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("equal")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("not_equal")->address))
+			   (s->function == te_native_builtins<t_vector>::find_builtin("greater")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("greater_eq")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("lower")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("lower_eq")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("equal")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("not_equal")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1130,8 +1128,8 @@ struct te_native
 		te_expr_native* ret = test_expr(s);
 
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_and")->address ||
-				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_or")->address))
+			   (s->function == te_native_builtins<t_vector>::find_builtin("logical_and")->address ||
+				   s->function == te_native_builtins<t_vector>::find_builtin("logical_or")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1151,19 +1149,19 @@ struct te_native
 		{
 			next_token(s);
 			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-			ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("comma")->address;
+			ret->function = te_native_builtins<t_vector>::find_builtin("comma")->address;
 		}
 
 		return ret;
 	}
 
-#define TE_FUN(...) ((double (*)(__VA_ARGS__))n->function)
-#define M(e)		te_eval_native((const te_expr_native*)n->parameters[e])
+#	define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))n->function)
+#	define M(e)		te_eval_native((const te_expr_native*)n->parameters[e])
 
-	static double te_eval_native(const te_expr_native* n)
+	static t_vector te_eval_native(const te_expr_native* n)
 	{
 		if (!n)
-			return te_traits::nan();
+			return t_traits::nan();
 
 		switch (te_type_mask(n->type))
 		{
@@ -1185,22 +1183,23 @@ struct te_native
 			case 0:
 				return TE_FUN(void)();
 			case 1:
-				return TE_FUN(double)(M(0));
+				return TE_FUN(t_vector)(M(0));
 			case 2:
-				return TE_FUN(double, double)(M(0), M(1));
+				return TE_FUN(t_vector, t_vector)(M(0), M(1));
 			case 3:
-				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+				return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
 			case 4:
-				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
 			case 5:
-				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
 			case 6:
-				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					M(0), M(1), M(2), M(3), M(4), M(5));
 			case 7:
-				return TE_FUN(double, double, double, double, double, double, double)(
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 
 		case TE_CLOSURE0:
@@ -1216,33 +1215,33 @@ struct te_native
 			case 0:
 				return TE_FUN(void*)(n->parameters[0]);
 			case 1:
-				return TE_FUN(void*, double)(n->parameters[1], M(0));
+				return TE_FUN(void*, t_vector)(n->parameters[1], M(0));
 			case 2:
-				return TE_FUN(void*, double, double)(n->parameters[2], M(0), M(1));
+				return TE_FUN(void*, t_vector, t_vector)(n->parameters[2], M(0), M(1));
 			case 3:
-				return TE_FUN(void*, double, double, double)(n->parameters[3], M(0), M(1), M(2));
+				return TE_FUN(void*, t_vector, t_vector, t_vector)(n->parameters[3], M(0), M(1), M(2));
 			case 4:
-				return TE_FUN(void*, double, double, double, double)(n->parameters[4], M(0), M(1), M(2), M(3));
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(n->parameters[4], M(0), M(1), M(2), M(3));
 			case 5:
-				return TE_FUN(void*, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					n->parameters[5], M(0), M(1), M(2), M(3), M(4));
 			case 6:
-				return TE_FUN(void*, double, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
 			case 7:
-				return TE_FUN(void*, double, double, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 
 		default:
-			return te_traits::nan();
+			return t_traits::nan();
 		}
 	}
 
-#undef TE_FUN
-#undef M
+#	undef TE_FUN
+#	undef M
 
 	static void optimize(te_expr_native* n)
 	{
@@ -1268,7 +1267,7 @@ struct te_native
 			}
 			if (known)
 			{
-				const double value = te_eval_native(n);
+				const t_vector value = te_eval_native(n);
 				te_free_parameters(n);
 				n->type	 = TE_CONSTANT;
 				n->value = value;
@@ -1276,7 +1275,8 @@ struct te_native
 		}
 	}
 
-	static te_expr_native* te_compile_native(const char* expression, const te_variable* variables, int var_count, int* error)
+	static te_expr_native* te_compile_native(
+		const char* expression, const te_variable* variables, int var_count, int* error)
 	{
 		state s;
 		s.start = s.next = expression;
@@ -1307,10 +1307,10 @@ struct te_native
 		}
 	}
 
-	static double te_interp_native(const char* expression, int* error)
+	static t_vector te_interp_native(const char* expression, int* error)
 	{
 		te_expr_native* n = te_compile_native(expression, 0, 0, error);
-		double			ret;
+		t_vector		ret;
 		if (n)
 		{
 			ret = te_eval_native(n);
@@ -1318,7 +1318,7 @@ struct te_native
 		}
 		else
 		{
-			ret = te_traits::nan();
+			ret = t_traits::nan();
 		}
 		return ret;
 	}
@@ -1401,7 +1401,7 @@ struct te_native
 
 	static const te_variable* find_bind_or_any_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
 	{
-		auto res = te_native_builtins<te_traits::t_vector>::find_any_by_addr(addr);
+		auto res = te_native_builtins<t_vector>::find_any_by_addr(addr);
 		if (!res)
 		{
 			res = find_bind_by_addr(addr, lookup, lookup_len);
@@ -1415,8 +1415,14 @@ struct te_native
 	}
 };
 
+template<typename T_TRAITS>
 struct te_portable
 {
+	using t_traits		 = T_TRAITS;
+	using t_atom		 = typename T_TRAITS::t_atom;
+	using t_vector		 = typename T_TRAITS::t_vector;
+	using te_expr_native = typename te_native<t_traits>::te_expr_native;
+
 	using te_name_map = std::unordered_map<const void*, std::string>;
 
 	using te_index_map = std::unordered_map<const void*, int>;
@@ -1444,16 +1450,16 @@ struct te_portable
 		size_t									   m_build_buffer_size;
 	};
 
-	static size_t te_export_estimate(const te_native::te_expr_native* n,
-		size_t&												   export_size,
-		const te_variable*									   lookup,
-		int													   lookup_len,
-		te_name_map&										   name_map,
-		te_index_map&										   index_map,
-		int&												   index_counter)
+	static size_t te_export_estimate(const te_expr_native* n,
+		size_t&											   export_size,
+		const te_variable*								   lookup,
+		int												   lookup_len,
+		te_name_map&									   name_map,
+		te_index_map&									   index_map,
+		int&											   index_counter)
 	{
 #	define M(e)                                                                                                       \
-		te_export_estimate((const te_native::te_expr_native*)n->parameters[e],                                         \
+		te_export_estimate((const te_expr_native*)n->parameters[e],                                                    \
 			export_size,                                                                                               \
 			lookup,                                                                                                    \
 			lookup_len,                                                                                                \
@@ -1464,7 +1470,7 @@ struct te_portable
 		if (!n)
 			return export_size;
 
-		export_size += sizeof(te_native::te_expr_native);
+		export_size += sizeof(te_expr_native);
 
 		auto handle_addr = [&](const te_variable* var) -> bool {
 			if (var)
@@ -1500,7 +1506,7 @@ struct te_portable
 
 		case TE_VARIABLE:
 		{
-			auto res = handle_addr(te_native::find_bind_by_addr(n->bound, lookup, lookup_len));
+			auto res = handle_addr(te_native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
 			assert(res);
 			return export_size;
 		}
@@ -1514,7 +1520,7 @@ struct te_portable
 		case TE_FUNCTION6:
 		case TE_FUNCTION7:
 		{
-			auto res = handle_addr(te_native::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+			auto res = handle_addr(te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 			assert(res);
 			export_size += sizeof(n->parameters[0]) * (te_arity(n->type));
 
@@ -1534,7 +1540,7 @@ struct te_portable
 		case TE_CLOSURE6:
 		case TE_CLOSURE7:
 		{
-			auto res = handle_addr(te_native::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+			auto res = handle_addr(te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 			assert(res);
 
 			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
@@ -1552,27 +1558,23 @@ struct te_portable
 	}
 
 	template<typename T_REGISTER_FUNC>
-	static size_t te_export_write(const te_native::te_expr_native* n,
-		size_t&												export_size,
-		const te_variable*									lookup,
-		int													lookup_len,
-		const unsigned char*								out_buffer,
-		T_REGISTER_FUNC										register_func)
+	static size_t te_export_write(const te_expr_native* n,
+		size_t&											export_size,
+		const te_variable*								lookup,
+		int												lookup_len,
+		const unsigned char*							out_buffer,
+		T_REGISTER_FUNC									register_func)
 	{
 #	define M(e)                                                                                                       \
-		te_export_write((const te_native::te_expr_native*)n->parameters[e],                                            \
-			export_size,                                                                                               \
-			lookup,                                                                                                    \
-			lookup_len,                                                                                                \
-			out_buffer,                                                                                                \
-			register_func)
+		te_export_write(                                                                                               \
+			(const te_expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
 
 		if (!n)
 			return export_size;
 
-		te_expr_portable* n_out = (te_expr_portable*)(out_buffer + export_size);
+		auto n_out = (te_expr_portable<t_traits>*)(out_buffer + export_size);
 
-		export_size += sizeof(te_native::te_expr_native);
+		export_size += sizeof(te_expr_native);
 		n_out->type = n->type;
 		switch (te_type_mask(n->type))
 		{
@@ -1584,7 +1586,7 @@ struct te_portable
 
 		case TE_VARIABLE:
 		{
-			register_func(n->bound, n_out, te_native::find_bind_by_addr(n->bound, lookup, lookup_len));
+			register_func(n->bound, n_out, te_native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
 			return export_size;
 		}
 
@@ -1597,7 +1599,8 @@ struct te_portable
 		case TE_FUNCTION6:
 		case TE_FUNCTION7:
 		{
-			register_func(n->function, n_out, te_native::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+			register_func(
+				n->function, n_out, te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
 			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
 
@@ -1618,11 +1621,8 @@ struct te_portable
 		case TE_CLOSURE6:
 		case TE_CLOSURE7:
 		{
-			register_func(n->function, n_out, te_native::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
-
-			// register_func(n->parameters[te_arity(n->type)],
-			//	n_out->parameters[te_arity(n->type)],
-			//	te_native::find_bind_or_any_by_addr(n->parameters[te_arity(n->type)], lookup, lookup_len));
+			register_func(
+				n->function, n_out, te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
 			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
 
@@ -1639,21 +1639,21 @@ struct te_portable
 #	undef M
 	}
 
-	static double te_eval_compare(const te_native::te_expr_native* n,
-		const te_expr_portable*								n_portable,
-		const unsigned char*								expr_buffer,
-		const void* const									expr_context[])
+	static t_vector te_eval_compare(const te_expr_native* n,
+		const te_expr_portable<t_traits>*				  n_portable,
+		const unsigned char*							  expr_buffer,
+		const void* const								  expr_context[])
 	{
-#	define TE_FUN(...) ((double (*)(__VA_ARGS__))expr_context[n_portable->function])
+#	define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
 
 #	define M(e)                                                                                                       \
-		te_eval_compare((const te_native::te_expr_native*)n->parameters[e],                                            \
+		te_eval_compare((const te_expr_native*)n->parameters[e],                                                       \
 			(const te_expr_portable*)&expr_buffer[n_portable->parameters[e]],                                          \
 			expr_buffer,                                                                                               \
 			expr_context)
 
 		if (!n)
-			return te_traits::nan();
+			return t_traits::nan();
 
 		assert(n->type == n_portable->type);
 
@@ -1663,7 +1663,7 @@ struct te_portable
 			return n_portable->value;
 		case TE_VARIABLE:
 			assert(n->bound == expr_context[n_portable->bound]);
-			return *((const double*)(expr_context[n_portable->bound]));
+			return t_traits::load_atom(*((const t_atom*)(expr_context[n_portable->bound])));
 
 		case TE_FUNCTION0:
 		case TE_FUNCTION1:
@@ -1681,22 +1681,23 @@ struct te_portable
 			case 0:
 				return TE_FUN(void)();
 			case 1:
-				return TE_FUN(double)(M(0));
+				return TE_FUN(t_vector)(M(0));
 			case 2:
-				return TE_FUN(double, double)(M(0), M(1));
+				return TE_FUN(t_vector, t_vector)(M(0), M(1));
 			case 3:
-				return TE_FUN(double, double, double)(M(0), M(1), M(2));
+				return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
 			case 4:
-				return TE_FUN(double, double, double, double)(M(0), M(1), M(2), M(3));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
 			case 5:
-				return TE_FUN(double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
 			case 6:
-				return TE_FUN(double, double, double, double, double, double)(M(0), M(1), M(2), M(3), M(4), M(5));
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					M(0), M(1), M(2), M(3), M(4), M(5));
 			case 7:
-				return TE_FUN(double, double, double, double, double, double, double)(
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 
 		case TE_CLOSURE0:
@@ -1718,153 +1719,201 @@ struct te_portable
 			case 0:
 				return TE_FUN(void*)(arity_params);
 			case 1:
-				return TE_FUN(void*, double)(arity_params, M(0));
+				return TE_FUN(void*, t_vector)(arity_params, M(0));
 			case 2:
-				return TE_FUN(void*, double, double)(arity_params, M(0), M(1));
+				return TE_FUN(void*, t_vector, t_vector)(arity_params, M(0), M(1));
 			case 3:
-				return TE_FUN(void*, double, double, double)(arity_params, M(0), M(1), M(2));
+				return TE_FUN(void*, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2));
 			case 4:
-				return TE_FUN(void*, double, double, double, double)(arity_params, M(0), M(1), M(2), M(3));
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2), M(3));
 			case 5:
-				return TE_FUN(void*, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					arity_params, M(0), M(1), M(2), M(3), M(4));
 			case 6:
-				return TE_FUN(void*, double, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
 			case 7:
-				return TE_FUN(void*, double, double, double, double, double, double, double)(
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
 					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_traits::nan();
+				return t_traits::nan();
 			}
 		}
 
 		default:
-			return te_traits::nan();
+			return t_traits::nan();
 		}
 #	undef TE_FUN
 #	undef M
 	}
 };
 
+namespace details
+{
+	template<typename T_TRAITS>
+	te_compiled_expr te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
+	{
+		typename te_native<T_TRAITS>::te_expr_native* native_expr =
+			te_native<T_TRAITS>::te_compile_native(expression, variables, var_count, error);
+
+		if (native_expr)
+		{
+			auto expr = new typename te_portable<T_TRAITS>::te_compiled_expr;
+
+			size_t export_size = 0;
+			te_portable<T_TRAITS>::te_export_estimate(native_expr,
+				export_size,
+				variables,
+				var_count,
+				expr->m_indexer.name_map,
+				expr->m_indexer.index_map,
+				expr->m_indexer.index_counter);
+
+			expr->m_bindings.index_to_address.resize(expr->m_indexer.index_counter);
+			for (const auto& itor : expr->m_indexer.index_map)
+			{
+				expr->m_bindings.index_to_address[itor.second] = itor.first;
+			}
+
+			expr->m_bindings.index_to_name.resize(expr->m_indexer.index_counter);
+			expr->m_bindings.index_to_name_c_str.resize(expr->m_indexer.index_counter);
+			for (int i = 0; i < expr->m_indexer.index_counter; ++i)
+			{
+				auto itor = expr->m_indexer.name_map.find(expr->m_bindings.index_to_address[i]);
+				assert(itor != expr->m_indexer.name_map.end());
+				expr->m_bindings.index_to_name[i]		= itor->second;
+				expr->m_bindings.index_to_name_c_str[i] = expr->m_bindings.index_to_name[i].c_str();
+			}
+
+			expr->m_build_buffer.reset(new uint8_t[export_size]);
+			::memset(expr->m_build_buffer.get(), 0x0, export_size);
+			expr->m_build_buffer_size = export_size;
+
+			size_t actual_export_size = 0;
+			te_portable<T_TRAITS>::te_export_write(native_expr,
+				actual_export_size,
+				variables,
+				var_count,
+				expr->m_build_buffer.get(),
+				[&](const void* addr, te_expr_portable<T_TRAITS>* out, const te_variable* v) -> void {
+					assert(v != nullptr);
+					auto itor = expr->m_indexer.index_map.find(addr);
+					assert(itor != expr->m_indexer.index_map.end());
+					out->function = itor->second;
+
+					if (v->type >= TE_CLOSURE0 && v->type <= TE_CLOSURE7)
+					{
+						auto itor2 = expr->m_indexer.index_map.find(v->context);
+						assert(itor2 != expr->m_indexer.index_map.end());
+						out->parameters[te_arity(v->type)] = itor2->second;
+					}
+				});
+
+			te_native<T_TRAITS>::te_free_native(native_expr);
+			return expr;
+		}
+		return nullptr;
+	}
+
+	template<typename T_TRAITS>
+	size_t te_get_binding_array_size(const te_compiled_expr _n)
+	{
+		auto n = (const te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n)
+		{
+			return n->m_bindings.index_to_address.size();
+		}
+		return 0;
+	}
+
+	template<typename T_TRAITS>
+	const void* const* te_get_binding_addresses(const te_compiled_expr _n)
+	{
+		auto n = (const te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n && (n->m_bindings.index_to_address.size() > 0))
+		{
+			return &(*n->m_bindings.index_to_address.cbegin());
+		}
+		return nullptr;
+	}
+
+	template<typename T_TRAITS>
+	const char* const* te_get_binding_names(const te_compiled_expr _n)
+	{
+		auto n = (const te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n)
+		{
+			return &(*n->m_bindings.index_to_name_c_str.cbegin());
+		}
+		return nullptr;
+	}
+
+	template<typename T_TRAITS>
+	size_t te_get_expr_data_size(const te_compiled_expr _n)
+	{
+		auto n = (const te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n)
+		{
+			return n->m_build_buffer_size;
+		}
+		return 0;
+	}
+
+	template<typename T_TRAITS>
+	const unsigned char* te_get_expr_data(const te_compiled_expr _n)
+	{
+		auto n = (const te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n)
+		{
+			return n->m_build_buffer.get();
+		}
+		return nullptr;
+	}
+
+	template<typename T_TRAITS>
+	void te_free(te_compiled_expr _n)
+	{
+		auto n = (typename te_portable<T_TRAITS>::te_compiled_expr*)_n;
+		if (n)
+		{
+			delete n;
+		}
+	}
+} // namespace details
+
 te_compiled_expr te_compile(const char* expression, const te_variable* variables, int var_count, int* error)
 {
-	te_native::te_expr_native* native_expr = te_native::te_compile_native(expression, variables, var_count, error);
-	if (native_expr)
-	{
-		auto expr = new te_portable::te_compiled_expr;
-
-		size_t export_size = 0;
-		te_portable::te_export_estimate(native_expr,
-			export_size,
-			variables,
-			var_count,
-			expr->m_indexer.name_map,
-			expr->m_indexer.index_map,
-			expr->m_indexer.index_counter);
-
-		expr->m_bindings.index_to_address.resize(expr->m_indexer.index_counter);
-		for (const auto& itor : expr->m_indexer.index_map)
-		{
-			expr->m_bindings.index_to_address[itor.second] = itor.first;
-		}
-
-		expr->m_bindings.index_to_name.resize(expr->m_indexer.index_counter);
-		expr->m_bindings.index_to_name_c_str.resize(expr->m_indexer.index_counter);
-		for (int i = 0; i < expr->m_indexer.index_counter; ++i)
-		{
-			auto itor = expr->m_indexer.name_map.find(expr->m_bindings.index_to_address[i]);
-			assert(itor != expr->m_indexer.name_map.end());
-			expr->m_bindings.index_to_name[i]		= itor->second;
-			expr->m_bindings.index_to_name_c_str[i] = expr->m_bindings.index_to_name[i].c_str();
-		}
-
-		expr->m_build_buffer.reset(new uint8_t[export_size]);
-		::memset(expr->m_build_buffer.get(), 0x0, export_size);
-		expr->m_build_buffer_size = export_size;
-
-		size_t actual_export_size = 0;
-		te_portable::te_export_write(native_expr,
-			actual_export_size,
-			variables,
-			var_count,
-			expr->m_build_buffer.get(),
-			[&](const void* addr, te_expr_portable* out, const te_variable* v) -> void {
-				assert(v != nullptr);
-				auto itor = expr->m_indexer.index_map.find(addr);
-				assert(itor != expr->m_indexer.index_map.end());
-				out->function = itor->second;
-
-				if (v->type >= TE_CLOSURE0 && v->type <= TE_CLOSURE7)
-				{
-					auto itor2 = expr->m_indexer.index_map.find(v->context);
-					assert(itor2 != expr->m_indexer.index_map.end());
-					out->parameters[te_arity(v->type)] = itor2->second;
-				}
-			});
-
-		te_native::te_free_native(native_expr);
-		return expr;
-	}
-	return nullptr;
+	return details::te_compile<te_traits>(expression, variables, var_count, error);
 }
 
-size_t te_get_binding_array_size(const te_compiled_expr _n)
+size_t te_get_binding_array_size(const te_compiled_expr n)
 {
-	auto n = (const te_portable::te_compiled_expr*)_n;
-	if (n)
-	{
-		return n->m_bindings.index_to_address.size();
-	}
-	return 0;
+	return details::te_get_binding_array_size<te_traits>(n);
 }
 
-const void* const* te_get_binding_addresses(const te_compiled_expr _n)
+const void* const* te_get_binding_addresses(const te_compiled_expr n)
 {
-	auto n = (const te_portable::te_compiled_expr*)_n;
-	if (n && (n->m_bindings.index_to_address.size() > 0))
-	{
-		return &(*n->m_bindings.index_to_address.cbegin());
-	}
-	return nullptr;
+	return details::te_get_binding_addresses<te_traits>(n);
 }
 
-const char* const* te_get_binding_names(const te_compiled_expr _n)
+const char* const* te_get_binding_names(const te_compiled_expr n)
 {
-	auto n = (const te_portable::te_compiled_expr*)_n;
-	if (n)
-	{
-		return &(*n->m_bindings.index_to_name_c_str.cbegin());
-	}
-	return nullptr;
+	return details::te_get_binding_names<te_traits>(n);
 }
 
-size_t te_get_expr_data_size(const te_compiled_expr _n)
+size_t te_get_expr_data_size(const te_compiled_expr n)
 {
-	auto n = (const te_portable::te_compiled_expr*)_n;
-	if (n)
-	{
-		return n->m_build_buffer_size;
-	}
-	return 0;
+	return details::te_get_expr_data_size<te_traits>(n);
 }
 
-const unsigned char* te_get_expr_data(const te_compiled_expr _n)
+const unsigned char* te_get_expr_data(const te_compiled_expr n) 
 {
-	auto n = (const te_portable::te_compiled_expr*)_n;
-	if (n)
-	{
-		return n->m_build_buffer.get();
-	}
-	return nullptr;
+	return details::te_get_expr_data<te_traits>(n);
 }
 
-void te_free(te_compiled_expr _n)
+void te_free(te_compiled_expr n) 
 {
-	auto n = (te_portable::te_compiled_expr*)_n;
-	if (n)
-	{
-		delete n;
-	}
+	details::te_free<te_traits>(n);
 }
+
 #endif // #if (TE_COMPILER_ENABLED)
