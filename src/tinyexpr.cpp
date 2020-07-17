@@ -47,7 +47,11 @@ For log = natural log uncomment the next line. */
 #include <assert.h>
 
 #if (TE_COMPILER_ENABLED)
-struct te_native_builtins
+template <typename T_VECTOR>
+struct te_native_builtins;
+
+template <>
+struct te_native_builtins<double>
 {
 	static double te_pi(void)
 	{
@@ -62,7 +66,7 @@ struct te_native_builtins
 	static double te_fac(double a)
 	{ /* simplest version of fac */
 		if (a < 0.0)
-			return te_nan;
+			return te_traits::nan();
 		if (a > UINT_MAX)
 			return INFINITY;
 		unsigned int	  ua	 = (unsigned int)(a);
@@ -79,7 +83,7 @@ struct te_native_builtins
 	static double te_ncr(double n, double r)
 	{
 		if (n < 0.0 || r < 0.0 || n < r)
-			return te_nan;
+			return te_traits::nan();
 		if (n > UINT_MAX || r > UINT_MAX)
 			return INFINITY;
 		unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
@@ -625,7 +629,7 @@ struct te_native
 
 					const te_variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
 					if (!var)
-						var = te_native_builtins::find_builtin(start, static_cast<int>(s->next - start));
+						var = te_native_builtins<te_traits::t_vector>::find_builtin(start, static_cast<int>(s->next - start));
 
 					if (!var)
 					{
@@ -671,46 +675,46 @@ struct te_native
 					{
 					case '+':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("add")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("add")->address;
 						break;
 					case '-':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("sub")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address;
 						break;
 					case '*':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("mul")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("mul")->address;
 						break;
 					case '/':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("divide")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("divide")->address;
 						break;
 					case '^':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("pow")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address;
 						break;
 					case '%':
 						s->type		= TOK_INFIX;
-						s->function = te_native_builtins::find_builtin("fmod")->address;
+						s->function = te_native_builtins<te_traits::t_vector>::find_builtin("fmod")->address;
 						break;
 					case '!':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("not_equal")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("not_equal")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("logical_not")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address;
 						}
 						break;
 					case '=':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("equal")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("equal")->address;
 						}
 						else
 						{
@@ -721,33 +725,33 @@ struct te_native
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("lower_eq")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("lower_eq")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("lower")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("lower")->address;
 						}
 						break;
 					case '>':
 						if (s->next++[0] == '=')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("greater_eq")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("greater_eq")->address;
 						}
 						else
 						{
 							s->next--;
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("greater")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("greater")->address;
 						}
 						break;
 					case '&':
 						if (s->next++[0] == '&')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("logical_and")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_and")->address;
 						}
 						else
 						{
@@ -758,7 +762,7 @@ struct te_native
 						if (s->next++[0] == '|')
 						{
 							s->type		= TOK_INFIX;
-							s->function = te_native_builtins::find_builtin("logical_or")->address;
+							s->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_or")->address;
 						}
 						else
 						{
@@ -908,7 +912,7 @@ struct te_native
 		default:
 			ret		   = new_expr(0, 0);
 			s->type	   = TOK_ERROR;
-			ret->value = te_nan;
+			ret->value = te_traits::nan();
 			break;
 		}
 
@@ -919,21 +923,22 @@ struct te_native
 	{
 		/* <power>     =    {("-" | "+" | "!")} <base> */
 		int sign = 1;
-		while (s->type == TOK_INFIX && (s->function == te_native_builtins::find_builtin("add")->address ||
-										   s->function == te_native_builtins::find_builtin("sub")->address))
+		while (s->type == TOK_INFIX &&
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address))
 		{
-			if (s->function == te_native_builtins::find_builtin("sub")->address)
+			if (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address)
 				sign = -sign;
 			next_token(s);
 		}
 
 		int logical = 0;
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins::find_builtin("add")->address ||
-										   s->function == te_native_builtins::find_builtin("sub")->address ||
-										   s->function == te_native_builtins::find_builtin("logical_not")->address))
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address))
 		{
-			if (s->function == te_native_builtins::find_builtin("logical_not")->address)
+			if (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address)
 			{
 				if (logical == 0)
 				{
@@ -958,12 +963,12 @@ struct te_native
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins::find_builtin("logical_not")->address;
+				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins::find_builtin("logical_notnot")->address;
+				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("logical_notnot")->address;
 			}
 		}
 		else
@@ -971,17 +976,17 @@ struct te_native
 			if (logical == 0)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins::find_builtin("negate")->address;
+				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate")->address;
 			}
 			else if (logical == -1)
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins::find_builtin("negate_logical_not")->address;
+				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_not")->address;
 			}
 			else
 			{
 				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
-				ret->function = te_native_builtins::find_builtin("negate_logical_notnot")->address;
+				ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_notnot")->address;
 			}
 		}
 
@@ -998,11 +1003,12 @@ struct te_native
 		te_expr_native* insertion	  = 0;
 
 		if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
-			(ret->function == te_native_builtins::find_builtin("negate")->address ||
-				ret->function == te_native_builtins::find_builtin("logical_not")->address ||
-				ret->function == te_native_builtins::find_builtin("logical_notnot")->address ||
-				ret->function == te_native_builtins::find_builtin("negate_logical_not")->address ||
-				ret->function == te_native_builtins::find_builtin("negate_logical_notnot")->address))
+			(ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("negate")->address ||
+				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_not")->address ||
+				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_notnot")->address ||
+				ret->function == te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_not")->address ||
+				ret->function ==
+					te_native_builtins<te_traits::t_vector>::find_builtin("negate_logical_notnot")->address))
 		{
 			left_function	   = ret->function;
 			te_expr_native* se = ret->parameters[0];
@@ -1010,7 +1016,8 @@ struct te_native
 			ret = se;
 		}
 
-		while (s->type == TOK_INFIX && (s->function == te_native_builtins::find_builtin("pow")->address))
+		while (s->type == TOK_INFIX &&
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address))
 		{
 			te_fun2 t = s->function;
 			next_token(s);
@@ -1045,7 +1052,8 @@ struct te_native
 		/* <factor>    =    <power> {"^" <power>} */
 		te_expr_native* ret = power(s);
 
-		while (s->type == TOK_INFIX && (s->function == te_native_builtins::find_builtin("pow")->address))
+		while (s->type == TOK_INFIX &&
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("pow")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1063,9 +1071,9 @@ struct te_native
 		te_expr_native* ret = factor(s);
 
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins::find_builtin("mul")->address ||
-										   s->function == te_native_builtins::find_builtin("divide")->address ||
-										   s->function == te_native_builtins::find_builtin("fmod")->address))
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("mul")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("divide")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("fmod")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1081,8 +1089,9 @@ struct te_native
 		/* <expr>      =    <term> {("+" | "-") <term>} */
 		te_expr_native* ret = term(s);
 
-		while (s->type == TOK_INFIX && (s->function == te_native_builtins::find_builtin("add")->address ||
-										   s->function == te_native_builtins::find_builtin("sub")->address))
+		while (s->type == TOK_INFIX &&
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("add")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("sub")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1099,12 +1108,12 @@ struct te_native
 		te_expr_native* ret = sum_expr(s);
 
 		while (s->type == TOK_INFIX &&
-			   (s->function == te_native_builtins::find_builtin("greater")->address ||
-				   s->function == te_native_builtins::find_builtin("greater_eq")->address ||
-				   s->function == te_native_builtins::find_builtin("lower")->address ||
-				   s->function == te_native_builtins::find_builtin("lower_eq")->address ||
-										   s->function == te_native_builtins::find_builtin("equal")->address ||
-										   s->function == te_native_builtins::find_builtin("not_equal")->address))
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("greater")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("greater_eq")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("lower")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("lower_eq")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("equal")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("not_equal")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1120,8 +1129,9 @@ struct te_native
 		/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 		te_expr_native* ret = test_expr(s);
 
-		while (s->type == TOK_INFIX && (s->function == te_native_builtins::find_builtin("logical_and")->address ||
-										   s->function == te_native_builtins::find_builtin("logical_or")->address))
+		while (s->type == TOK_INFIX &&
+			   (s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_and")->address ||
+				   s->function == te_native_builtins<te_traits::t_vector>::find_builtin("logical_or")->address))
 		{
 			te_fun2 t = (te_fun2)s->function;
 			next_token(s);
@@ -1141,7 +1151,7 @@ struct te_native
 		{
 			next_token(s);
 			ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
-			ret->function = te_native_builtins::find_builtin("comma")->address;
+			ret->function = te_native_builtins<te_traits::t_vector>::find_builtin("comma")->address;
 		}
 
 		return ret;
@@ -1153,7 +1163,7 @@ struct te_native
 	static double te_eval_native(const te_expr_native* n)
 	{
 		if (!n)
-			return te_nan;
+			return te_traits::nan();
 
 		switch (te_type_mask(n->type))
 		{
@@ -1190,7 +1200,7 @@ struct te_native
 				return TE_FUN(double, double, double, double, double, double, double)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_nan;
+				return te_traits::nan();
 			}
 
 		case TE_CLOSURE0:
@@ -1223,11 +1233,11 @@ struct te_native
 				return TE_FUN(void*, double, double, double, double, double, double, double)(
 					n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_nan;
+				return te_traits::nan();
 			}
 
 		default:
-			return te_nan;
+			return te_traits::nan();
 		}
 	}
 
@@ -1308,7 +1318,7 @@ struct te_native
 		}
 		else
 		{
-			ret = te_nan;
+			ret = te_traits::nan();
 		}
 		return ret;
 	}
@@ -1391,7 +1401,7 @@ struct te_native
 
 	static const te_variable* find_bind_or_any_by_addr(const void* addr, const te_variable* lookup, int lookup_len)
 	{
-		auto res = te_native_builtins::find_any_by_addr(addr);
+		auto res = te_native_builtins<te_traits::t_vector>::find_any_by_addr(addr);
 		if (!res)
 		{
 			res = find_bind_by_addr(addr, lookup, lookup_len);
@@ -1643,7 +1653,7 @@ struct te_portable
 			expr_context)
 
 		if (!n)
-			return te_nan;
+			return te_traits::nan();
 
 		assert(n->type == n_portable->type);
 
@@ -1686,7 +1696,7 @@ struct te_portable
 				return TE_FUN(double, double, double, double, double, double, double)(
 					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_nan;
+				return te_traits::nan();
 			}
 
 		case TE_CLOSURE0:
@@ -1725,12 +1735,12 @@ struct te_portable
 				return TE_FUN(void*, double, double, double, double, double, double, double)(
 					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
 			default:
-				return te_nan;
+				return te_traits::nan();
 			}
 		}
 
 		default:
-			return te_nan;
+			return te_traits::nan();
 		}
 #	undef TE_FUN
 #	undef M
