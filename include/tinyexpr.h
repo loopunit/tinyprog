@@ -66,22 +66,6 @@ struct te_variable
 	void*		context;
 };
 
-struct te_traits
-{
-	using t_atom   = double;
-	using t_vector = double;
-
-	static inline t_vector load_atom(t_atom a) noexcept
-	{
-		return a;
-	}
-
-	static inline const t_vector nan() noexcept
-	{
-		return load_atom(std::numeric_limits<t_atom>::quiet_NaN());
-	}
-};
-
 template<typename T_TRAITS>
 struct te_expr_portable
 {
@@ -213,6 +197,33 @@ namespace details
 #undef M
 	}
 } // namespace details
+
+struct te_traits
+{
+	using t_atom   = float;
+	using t_vector = float;
+	using t_vector_int = int;
+
+	static inline t_vector load_atom(t_atom a) noexcept
+	{
+		return a;
+	}
+
+	static inline t_vector load_atom(double a) noexcept
+	{
+		return (t_vector)a;
+	}
+
+	static inline t_vector load_atom(int a) noexcept
+	{
+		return (t_vector)a;
+	}
+
+	static inline const t_vector nan() noexcept
+	{
+		return load_atom(std::numeric_limits<t_atom>::quiet_NaN());
+	}
+};
 
 inline te_traits::t_atom te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 {

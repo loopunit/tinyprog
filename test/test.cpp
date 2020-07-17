@@ -28,8 +28,8 @@
 
 typedef struct
 {
-	const char* expr;
-	double		answer;
+	const char*			expr;
+	te_traits::t_vector answer;
 } test_case;
 
 typedef struct
@@ -41,119 +41,119 @@ typedef struct
 void test_results()
 {
 	test_case cases[] = {
-		{"1", 1},
-		{"1 ", 1},
-		{"(1)", 1},
+		{"1", te_traits::load_atom(1)},
+		{"1 ", te_traits::load_atom(1)},
+		{"(1)", te_traits::load_atom(1)},
 
-		{"pi", 3.14159},
-		{"atan(1)*4 - pi", 0},
-		{"e", 2.71828},
+		{"pi", te_traits::load_atom(3.14159)},
+		{"atan(1)*4 - pi", te_traits::load_atom(0)},
+		{"e", te_traits::load_atom(2.71828)},
 
-		{"2+1", 2 + 1},
-		{"(((2+(1))))", 2 + 1},
-		{"3+2", 3 + 2},
+		{"2+1", te_traits::load_atom(2 + 1)},
+		{"(((2+(1))))", te_traits::load_atom(2 + 1)},
+		{"3+2", te_traits::load_atom(3 + 2)},
 
-		{"3+2+4", 3 + 2 + 4},
-		{"(3+2)+4", 3 + 2 + 4},
-		{"3+(2+4)", 3 + 2 + 4},
-		{"(3+2+4)", 3 + 2 + 4},
+		{"3+2+4", te_traits::load_atom(3 + 2 + 4)},
+		{"(3+2)+4", te_traits::load_atom(3 + 2 + 4)},
+		{"3+(2+4)", te_traits::load_atom(3 + 2 + 4)},
+		{"(3+2+4)", te_traits::load_atom(3 + 2 + 4)},
 
-		{"3*2*4", 3 * 2 * 4},
-		{"(3*2)*4", 3 * 2 * 4},
-		{"3*(2*4)", 3 * 2 * 4},
-		{"(3*2*4)", 3 * 2 * 4},
+		{"3*2*4", te_traits::load_atom(3 * 2 * 4)},
+		{"(3*2)*4", te_traits::load_atom(3 * 2 * 4)},
+		{"3*(2*4)", te_traits::load_atom(3 * 2 * 4)},
+		{"(3*2*4)", te_traits::load_atom(3 * 2 * 4)},
 
-		{"3-2-4", 3 - 2 - 4},
-		{"(3-2)-4", (3 - 2) - 4},
-		{"3-(2-4)", 3 - (2 - 4)},
-		{"(3-2-4)", 3 - 2 - 4},
+		{"3-2-4", te_traits::load_atom(3 - 2 - 4)},
+		{"(3-2)-4", te_traits::load_atom((3 - 2) - 4)},
+		{"3-(2-4)", te_traits::load_atom(3 - (2 - 4))},
+		{"(3-2-4)", te_traits::load_atom(3 - 2 - 4)},
 
-		{"3/2/4", 3.0 / 2.0 / 4.0},
-		{"(3/2)/4", (3.0 / 2.0) / 4.0},
-		{"3/(2/4)", 3.0 / (2.0 / 4.0)},
-		{"(3/2/4)", 3.0 / 2.0 / 4.0},
+		{"3/2/4", te_traits::load_atom(3.0 / 2.0 / 4.0)},
+		{"(3/2)/4", te_traits::load_atom((3.0 / 2.0) / 4.0)},
+		{"3/(2/4)", te_traits::load_atom(3.0 / (2.0 / 4.0))},
+		{"(3/2/4)", te_traits::load_atom(3.0 / 2.0 / 4.0)},
 
-		{"(3*2/4)", 3.0 * 2.0 / 4.0},
-		{"(3/2*4)", 3.0 / 2.0 * 4.0},
-		{"3*(2/4)", 3.0 * (2.0 / 4.0)},
+		{"(3*2/4)", te_traits::load_atom(3.0 * 2.0 / 4.0)},
+		{"(3/2*4)", te_traits::load_atom(3.0 / 2.0 * 4.0)},
+		{"3*(2/4)", te_traits::load_atom(3.0 * (2.0 / 4.0))},
 
-		{"asin sin .5", 0.5},
-		{"sin asin .5", 0.5},
-		{"ln exp .5", 0.5},
-		{"exp ln .5", 0.5},
+		{"asin sin .5", te_traits::load_atom(0.5)},
+		{"sin asin .5", te_traits::load_atom(0.5)},
+		{"ln exp .5", te_traits::load_atom(0.5)},
+		{"exp ln .5", te_traits::load_atom(0.5)},
 
-		{"asin sin-.5", -0.5},
-		{"asin sin-0.5", -0.5},
-		{"asin sin -0.5", -0.5},
-		{"asin (sin -0.5)", -0.5},
-		{"asin (sin (-0.5))", -0.5},
-		{"asin sin (-0.5)", -0.5},
-		{"(asin sin (-0.5))", -0.5},
+		{"asin sin-.5", te_traits::load_atom(-0.5)},
+		{"asin sin-0.5", te_traits::load_atom(-0.5)},
+		{"asin sin -0.5", te_traits::load_atom(-0.5)},
+		{"asin (sin -0.5)", te_traits::load_atom(-0.5)},
+		{"asin (sin (-0.5))", te_traits::load_atom(-0.5)},
+		{"asin sin (-0.5)", te_traits::load_atom(-0.5)},
+		{"(asin sin (-0.5))", te_traits::load_atom(-0.5)},
 
-		{"log10 1000", 3},
-		{"log10 1e3", 3},
-		{"log10 1000", 3},
-		{"log10 1e3", 3},
-		{"log10(1000)", 3},
-		{"log10(1e3)", 3},
-		{"log10 1.0e3", 3},
-		{"10^5*5e-5", 5},
+		{"log10 1000", te_traits::load_atom(3)},
+		{"log10 1e3", te_traits::load_atom(3)},
+		{"log10 1000", te_traits::load_atom(3)},
+		{"log10 1e3", te_traits::load_atom(3)},
+		{"log10(1000)", te_traits::load_atom(3)},
+		{"log10(1e3)", te_traits::load_atom(3)},
+		{"log10 1.0e3", te_traits::load_atom(3)},
+		{"10^5*5e-5", te_traits::load_atom(5)},
 
 #ifdef TE_NAT_LOG
-		{"log 1000", 6.9078},
-		{"log e", 1},
-		{"log (e^10)", 10},
+		{"log 1000", te_traits::load_atom(6.9078)},
+		{"log e", te_traits::load_atom(1)},
+		{"log (e^10)", te_traits::load_atom(10)},
 #else
-		{"log 1000", 3},
+		{"log 1000", te_traits::load_atom(3)},
 #endif
 
-		{"ln (e^10)", 10},
-		{"100^.5+1", 11},
-		{"100 ^.5+1", 11},
-		{"100^+.5+1", 11},
-		{"100^--.5+1", 11},
+		{"ln (e^10)", te_traits::load_atom(10)},
+		{"100^.5+1", te_traits::load_atom(11)},
+		{"100 ^.5+1", te_traits::load_atom(11)},
+		{"100^+.5+1", te_traits::load_atom(11)},
+		{"100^--.5+1", te_traits::load_atom(11)},
 		{"100^---+-++---++-+-+-.5+1", 11},
 
-		{"100^-.5+1", 1.1},
-		{"100^---.5+1", 1.1},
-		{"100^+---.5+1", 1.1},
-		{"1e2^+---.5e0+1e0", 1.1},
-		{"--(1e2^(+(-(-(-.5e0))))+1e0)", 1.1},
+		{"100^-.5+1", te_traits::load_atom(1.1)},
+		{"100^---.5+1", te_traits::load_atom(1.1)},
+		{"100^+---.5+1", te_traits::load_atom(1.1)},
+		{"1e2^+---.5e0+1e0", te_traits::load_atom(1.1)},
+		{"--(1e2^(+(-(-(-.5e0))))+1e0)", te_traits::load_atom(1.1)},
 
-		{"sqrt 100 + 7", 17},
-		{"sqrt 100 * 7", 70},
-		{"sqrt (100 * 100)", 100},
+		{"sqrt 100 + 7", te_traits::load_atom(17)},
+		{"sqrt 100 * 7", te_traits::load_atom(70)},
+		{"sqrt (100 * 100)", te_traits::load_atom(100)},
 
-		{"1,2", 2},
-		{"1,2+1", 3},
-		{"1+1,2+2,2+1", 3},
-		{"1,2,3", 3},
-		{"(1,2),3", 3},
-		{"1,(2,3)", 3},
-		{"-(1,(2,3))", -3},
+		{"1,2", te_traits::load_atom(2)},
+		{"1,2+1", te_traits::load_atom(3)},
+		{"1+1,2+2,2+1", te_traits::load_atom(3)},
+		{"1,2,3", te_traits::load_atom(3)},
+		{"(1,2),3", te_traits::load_atom(3)},
+		{"1,(2,3)", te_traits::load_atom(3)},
+		{"-(1,(2,3))", te_traits::load_atom(-3)},
 
-		{"2^2", 4},
-		{"pow(2,2)", 4},
+		{"2^2", te_traits::load_atom(4)},
+		{"pow(2,2)", te_traits::load_atom(4)},
 
-		{"atan2(1,1)", 0.7854},
-		{"atan2(1,2)", 0.4636},
-		{"atan2(2,1)", 1.1071},
-		{"atan2(3,4)", 0.6435},
-		{"atan2(3+3,4*2)", 0.6435},
-		{"atan2(3+3,(4*2))", 0.6435},
-		{"atan2((3+3),4*2)", 0.6435},
-		{"atan2((3+3),(4*2))", 0.6435},
+		{"atan2(1,1)", te_traits::load_atom(0.7854)},
+		{"atan2(1,2)", te_traits::load_atom(0.4636)},
+		{"atan2(2,1)", te_traits::load_atom(1.1071)},
+		{"atan2(3,4)", te_traits::load_atom(0.6435)},
+		{"atan2(3+3,4*2)", te_traits::load_atom(0.6435)},
+		{"atan2(3+3,(4*2))", te_traits::load_atom(0.6435)},
+		{"atan2((3+3),4*2)", te_traits::load_atom(0.6435)},
+		{"atan2((3+3),(4*2))", te_traits::load_atom(0.6435)},
 
 	};
 
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
-		int			 err;
-		const double ev = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector ev = te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -167,29 +167,29 @@ void test_results()
 void test_syntax()
 {
 	test_case errors[] = {
-		{"", 1},
-		{"1+", 2},
-		{"1)", 2},
-		{"(1", 2},
-		{"1**1", 3},
-		{"1*2(+4", 4},
-		{"1*2(1+4", 4},
-		{"a+5", 1},
-		{"A+5", 1},
-		{"Aa+5", 1},
-		{"1^^5", 3},
-		{"1**5", 3},
-		{"sin(cos5", 8},
+		{"", te_traits::load_atom(1)},
+		{"1+", te_traits::load_atom(2)},
+		{"1)", te_traits::load_atom(2)},
+		{"(1", te_traits::load_atom(2)},
+		{"1**1", te_traits::load_atom(3)},
+		{"1*2(+4", te_traits::load_atom(4)},
+		{"1*2(1+4", te_traits::load_atom(4)},
+		{"a+5", te_traits::load_atom(1)},
+		{"A+5", te_traits::load_atom(1)},
+		{"Aa+5", te_traits::load_atom(1)},
+		{"1^^5", te_traits::load_atom(3)},
+		{"1**5", te_traits::load_atom(3)},
+		{"sin(cos5", te_traits::load_atom(8)},
 	};
 
 	int i;
 	for (i = 0; i < sizeof(errors) / sizeof(test_case); ++i)
 	{
 		const char* expr = errors[i].expr;
-		const int	e	 = errors[i].answer;
+		const auto	e	 = errors[i].answer;
 
-		int			 err;
-		const double r = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector r = te_interp(expr, &err);
 		lequal(err, e);
 		lok(r != r);
 
@@ -202,7 +202,7 @@ void test_syntax()
 			printf("FAILED: %s\n", expr);
 		}
 
-		const double k = te_interp(expr, 0);
+		const te_traits::t_vector k = te_interp(expr, 0);
 		lok(k != k);
 	}
 }
@@ -228,15 +228,15 @@ void test_nans()
 	{
 		const char* expr = nans[i];
 
-		int			 err;
-		const double r = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector r = te_interp(expr, &err);
 		lequal(err, 0);
 		lok(r != r);
 
 		auto n = te_compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const double c = te_eval(n);
+		const te_traits::t_vector c = te_eval(n);
 		lok(c != c);
 		te_free(n);
 	}
@@ -262,15 +262,15 @@ void test_infs()
 	{
 		const char* expr = infs[i];
 
-		int			 err;
-		const double r = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector r = te_interp(expr, &err);
 		lequal(err, 0);
 		lok(r == r + 1);
 
 		auto n = te_compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const double c = te_eval(n);
+		const te_traits::t_vector c = te_eval(n);
 		lok(c == c + 1);
 		te_free(n);
 	}
@@ -278,8 +278,8 @@ void test_infs()
 
 void test_variables()
 {
-	double		x, y, test;
-	te_variable lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
+	te_traits::t_vector x, y, test;
+	te_variable			lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
 
 	int err;
 
@@ -303,7 +303,7 @@ void test_variables()
 	{
 		for (x = 0; x < 5; ++x)
 		{
-			double ev;
+			te_traits::t_vector ev;
 
 			ev = te_eval(expr1);
 			lfequal(ev, cos(x) + sin(y));
@@ -355,77 +355,89 @@ void test_variables()
 
 void test_functions()
 {
-	double		x, y;
-	te_variable lookup[] = {{"x", &x}, {"y", &y}};
+	te_traits::t_atom x, y;
+	te_variable		  lookup[] = {{"x", &x}, {"y", &y}};
 
 	int err;
 
-	for (x = -5; x < 5; x += .2)
+	for (x = te_traits::t_atom(-5); x < te_traits::t_atom(5); x += te_traits::t_atom(.2))
 	{
-		cross_check("abs x", fabs(x));
-		cross_check("acos x", acos(x));
-		cross_check("asin x", asin(x));
-		cross_check("atan x", atan(x));
-		cross_check("ceil x", ceil(x));
-		cross_check("cos x", cos(x));
-		cross_check("cosh x", cosh(x));
-		cross_check("exp x", exp(x));
-		cross_check("floor x", floor(x));
-		cross_check("ln x", log(x));
-		cross_check("log10 x", log10(x));
-		cross_check("sin x", sin(x));
-		cross_check("sinh x", sinh(x));
-		cross_check("sqrt x", sqrt(x));
-		cross_check("tan x", tan(x));
-		cross_check("tanh x", tanh(x));
+		cross_check("abs x", te_traits::load_atom(fabs(x)));
+		cross_check("acos x", te_traits::load_atom(acos(x)));
+		cross_check("asin x", te_traits::load_atom(asin(x)));
+		cross_check("atan x", te_traits::load_atom(atan(x)));
+		cross_check("ceil x", te_traits::load_atom(ceil(x)));
+		cross_check("cos x", te_traits::load_atom(cos(x)));
+		cross_check("cosh x", te_traits::load_atom(cosh(x)));
+		cross_check("exp x", te_traits::load_atom(exp(x)));
+		cross_check("floor x", te_traits::load_atom(floor(x)));
+		cross_check("ln x", te_traits::load_atom(log(x)));
+		cross_check("log10 x", te_traits::load_atom(log10(x)));
+		cross_check("sin x", te_traits::load_atom(sin(x)));
+		cross_check("sinh x", te_traits::load_atom(sinh(x)));
+		cross_check("sqrt x", te_traits::load_atom(sqrt(x)));
+		cross_check("tan x", te_traits::load_atom(tan(x)));
+		cross_check("tanh x", te_traits::load_atom(tanh(x)));
 
-		for (y = -2; y < 2; y += .2)
+		for (y = te_traits::t_atom(-2); y < te_traits::t_atom(2); y += te_traits::t_atom(.2))
 		{
 			if (fabs(x) < 0.01)
 				break;
-			cross_check("atan2(x,y)", atan2(x, y));
-			cross_check("pow(x,y)", pow(x, y));
+			cross_check("atan2(x,y)", te_traits::load_atom(atan2(x, y)));
+			cross_check("pow(x,y)", te_traits::load_atom(pow(x, y)));
 		}
 	}
 }
 
-double sum0()
+te_traits::t_vector sum0()
 {
 	return 6;
 }
-double sum1(double a)
+te_traits::t_vector sum1(te_traits::t_vector a)
 {
 	return a * 2;
 }
-double sum2(double a, double b)
+te_traits::t_vector sum2(te_traits::t_vector a, te_traits::t_vector b)
 {
 	return a + b;
 }
-double sum3(double a, double b, double c)
+te_traits::t_vector sum3(te_traits::t_vector a, te_traits::t_vector b, te_traits::t_vector c)
 {
 	return a + b + c;
 }
-double sum4(double a, double b, double c, double d)
+te_traits::t_vector sum4(te_traits::t_vector a, te_traits::t_vector b, te_traits::t_vector c, te_traits::t_vector d)
 {
 	return a + b + c + d;
 }
-double sum5(double a, double b, double c, double d, double e)
+te_traits::t_vector sum5(
+	te_traits::t_vector a, te_traits::t_vector b, te_traits::t_vector c, te_traits::t_vector d, te_traits::t_vector e)
 {
 	return a + b + c + d + e;
 }
-double sum6(double a, double b, double c, double d, double e, double f)
+te_traits::t_vector sum6(te_traits::t_vector a,
+	te_traits::t_vector						 b,
+	te_traits::t_vector						 c,
+	te_traits::t_vector						 d,
+	te_traits::t_vector						 e,
+	te_traits::t_vector						 f)
 {
 	return a + b + c + d + e + f;
 }
-double sum7(double a, double b, double c, double d, double e, double f, double g)
+te_traits::t_vector sum7(te_traits::t_vector a,
+	te_traits::t_vector						 b,
+	te_traits::t_vector						 c,
+	te_traits::t_vector						 d,
+	te_traits::t_vector						 e,
+	te_traits::t_vector						 f,
+	te_traits::t_vector						 g)
 {
 	return a + b + c + d + e + f + g;
 }
 
 void test_dynamic()
 {
-	double		x, f;
-	te_variable lookup[] = {
+	te_traits::t_vector x, f;
+	te_variable			lookup[] = {
 		{"x", &x},
 		{"f", &f},
 		{"sum0", sum0, TE_FUNCTION0},
@@ -469,8 +481,8 @@ void test_dynamic()
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
 		auto ex = te_compile(expr, lookup, sizeof(lookup) / sizeof(te_variable), &err);
@@ -480,35 +492,35 @@ void test_dynamic()
 	}
 }
 
-double clo0(void* context)
+te_traits::t_vector clo0(void* context)
 {
 	if (context)
-		return *((double*)context) + 6;
+		return *((te_traits::t_vector*)context) + 6;
 	return 6;
 }
-double clo1(void* context, double a)
+te_traits::t_vector clo1(void* context, te_traits::t_vector a)
 {
 	if (context)
-		return *((double*)context) + a * 2;
+		return *((te_traits::t_vector*)context) + a * 2;
 	return a * 2;
 }
-double clo2(void* context, double a, double b)
+te_traits::t_vector clo2(void* context, te_traits::t_vector a, te_traits::t_vector b)
 {
 	if (context)
-		return *((double*)context) + a + b;
+		return *((te_traits::t_vector*)context) + a + b;
 	return a + b;
 }
 
-double cell(void* context, double a)
+te_traits::t_vector cell(void* context, te_traits::t_vector a)
 {
-	double* c = (double*)context;
+	te_traits::t_vector* c = (te_traits::t_vector*)context;
 	return c[(int)a];
 }
 
 void test_closure()
 {
-	double extra;
-	double c[] = {5, 6, 7, 8, 9};
+	te_traits::t_vector extra;
+	te_traits::t_vector c[] = {5, 6, 7, 8, 9};
 
 	te_variable lookup[] = {
 		{"c0", clo0, TE_CLOSURE0, &extra},
@@ -526,8 +538,8 @@ void test_closure()
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
 		auto ex = te_compile(expr, lookup, sizeof(lookup) / sizeof(te_variable), &err);
@@ -551,8 +563,8 @@ void test_closure()
 
 	for (i = 0; i < sizeof(cases2) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases2[i].expr;
-		const double answer = cases2[i].answer;
+		const char*				  expr	 = cases2[i].expr;
+		const te_traits::t_vector answer = cases2[i].answer;
 
 		int	 err;
 		auto ex = te_compile(expr, lookup, sizeof(lookup) / sizeof(te_variable), &err);
@@ -565,17 +577,17 @@ void test_closure()
 void test_optimize()
 {
 	test_case cases[] = {
-		{"5+5", 10},
-		{"pow(2,2)", 4},
-		{"sqrt 100", 10},
-		{"pi * 2", 6.2832},
+		{"5+5", te_traits::load_atom(10)},
+		{"pow(2,2)", te_traits::load_atom(4)},
+		{"sqrt 100", te_traits::load_atom(10)},
+		{"pi * 2", te_traits::load_atom(6.2832)},
 	};
 
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
 		auto ex = te_compile(expr, 0, 0, &err);
@@ -583,7 +595,7 @@ void test_optimize()
 
 		/* The answer should be know without
 		 * even running eval. */
-		//lfequal(ex->value, answer); // TODO
+		// lfequal(ex->value, answer); // TODO
 		lfequal(te_eval(ex), answer);
 
 		te_free(ex);
@@ -614,7 +626,7 @@ void test_pow()
 		{"-a^-b", "(-a)^(-b)"}};
 #endif
 
-	double a = 2, b = 3;
+	te_traits::t_vector a = 2, b = 3;
 
 	te_variable lookup[] = {{"a", &a}, {"b", &b}};
 
@@ -630,8 +642,8 @@ void test_pow()
 		lok(ex1);
 		lok(ex2);
 
-		double r1 = te_eval(ex1);
-		double r2 = te_eval(ex2);
+		te_traits::t_vector r1 = te_eval(ex1);
+		te_traits::t_vector r2 = te_eval(ex2);
 
 		fflush(stdout);
 		lfequal(r1, r2);
@@ -671,11 +683,11 @@ void test_combinatorics()
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
-		int			 err;
-		const double ev = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector ev = te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -766,11 +778,11 @@ void test_logic()
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
-		const char*	 expr	= cases[i].expr;
-		const double answer = cases[i].answer;
+		const char*				  expr	 = cases[i].expr;
+		const te_traits::t_vector answer = cases[i].answer;
 
-		int			 err;
-		const double ev = te_interp(expr, &err);
+		int						  err;
+		const te_traits::t_vector ev = te_interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
