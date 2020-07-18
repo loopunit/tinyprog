@@ -43,108 +43,108 @@ typedef struct
 void test_results()
 {
 	test_case cases[] = {
-		{"1", te_traits::load_atom(1)},
-		{"1 ", te_traits::load_atom(1)},
-		{"(1)", te_traits::load_atom(1)},
+		{"1", te_traits::explicit_load_atom(1)},
+		{"1 ", te_traits::explicit_load_atom(1)},
+		{"(1)", te_traits::explicit_load_atom(1)},
 
-		{"pi", te_traits::load_atom(3.14159)},
-		{"atan(1)*4 - pi", te_traits::load_atom(0)},
-		{"e", te_traits::load_atom(2.71828)},
+		{"pi", te_traits::explicit_load_atom(3.14159)},
+		{"atan(1)*4 - pi", te_traits::explicit_load_atom(0)},
+		{"e", te_traits::explicit_load_atom(2.71828)},
 
-		{"2+1", te_traits::load_atom(2 + 1)},
-		{"(((2+(1))))", te_traits::load_atom(2 + 1)},
-		{"3+2", te_traits::load_atom(3 + 2)},
+		{"2+1", te_traits::explicit_load_atom(2 + 1)},
+		{"(((2+(1))))", te_traits::explicit_load_atom(2 + 1)},
+		{"3+2", te_traits::explicit_load_atom(3 + 2)},
 
-		{"3+2+4", te_traits::load_atom(3 + 2 + 4)},
-		{"(3+2)+4", te_traits::load_atom(3 + 2 + 4)},
-		{"3+(2+4)", te_traits::load_atom(3 + 2 + 4)},
-		{"(3+2+4)", te_traits::load_atom(3 + 2 + 4)},
+		{"3+2+4", te_traits::explicit_load_atom(3 + 2 + 4)},
+		{"(3+2)+4", te_traits::explicit_load_atom(3 + 2 + 4)},
+		{"3+(2+4)", te_traits::explicit_load_atom(3 + 2 + 4)},
+		{"(3+2+4)", te_traits::explicit_load_atom(3 + 2 + 4)},
 
-		{"3*2*4", te_traits::load_atom(3 * 2 * 4)},
-		{"(3*2)*4", te_traits::load_atom(3 * 2 * 4)},
-		{"3*(2*4)", te_traits::load_atom(3 * 2 * 4)},
-		{"(3*2*4)", te_traits::load_atom(3 * 2 * 4)},
+		{"3*2*4", te_traits::explicit_load_atom(3 * 2 * 4)},
+		{"(3*2)*4", te_traits::explicit_load_atom(3 * 2 * 4)},
+		{"3*(2*4)", te_traits::explicit_load_atom(3 * 2 * 4)},
+		{"(3*2*4)", te_traits::explicit_load_atom(3 * 2 * 4)},
 
-		{"3-2-4", te_traits::load_atom(3 - 2 - 4)},
-		{"(3-2)-4", te_traits::load_atom((3 - 2) - 4)},
-		{"3-(2-4)", te_traits::load_atom(3 - (2 - 4))},
-		{"(3-2-4)", te_traits::load_atom(3 - 2 - 4)},
+		{"3-2-4", te_traits::explicit_load_atom(3 - 2 - 4)},
+		{"(3-2)-4", te_traits::explicit_load_atom((3 - 2) - 4)},
+		{"3-(2-4)", te_traits::explicit_load_atom(3 - (2 - 4))},
+		{"(3-2-4)", te_traits::explicit_load_atom(3 - 2 - 4)},
 
-		{"3/2/4", te_traits::load_atom(3.0 / 2.0 / 4.0)},
-		{"(3/2)/4", te_traits::load_atom((3.0 / 2.0) / 4.0)},
-		{"3/(2/4)", te_traits::load_atom(3.0 / (2.0 / 4.0))},
-		{"(3/2/4)", te_traits::load_atom(3.0 / 2.0 / 4.0)},
+		{"3/2/4", te_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
+		{"(3/2)/4", te_traits::explicit_load_atom((3.0 / 2.0) / 4.0)},
+		{"3/(2/4)", te_traits::explicit_load_atom(3.0 / (2.0 / 4.0))},
+		{"(3/2/4)", te_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
 
-		{"(3*2/4)", te_traits::load_atom(3.0 * 2.0 / 4.0)},
-		{"(3/2*4)", te_traits::load_atom(3.0 / 2.0 * 4.0)},
-		{"3*(2/4)", te_traits::load_atom(3.0 * (2.0 / 4.0))},
+		{"(3*2/4)", te_traits::explicit_load_atom(3.0 * 2.0 / 4.0)},
+		{"(3/2*4)", te_traits::explicit_load_atom(3.0 / 2.0 * 4.0)},
+		{"3*(2/4)", te_traits::explicit_load_atom(3.0 * (2.0 / 4.0))},
 
-		{"asin sin .5", te_traits::load_atom(0.5)},
-		{"sin asin .5", te_traits::load_atom(0.5)},
-		{"ln exp .5", te_traits::load_atom(0.5)},
-		{"exp ln .5", te_traits::load_atom(0.5)},
+		{"asin sin .5", te_traits::explicit_load_atom(0.5)},
+		{"sin asin .5", te_traits::explicit_load_atom(0.5)},
+		{"ln exp .5", te_traits::explicit_load_atom(0.5)},
+		{"exp ln .5", te_traits::explicit_load_atom(0.5)},
 
-		{"asin sin-.5", te_traits::load_atom(-0.5)},
-		{"asin sin-0.5", te_traits::load_atom(-0.5)},
-		{"asin sin -0.5", te_traits::load_atom(-0.5)},
-		{"asin (sin -0.5)", te_traits::load_atom(-0.5)},
-		{"asin (sin (-0.5))", te_traits::load_atom(-0.5)},
-		{"asin sin (-0.5)", te_traits::load_atom(-0.5)},
-		{"(asin sin (-0.5))", te_traits::load_atom(-0.5)},
+		{"asin sin-.5", te_traits::explicit_load_atom(-0.5)},
+		{"asin sin-0.5", te_traits::explicit_load_atom(-0.5)},
+		{"asin sin -0.5", te_traits::explicit_load_atom(-0.5)},
+		{"asin (sin -0.5)", te_traits::explicit_load_atom(-0.5)},
+		{"asin (sin (-0.5))", te_traits::explicit_load_atom(-0.5)},
+		{"asin sin (-0.5)", te_traits::explicit_load_atom(-0.5)},
+		{"(asin sin (-0.5))", te_traits::explicit_load_atom(-0.5)},
 
-		{"log10 1000", te_traits::load_atom(3)},
-		{"log10 1e3", te_traits::load_atom(3)},
-		{"log10 1000", te_traits::load_atom(3)},
-		{"log10 1e3", te_traits::load_atom(3)},
-		{"log10(1000)", te_traits::load_atom(3)},
-		{"log10(1e3)", te_traits::load_atom(3)},
-		{"log10 1.0e3", te_traits::load_atom(3)},
-		{"10^5*5e-5", te_traits::load_atom(5)},
+		{"log10 1000", te_traits::explicit_load_atom(3)},
+		{"log10 1e3", te_traits::explicit_load_atom(3)},
+		{"log10 1000", te_traits::explicit_load_atom(3)},
+		{"log10 1e3", te_traits::explicit_load_atom(3)},
+		{"log10(1000)", te_traits::explicit_load_atom(3)},
+		{"log10(1e3)", te_traits::explicit_load_atom(3)},
+		{"log10 1.0e3", te_traits::explicit_load_atom(3)},
+		{"10^5*5e-5", te_traits::explicit_load_atom(5)},
 
 #ifdef TE_NAT_LOG
-		{"log 1000", te_traits::load_atom(6.9078)},
-		{"log e", te_traits::load_atom(1)},
-		{"log (e^10)", te_traits::load_atom(10)},
+		{"log 1000", te_traits::explicit_load_atom(6.9078)},
+		{"log e", te_traits::explicit_load_atom(1)},
+		{"log (e^10)", te_traits::explicit_load_atom(10)},
 #else
-		{"log 1000", te_traits::load_atom(3)},
+		{"log 1000", te_traits::explicit_load_atom(3)},
 #endif
 
-		{"ln (e^10)", te_traits::load_atom(10)},
-		{"100^.5+1", te_traits::load_atom(11)},
-		{"100 ^.5+1", te_traits::load_atom(11)},
-		{"100^+.5+1", te_traits::load_atom(11)},
-		{"100^--.5+1", te_traits::load_atom(11)},
+		{"ln (e^10)", te_traits::explicit_load_atom(10)},
+		{"100^.5+1", te_traits::explicit_load_atom(11)},
+		{"100 ^.5+1", te_traits::explicit_load_atom(11)},
+		{"100^+.5+1", te_traits::explicit_load_atom(11)},
+		{"100^--.5+1", te_traits::explicit_load_atom(11)},
 		{"100^---+-++---++-+-+-.5+1", 11},
 
-		{"100^-.5+1", te_traits::load_atom(1.1)},
-		{"100^---.5+1", te_traits::load_atom(1.1)},
-		{"100^+---.5+1", te_traits::load_atom(1.1)},
-		{"1e2^+---.5e0+1e0", te_traits::load_atom(1.1)},
-		{"--(1e2^(+(-(-(-.5e0))))+1e0)", te_traits::load_atom(1.1)},
+		{"100^-.5+1", te_traits::explicit_load_atom(1.1)},
+		{"100^---.5+1", te_traits::explicit_load_atom(1.1)},
+		{"100^+---.5+1", te_traits::explicit_load_atom(1.1)},
+		{"1e2^+---.5e0+1e0", te_traits::explicit_load_atom(1.1)},
+		{"--(1e2^(+(-(-(-.5e0))))+1e0)", te_traits::explicit_load_atom(1.1)},
 
-		{"sqrt 100 + 7", te_traits::load_atom(17)},
-		{"sqrt 100 * 7", te_traits::load_atom(70)},
-		{"sqrt (100 * 100)", te_traits::load_atom(100)},
+		{"sqrt 100 + 7", te_traits::explicit_load_atom(17)},
+		{"sqrt 100 * 7", te_traits::explicit_load_atom(70)},
+		{"sqrt (100 * 100)", te_traits::explicit_load_atom(100)},
 
-		{"1,2", te_traits::load_atom(2)},
-		{"1,2+1", te_traits::load_atom(3)},
-		{"1+1,2+2,2+1", te_traits::load_atom(3)},
-		{"1,2,3", te_traits::load_atom(3)},
-		{"(1,2),3", te_traits::load_atom(3)},
-		{"1,(2,3)", te_traits::load_atom(3)},
-		{"-(1,(2,3))", te_traits::load_atom(-3)},
+		{"1,2", te_traits::explicit_load_atom(2)},
+		{"1,2+1", te_traits::explicit_load_atom(3)},
+		{"1+1,2+2,2+1", te_traits::explicit_load_atom(3)},
+		{"1,2,3", te_traits::explicit_load_atom(3)},
+		{"(1,2),3", te_traits::explicit_load_atom(3)},
+		{"1,(2,3)", te_traits::explicit_load_atom(3)},
+		{"-(1,(2,3))", te_traits::explicit_load_atom(-3)},
 
-		{"2^2", te_traits::load_atom(4)},
-		{"pow(2,2)", te_traits::load_atom(4)},
+		{"2^2", te_traits::explicit_load_atom(4)},
+		{"pow(2,2)", te_traits::explicit_load_atom(4)},
 
-		{"atan2(1,1)", te_traits::load_atom(0.7854)},
-		{"atan2(1,2)", te_traits::load_atom(0.4636)},
-		{"atan2(2,1)", te_traits::load_atom(1.1071)},
-		{"atan2(3,4)", te_traits::load_atom(0.6435)},
-		{"atan2(3+3,4*2)", te_traits::load_atom(0.6435)},
-		{"atan2(3+3,(4*2))", te_traits::load_atom(0.6435)},
-		{"atan2((3+3),4*2)", te_traits::load_atom(0.6435)},
-		{"atan2((3+3),(4*2))", te_traits::load_atom(0.6435)},
+		{"atan2(1,1)", te_traits::explicit_load_atom(0.7854)},
+		{"atan2(1,2)", te_traits::explicit_load_atom(0.4636)},
+		{"atan2(2,1)", te_traits::explicit_load_atom(1.1071)},
+		{"atan2(3,4)", te_traits::explicit_load_atom(0.6435)},
+		{"atan2(3+3,4*2)", te_traits::explicit_load_atom(0.6435)},
+		{"atan2(3+3,(4*2))", te_traits::explicit_load_atom(0.6435)},
+		{"atan2((3+3),4*2)", te_traits::explicit_load_atom(0.6435)},
+		{"atan2((3+3),(4*2))", te_traits::explicit_load_atom(0.6435)},
 
 	};
 
@@ -169,19 +169,19 @@ void test_results()
 void test_syntax()
 {
 	test_case errors[] = {
-		{"", te_traits::load_atom(1)},
-		{"1+", te_traits::load_atom(2)},
-		{"1)", te_traits::load_atom(2)},
-		{"(1", te_traits::load_atom(2)},
-		{"1**1", te_traits::load_atom(3)},
-		{"1*2(+4", te_traits::load_atom(4)},
-		{"1*2(1+4", te_traits::load_atom(4)},
-		{"a+5", te_traits::load_atom(1)},
-		{"A+5", te_traits::load_atom(1)},
-		{"Aa+5", te_traits::load_atom(1)},
-		{"1^^5", te_traits::load_atom(3)},
-		{"1**5", te_traits::load_atom(3)},
-		{"sin(cos5", te_traits::load_atom(8)},
+		{"", te_traits::explicit_load_atom(1)},
+		{"1+", te_traits::explicit_load_atom(2)},
+		{"1)", te_traits::explicit_load_atom(2)},
+		{"(1", te_traits::explicit_load_atom(2)},
+		{"1**1", te_traits::explicit_load_atom(3)},
+		{"1*2(+4", te_traits::explicit_load_atom(4)},
+		{"1*2(1+4", te_traits::explicit_load_atom(4)},
+		{"a+5", te_traits::explicit_load_atom(1)},
+		{"A+5", te_traits::explicit_load_atom(1)},
+		{"Aa+5", te_traits::explicit_load_atom(1)},
+		{"1^^5", te_traits::explicit_load_atom(3)},
+		{"1**5", te_traits::explicit_load_atom(3)},
+		{"sin(cos5", te_traits::explicit_load_atom(8)},
 	};
 
 	int i;
@@ -364,29 +364,29 @@ void test_functions()
 
 	for (x = te_traits::t_atom(-5); x < te_traits::t_atom(5); x += te_traits::t_atom(.2))
 	{
-		cross_check("abs x", te_traits::load_atom(fabs(x)));
-		cross_check("acos x", te_traits::load_atom(acos(x)));
-		cross_check("asin x", te_traits::load_atom(asin(x)));
-		cross_check("atan x", te_traits::load_atom(atan(x)));
-		cross_check("ceil x", te_traits::load_atom(ceil(x)));
-		cross_check("cos x", te_traits::load_atom(cos(x)));
-		cross_check("cosh x", te_traits::load_atom(cosh(x)));
-		cross_check("exp x", te_traits::load_atom(exp(x)));
-		cross_check("floor x", te_traits::load_atom(floor(x)));
-		cross_check("ln x", te_traits::load_atom(log(x)));
-		cross_check("log10 x", te_traits::load_atom(log10(x)));
-		cross_check("sin x", te_traits::load_atom(sin(x)));
-		cross_check("sinh x", te_traits::load_atom(sinh(x)));
-		cross_check("sqrt x", te_traits::load_atom(sqrt(x)));
-		cross_check("tan x", te_traits::load_atom(tan(x)));
-		cross_check("tanh x", te_traits::load_atom(tanh(x)));
+		cross_check("abs x", te_traits::explicit_load_atom(fabs(x)));
+		cross_check("acos x", te_traits::explicit_load_atom(acos(x)));
+		cross_check("asin x", te_traits::explicit_load_atom(asin(x)));
+		cross_check("atan x", te_traits::explicit_load_atom(atan(x)));
+		cross_check("ceil x", te_traits::explicit_load_atom(ceil(x)));
+		cross_check("cos x", te_traits::explicit_load_atom(cos(x)));
+		cross_check("cosh x", te_traits::explicit_load_atom(cosh(x)));
+		cross_check("exp x", te_traits::explicit_load_atom(exp(x)));
+		cross_check("floor x", te_traits::explicit_load_atom(floor(x)));
+		cross_check("ln x", te_traits::explicit_load_atom(log(x)));
+		cross_check("log10 x", te_traits::explicit_load_atom(log10(x)));
+		cross_check("sin x", te_traits::explicit_load_atom(sin(x)));
+		cross_check("sinh x", te_traits::explicit_load_atom(sinh(x)));
+		cross_check("sqrt x", te_traits::explicit_load_atom(sqrt(x)));
+		cross_check("tan x", te_traits::explicit_load_atom(tan(x)));
+		cross_check("tanh x", te_traits::explicit_load_atom(tanh(x)));
 
 		for (y = te_traits::t_atom(-2); y < te_traits::t_atom(2); y += te_traits::t_atom(.2))
 		{
 			if (fabs(x) < 0.01)
 				break;
-			cross_check("atan2(x,y)", te_traits::load_atom(atan2(x, y)));
-			cross_check("pow(x,y)", te_traits::load_atom(pow(x, y)));
+			cross_check("atan2(x,y)", te_traits::explicit_load_atom(atan2(x, y)));
+			cross_check("pow(x,y)", te_traits::explicit_load_atom(pow(x, y)));
 		}
 	}
 }
@@ -579,10 +579,10 @@ void test_closure()
 void test_optimize()
 {
 	test_case cases[] = {
-		{"5+5", te_traits::load_atom(10)},
-		{"pow(2,2)", te_traits::load_atom(4)},
-		{"sqrt 100", te_traits::load_atom(10)},
-		{"pi * 2", te_traits::load_atom(6.2832)},
+		{"5+5", te_traits::explicit_load_atom(10)},
+		{"pow(2,2)", te_traits::explicit_load_atom(4)},
+		{"sqrt 100", te_traits::explicit_load_atom(10)},
+		{"pi * 2", te_traits::explicit_load_atom(6.2832)},
 	};
 
 	int i;

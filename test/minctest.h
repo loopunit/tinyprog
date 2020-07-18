@@ -109,9 +109,10 @@ static int lfails = 0;
 /* Assert two integers are equal. */
 #define lequal(a, b) do {\
     ++ltests;\
-    if ((a) != (b)) {\
+    if ((a) != te_traits::explicit_store_int(b))                                                                   \
+		{\
         ++lfails;\
-        printf("%s:%d (%d != %d)\n", __FILE__, __LINE__, (a), (b));\
+        printf("%s:%d (%d != %d)\n", __FILE__, __LINE__, (a), te_traits::explicit_store_int(b));\
     }} while (0)
 
 

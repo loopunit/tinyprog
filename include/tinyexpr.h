@@ -321,7 +321,7 @@ namespace te_native_builtins
 
 		static float te_nan()
 		{
-			return std::numeric_limits<double>::quiet_NaN();
+			return std::numeric_limits<float>::quiet_NaN();
 		}
 	};
 
@@ -372,7 +372,7 @@ namespace te_native_builtins
 				result *= un - ur + i;
 				result /= i;
 			}
-			return result;
+			return (float)result;
 		}
 
 		static float te_npr(float n, float r)
@@ -558,12 +558,12 @@ namespace te_native_builtins
 
 		static float te_negate_logical_not(float a)
 		{
-			return -(a == 0.0f);
+			return (float)-(a == 0.0f);
 		}
 
 		static float te_negate_logical_notnot(float a)
 		{
-			return -(a != 0.0f);
+			return (float)-(a != 0.0f);
 		}
 
 		static float te_nul()
@@ -886,14 +886,24 @@ struct te_traits
 		return a;
 	}
 
-	static inline t_vector load_atom(double a) noexcept
+	static inline t_vector explicit_load_atom(double a) noexcept
 	{
 		return (t_vector)a;
 	}
 
-	static inline t_vector load_atom(int a) noexcept
+	static inline t_vector explicit_load_atom(int a) noexcept
 	{
 		return (t_vector)a;
+	}
+
+	static inline double explicit_store_double(t_vector a) 
+	{
+		return (double)a;
+	}
+
+	static inline int explicit_store_int(t_vector a) 
+	{
+		return (int)a;
 	}
 };
 
