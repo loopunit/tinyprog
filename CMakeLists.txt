@@ -53,17 +53,15 @@ include(${vcpkg_ez_SOURCE_DIR}/vcpkg_ez.cmake)
 option(TE_POW_FROM_RIGHT "Evaluate exponents from right to left." OFF)
 option(TE_NAT_LOG "Define the log function as natural logarithm." OFF)
 
-vcpkg_static_library(${PROJECT_NAME}
-	SOURCES
-		src/tinyexpr.cpp
-	HEADERS
+vcpkg_interface_library(${PROJECT_NAME}
+	INTERFACE_HEADERS
 		include/tinyexpr.h
-	PUBLIC_INCLUDES
+	INTERFACE_INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 target_compile_definitions(${PROJECT_NAME}
-	PUBLIC
+	INTERFACE
 		$<IF:$<BOOL:${TE_POW_FROM_RIGHT}>,"TE_POW_FROM_RIGHT",>
 		$<IF:$<BOOL:${TE_NAT_LOG}>,"TE_NAT_LOG",>
 )

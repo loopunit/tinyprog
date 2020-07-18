@@ -1,3 +1,4 @@
+#define TE_IMPLEMENT 1
 #include "tinyexpr.h"
 #include <stdio.h>
 

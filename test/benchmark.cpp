@@ -25,6 +25,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
+
+#define TE_IMPLEMENT 1
 #include "tinyexpr.h"
 
 #define loops 10000
