@@ -29,13 +29,13 @@
 
 #define loops 10000
 
-typedef double (*function1)(double);
+typedef te_traits::t_atom (*function1)(te_traits::t_atom);
 
 void bench(const char* expr, function1 func)
 {
 	int				i, j;
-	volatile double d;
-	double			tmp;
+	volatile te_traits::t_atom d;
+	te_traits::t_atom		   tmp;
 	clock_t			start;
 
 	te_variable lk = {"a", &tmp};
@@ -48,7 +48,7 @@ void bench(const char* expr, function1 func)
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = i;
+			tmp = (te_traits::t_atom)i;
 			d += func(tmp);
 		}
 	const int nelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
@@ -67,7 +67,7 @@ void bench(const char* expr, function1 func)
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = i;
+			tmp = (te_traits::t_atom)i;
 			d += te_eval(n);
 		}
 	const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
@@ -80,32 +80,33 @@ void bench(const char* expr, function1 func)
 	else
 		printf("\tinf\n");
 
-	printf("%.2f%% longer\n", (((double)eelapsed / nelapsed) - 1.0) * 100.0);
+	printf("%.2f%% longer\n", (((te_traits::t_atom)eelapsed / nelapsed) - 1.0) * 100.0);
 
 	printf("\n");
 }
 
-double a5(double a)
+te_traits::t_atom a5(te_traits::t_atom a)
 {
 	return a + 5;
 }
 
-double a52(double a)
+te_traits::t_atom a52(te_traits::t_atom a)
 {
 	return (a + 5) * 2;
 }
 
-double a10(double a)
+te_traits::t_atom a10(te_traits::t_atom a)
 {
 	return a + (5 * 2);
 }
 
-double as(double a)
+te_traits::t_atom as(te_traits::t_atom a)
 {
-	return sqrt(pow(a, 1.5) + pow(a, 2.5));
+	return te_traits::t_vector_builtins::te_sqrt(
+		te_traits::t_vector_builtins::te_pow(a, 1.5) + te_traits::t_vector_builtins::te_pow(a, 2.5));
 }
 
-double al(double a)
+te_traits::t_atom al(te_traits::t_atom a)
 {
 	return (1 / (a + 1) + 2 / (a + 2) + 3 / (a + 3));
 }
