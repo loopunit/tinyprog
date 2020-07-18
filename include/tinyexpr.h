@@ -68,139 +68,8 @@ struct te_variable
 	void*		context;
 };
 
-template<typename T_TRAITS>
-struct te_expr_portable
+namespace te_native_builtins
 {
-	using t_traits = T_TRAITS;
-	using t_atom   = typename T_TRAITS::t_atom;
-
-	int type;
-	union
-	{
-		t_atom value;
-		size_t bound;
-		size_t function;
-	};
-	size_t parameters[1];
-};
-
-template<typename T>
-inline T te_type_mask(const T t) noexcept
-{
-	return ((t)&0x0000001F);
-}
-
-template<typename T>
-inline T te_arity(const T t) noexcept
-{
-	return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
-}
-
-namespace details
-{
-	template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
-	static inline auto te_eval_portable_impl(const te_expr_portable<T_TRAITS>* n_portable,
-		const unsigned char*												   expr_buffer,
-		const void* const expr_context[]) noexcept -> typename T_VECTOR
-	{
-		using t_atom	 = T_ATOM;
-		using t_vector	 = T_VECTOR;
-		using t_traits	 = T_TRAITS;
-		using t_builtins = typename T_TRAITS::t_vector_builtins;
-
-#define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
-
-#define M(e)                                                                                                           \
-	te_eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(                                                                 \
-		(const te_expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
-
-		switch (te_type_mask(n_portable->type))
-		{
-		case TE_CONSTANT:
-			return t_traits::load_atom(n_portable->value);
-
-		case TE_VARIABLE:
-			return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound]))
-																 : t_builtins::te_nan());
-
-		case TE_FUNCTION0:
-		case TE_FUNCTION1:
-		case TE_FUNCTION2:
-		case TE_FUNCTION3:
-		case TE_FUNCTION4:
-		case TE_FUNCTION5:
-		case TE_FUNCTION6:
-		case TE_FUNCTION7:
-		{
-			switch (te_arity(n_portable->type))
-			{
-			case 0:
-				return TE_FUN(void)();
-			case 1:
-				return TE_FUN(t_vector)(M(0));
-			case 2:
-				return TE_FUN(t_vector, t_vector)(M(0), M(1));
-			case 3:
-				return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
-			case 4:
-				return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
-			case 5:
-				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
-			case 6:
-				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-					M(0), M(1), M(2), M(3), M(4), M(5));
-			case 7:
-				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-			default:
-				return t_builtins::te_nan();
-			}
-		}
-
-		case TE_CLOSURE0:
-		case TE_CLOSURE1:
-		case TE_CLOSURE2:
-		case TE_CLOSURE3:
-		case TE_CLOSURE4:
-		case TE_CLOSURE5:
-		case TE_CLOSURE6:
-		case TE_CLOSURE7:
-		{
-			auto arity_params = (void*)expr_context[n_portable->parameters[te_arity(n_portable->type)]];
-
-			switch (te_arity(n_portable->type))
-			{
-			case 0:
-				return TE_FUN(void*)(arity_params);
-			case 1:
-				return TE_FUN(void*, t_vector)(arity_params, M(0));
-			case 2:
-				return TE_FUN(void*, t_vector, t_vector)(arity_params, M(0), M(1));
-			case 3:
-				return TE_FUN(void*, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2));
-			case 4:
-				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2), M(3));
-			case 5:
-				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-					arity_params, M(0), M(1), M(2), M(3), M(4));
-			case 6:
-				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-					arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
-			case 7:
-				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-			default:
-				return t_builtins::te_nan();
-			}
-		}
-
-		default:
-			return t_builtins::te_nan();
-		}
-#undef TE_FUN
-#undef M
-	}
-
 	template<typename T_ATOM>
 	struct te_native_builtins_impl;
 
@@ -870,13 +739,147 @@ namespace details
 	};
 } // namespace details
 
+template<typename T_TRAITS>
+struct te_expr_portable
+{
+	using t_traits = T_TRAITS;
+	using t_atom   = typename T_TRAITS::t_atom;
+
+	int type;
+	union
+	{
+		t_atom value;
+		size_t bound;
+		size_t function;
+	};
+	size_t parameters[1];
+};
+
+namespace te_eval_details
+{
+	template<typename T>
+	inline T te_type_mask(const T t) noexcept
+	{
+		return ((t)&0x0000001F);
+	}
+
+	template<typename T>
+	inline T te_arity(const T t) noexcept
+	{
+		return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
+	}
+
+	template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
+	static inline auto te_eval_portable_impl(const te_expr_portable<T_TRAITS>* n_portable,
+		const unsigned char*												   expr_buffer,
+		const void* const expr_context[]) noexcept -> typename T_VECTOR
+	{
+		using t_atom	 = T_ATOM;
+		using t_vector	 = T_VECTOR;
+		using t_traits	 = T_TRAITS;
+		using t_builtins = typename T_TRAITS::t_vector_builtins;
+
+#define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
+
+#define M(e)                                                                                                           \
+	te_eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(                                                                 \
+		(const te_expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
+
+		switch (te_type_mask(n_portable->type))
+		{
+		case TE_CONSTANT:
+			return t_traits::load_atom(n_portable->value);
+
+		case TE_VARIABLE:
+			return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound]))
+																 : t_builtins::te_nan());
+
+		case TE_FUNCTION0:
+		case TE_FUNCTION1:
+		case TE_FUNCTION2:
+		case TE_FUNCTION3:
+		case TE_FUNCTION4:
+		case TE_FUNCTION5:
+		case TE_FUNCTION6:
+		case TE_FUNCTION7:
+		{
+			switch (te_arity(n_portable->type))
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(t_vector)(M(0));
+			case 2:
+				return TE_FUN(t_vector, t_vector)(M(0), M(1));
+			case 3:
+				return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return t_builtins::te_nan();
+			}
+		}
+
+		case TE_CLOSURE0:
+		case TE_CLOSURE1:
+		case TE_CLOSURE2:
+		case TE_CLOSURE3:
+		case TE_CLOSURE4:
+		case TE_CLOSURE5:
+		case TE_CLOSURE6:
+		case TE_CLOSURE7:
+		{
+			auto arity_params = (void*)expr_context[n_portable->parameters[te_arity(n_portable->type)]];
+
+			switch (te_arity(n_portable->type))
+			{
+			case 0:
+				return TE_FUN(void*)(arity_params);
+			case 1:
+				return TE_FUN(void*, t_vector)(arity_params, M(0));
+			case 2:
+				return TE_FUN(void*, t_vector, t_vector)(arity_params, M(0), M(1));
+			case 3:
+				return TE_FUN(void*, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2));
+			case 4:
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2), M(3));
+			case 5:
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					arity_params, M(0), M(1), M(2), M(3), M(4));
+			case 6:
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
+			case 7:
+				return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+					arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
+			default:
+				return t_builtins::te_nan();
+			}
+		}
+
+		default:
+			return t_builtins::te_nan();
+		}
+#undef TE_FUN
+#undef M
+	}
+}
+
 struct te_traits
 {
 	using t_atom			= float;
 	using t_vector			= float;
 	using t_vector_int		= int;
-	using t_atom_builtins	= details::te_native_builtins_impl<t_atom>;
-	using t_vector_builtins = details::te_native_builtins_impl<t_vector>;
+	using t_atom_builtins	= te_native_builtins::te_native_builtins_impl<t_atom>;
+	using t_vector_builtins = te_native_builtins::te_native_builtins_impl<t_vector>;
 
 	static inline t_vector load_atom(t_atom a) noexcept
 	{
@@ -896,7 +899,7 @@ struct te_traits
 
 inline te_traits::t_vector te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 {
-	return details::te_eval_portable_impl<te_traits, te_traits::t_atom, te_traits::t_vector>(
+	return te_eval_details::te_eval_portable_impl<te_traits, te_traits::t_atom, te_traits::t_vector>(
 		(const te_expr_portable<te_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
 }
 
@@ -931,16 +934,16 @@ inline te_traits::t_vector te_interp(const char* expression, int* error)
 	return ret;
 }
 
-struct te_program
-{
-	virtual void bind_variables(const te_variable* variables, int var_count) = 0;
-	virtual bool compile_statement(const char* statement, int* error)		 = 0;
-
-	virtual const void* const*	 get_binding_addresses()				 = 0;
-	virtual const char* const*	 get_binding_names()					 = 0;
-	virtual size_t				 get_data_size(const te_compiled_expr n) = 0;
-	virtual const unsigned char* get_data(const te_compiled_expr n)		 = 0;
-};
+//struct te_program
+//{
+//	virtual void bind_variables(const te_variable* variables, int var_count) = 0;
+//	virtual bool compile_statement(const char* statement, int* error)		 = 0;
+//
+//	virtual const void* const*	 get_binding_addresses()				 = 0;
+//	virtual const char* const*	 get_binding_names()					 = 0;
+//	virtual size_t				 get_data_size(const te_compiled_expr n) = 0;
+//	virtual const unsigned char* get_data(const te_compiled_expr n)		 = 0;
+//};
 
 #endif // #if (TE_COMPILER_ENABLED)
 

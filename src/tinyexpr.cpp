@@ -50,9 +50,9 @@ For log = natural log uncomment the next line. */
 
 #if (TE_COMPILER_ENABLED)
 template<typename T_IMPL>
-struct te_compiler_builtins : details::te_native_builtins<T_IMPL>
+struct te_compiler_builtins : te_native_builtins::te_native_builtins<T_IMPL>
 {
-	using t_impl = details::te_native_builtins<T_IMPL>;
+	using t_impl = te_native_builtins::te_native_builtins<T_IMPL>;
 
 	static inline const te_variable* find_function_by_addr(const void* addr)
 	{
@@ -160,7 +160,7 @@ struct te_native
 
 	static te_expr_native* new_expr(const int type, const te_expr_native* parameters[])
 	{
-		const int arity		= te_arity(type);
+		const int		arity	  = te_eval_details::te_arity(type);
 		const int psize		= sizeof(void*) * arity;
 		const int size		= (sizeof(te_expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
 		te_expr_native* ret = (te_expr_native*)malloc(size);
@@ -178,7 +178,7 @@ struct te_native
 	{
 		if (!n)
 			return;
-		switch (te_type_mask(n->type))
+		switch (te_eval_details::te_type_mask(n->type))
 		{
 		case TE_FUNCTION7:
 		case TE_CLOSURE7:
@@ -273,7 +273,7 @@ struct te_native
 					}
 					else
 					{
-						switch (te_type_mask(var->type))
+						switch (te_eval_details::te_type_mask(var->type))
 						{
 						case TE_VARIABLE:
 							s->type	 = TOK_VARIABLE;
@@ -435,7 +435,7 @@ struct te_native
 		te_expr_native* ret;
 		int				arity;
 
-		switch (te_type_mask(s->type))
+		switch (te_eval_details::te_type_mask(s->type))
 		{
 		case TOK_NUMBER:
 			ret		   = new_expr(TE_CONSTANT, 0);
@@ -492,7 +492,7 @@ struct te_native
 		case TE_CLOSURE5:
 		case TE_CLOSURE6:
 		case TE_CLOSURE7:
-			arity = te_arity(s->type);
+			arity = te_eval_details::te_arity(s->type);
 
 			ret			  = new_expr(s->type, 0);
 			ret->function = s->function;
@@ -788,7 +788,7 @@ struct te_native
 		if (!n)
 			return t_builtins::te_nan();
 
-		switch (te_type_mask(n->type))
+		switch (te_eval_details::te_type_mask(n->type))
 		{
 		case TE_CONSTANT:
 			return n->value;
@@ -803,7 +803,7 @@ struct te_native
 		case TE_FUNCTION5:
 		case TE_FUNCTION6:
 		case TE_FUNCTION7:
-			switch (te_arity(n->type))
+			switch (te_eval_details::te_arity(n->type))
 			{
 			case 0:
 				return TE_FUN(void)();
@@ -835,7 +835,7 @@ struct te_native
 		case TE_CLOSURE5:
 		case TE_CLOSURE6:
 		case TE_CLOSURE7:
-			switch (te_arity(n->type))
+			switch (te_eval_details::te_arity(n->type))
 			{
 			case 0:
 				return TE_FUN(void*)(n->parameters[0]);
@@ -879,7 +879,7 @@ struct te_native
 		/* Only optimize out functions flagged as pure. */
 		if (IS_PURE(n->type))
 		{
-			const int arity = te_arity(n->type);
+			const int arity = te_eval_details::te_arity(n->type);
 			int		  known = 1;
 			int		  i;
 			for (i = 0; i < arity; ++i)
@@ -1122,7 +1122,7 @@ struct te_portable
 			return false;
 		};
 
-		switch (te_type_mask(n->type))
+		switch (te_eval_details::te_type_mask(n->type))
 		{
 		case TE_CONSTANT:
 		{
@@ -1147,9 +1147,9 @@ struct te_portable
 		{
 			auto res = handle_addr(te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 			assert(res);
-			export_size += sizeof(n->parameters[0]) * (te_arity(n->type));
+			export_size += sizeof(n->parameters[0]) * (te_eval_details::te_arity(n->type));
 
-			for (int i = 0; i < te_arity(n->type); ++i)
+			for (int i = 0; i < te_eval_details::te_arity(n->type); ++i)
 			{
 				M(i);
 			}
@@ -1168,9 +1168,9 @@ struct te_portable
 			auto res = handle_addr(te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 			assert(res);
 
-			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
+			export_size += sizeof(n->parameters[0]) * te_eval_details::te_arity(n->type);
 
-			for (int i = 0; i < te_arity(n->type); ++i)
+			for (int i = 0; i < te_eval_details::te_arity(n->type); ++i)
 			{
 				M(i);
 			}
@@ -1201,7 +1201,7 @@ struct te_portable
 
 		export_size += sizeof(te_expr_native);
 		n_out->type = n->type;
-		switch (te_type_mask(n->type))
+		switch (te_eval_details::te_type_mask(n->type))
 		{
 		case TE_CONSTANT:
 		{
@@ -1227,9 +1227,9 @@ struct te_portable
 			register_func(
 				n->function, n_out, te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
-			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
+			export_size += sizeof(n->parameters[0]) * te_eval_details::te_arity(n->type);
 
-			for (int i = 0; i < te_arity(n->type); ++i)
+			for (int i = 0; i < te_eval_details::te_arity(n->type); ++i)
 			{
 				n_out->parameters[i] = export_size;
 				M(i);
@@ -1249,9 +1249,9 @@ struct te_portable
 			register_func(
 				n->function, n_out, te_native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
-			export_size += sizeof(n->parameters[0]) * te_arity(n->type);
+			export_size += sizeof(n->parameters[0]) * te_eval_details::te_arity(n->type);
 
-			for (int i = 0; i < te_arity(n->type); ++i)
+			for (int i = 0; i < te_eval_details::te_arity(n->type); ++i)
 			{
 				n_out->parameters[i] = export_size;
 				M(i);
@@ -1430,7 +1430,7 @@ namespace details
 					{
 						auto itor2 = expr->m_indexer.index_map.find(v->context);
 						assert(itor2 != expr->m_indexer.index_map.end());
-						out->parameters[te_arity(v->type)] = itor2->second;
+						out->parameters[te_eval_details::te_arity(v->type)] = itor2->second;
 					}
 				});
 
