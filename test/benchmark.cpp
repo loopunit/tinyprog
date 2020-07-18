@@ -73,7 +73,7 @@ void bench(const char* expr, function1 func)
 			d += eval(n);
 		}
 	const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
-	te_free(n);
+	delete n;
 
 	/*Million floats per second input.*/
 	printf(" %.5g", d);

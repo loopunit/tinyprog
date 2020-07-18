@@ -246,7 +246,7 @@ void test_nans()
 		lequal(err, 0);
 		const env_traits::t_vector c = eval(n);
 		lok(c != c);
-		te_free(n);
+		delete n;
 	}
 }
 
@@ -282,7 +282,7 @@ void test_infs()
 		lequal(err, 0);
 		const env_traits::t_vector c = eval(n);
 		lok(c == c + 1);
-		te_free(n);
+		delete n;
 	}
 }
 
@@ -332,10 +332,10 @@ void test_variables()
 		}
 	}
 
-	te_free(expr1);
-	te_free(expr2);
-	te_free(expr3);
-	te_free(expr4);
+	delete expr1;
+	delete expr2;
+	delete expr3;
+	delete expr4;
 
 	auto expr5 = compile("xx*y^3", lookup, 2, &err);
 	lok(!expr5);
@@ -362,7 +362,7 @@ void test_variables()
 		auto expr = compile((a), lookup, 2, &err);                                                                     \
 		lfequal(eval(expr), (b));                                                                                      \
 		lok(!err);                                                                                                     \
-		te_free(expr);                                                                                                 \
+		delete expr;                                                                                                 \
 	} while (0)
 
 void test_functions()
@@ -508,7 +508,7 @@ void test_dynamic()
 		auto ex = compile(expr, lookup, sizeof(lookup) / sizeof(variable), &err);
 		lok(ex);
 		lfequal(eval(ex), answer);
-		te_free(ex);
+		delete ex;
 	}
 }
 
@@ -573,7 +573,7 @@ void test_closure()
 		extra = 10;
 		lfequal(eval(ex), answer + extra);
 
-		te_free(ex);
+		delete ex;
 	}
 
 	test_case cases2[] = {
@@ -592,7 +592,7 @@ void test_closure()
 		auto ex = compile(expr, lookup, sizeof(lookup) / sizeof(variable), &err);
 		lok(ex);
 		lfequal(eval(ex), answer);
-		te_free(ex);
+		delete ex;
 	}
 }
 
@@ -622,7 +622,7 @@ void test_optimize()
 		// lfequal(ex->value, answer); // TODO
 		lfequal(eval(ex), answer);
 
-		te_free(ex);
+		delete ex;
 	}
 }
 
@@ -674,8 +674,8 @@ void test_pow()
 		fflush(stdout);
 		lfequal(r1, r2);
 
-		te_free(ex1);
-		te_free(ex2);
+		delete ex1;
+		delete ex2;
 	}
 }
 

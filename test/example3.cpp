@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 	{
 		const env_traits::t_atom r = eval(n);
 		printf("Result:\n\t%f\n", r);
-		te_free(n);
+		delete n;
 	}
 	else
 	{
