@@ -29,16 +29,18 @@
 
 #define loops 10000
 
-typedef te_traits::t_atom (*function1)(te_traits::t_atom);
+typedef te::env_traits::t_atom (*function1)(te::env_traits::t_atom);
 
 void bench(const char* expr, function1 func)
 {
+	using namespace te;
+
 	int				i, j;
-	volatile te_traits::t_atom d;
-	te_traits::t_atom		   tmp;
+	volatile env_traits::t_atom d;
+	env_traits::t_atom			tmp;
 	clock_t			start;
 
-	te_variable lk = {"a", &tmp};
+	variable lk = {"a", &tmp};
 
 	printf("Expression: %s\n", expr);
 
@@ -48,7 +50,7 @@ void bench(const char* expr, function1 func)
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = (te_traits::t_atom)i;
+			tmp = (env_traits::t_atom)i;
 			d += func(tmp);
 		}
 	const int nelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
@@ -61,14 +63,14 @@ void bench(const char* expr, function1 func)
 		printf("\tinf\n");
 
 	printf("interp ");
-	auto n = te_compile(expr, &lk, 1, 0);
+	auto n	= compile(expr, &lk, 1, 0);
 	start	= clock();
 	d		= 0;
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = (te_traits::t_atom)i;
-			d += te_eval(n);
+			tmp = (env_traits::t_atom)i;
+			d += eval(n);
 		}
 	const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
 	te_free(n);
@@ -80,33 +82,33 @@ void bench(const char* expr, function1 func)
 	else
 		printf("\tinf\n");
 
-	printf("%.2f%% longer\n", (((te_traits::t_atom)eelapsed / nelapsed) - 1.0) * 100.0);
+	printf("%.2f%% longer\n", (((env_traits::t_atom)eelapsed / nelapsed) - 1.0) * 100.0);
 
 	printf("\n");
 }
 
-te_traits::t_atom a5(te_traits::t_atom a)
+te::env_traits::t_atom a5(te::env_traits::t_atom a)
 {
 	return a + 5;
 }
 
-te_traits::t_atom a52(te_traits::t_atom a)
+te::env_traits::t_atom a52(te::env_traits::t_atom a)
 {
 	return (a + 5) * 2;
 }
 
-te_traits::t_atom a10(te_traits::t_atom a)
+te::env_traits::t_atom a10(te::env_traits::t_atom a)
 {
 	return a + (5 * 2);
 }
 
-te_traits::t_atom as(te_traits::t_atom a)
+te::env_traits::t_atom as(te::env_traits::t_atom a)
 {
-	return te_traits::t_vector_builtins::te_sqrt(
-		te_traits::t_vector_builtins::te_pow(a, 1.5) + te_traits::t_vector_builtins::te_pow(a, 2.5));
+	return te::env_traits::t_vector_builtins::sqrt(
+		te::env_traits::t_vector_builtins::pow(a, 1.5) + te::env_traits::t_vector_builtins::pow(a, 2.5));
 }
 
-te_traits::t_atom al(te_traits::t_atom a)
+te::env_traits::t_atom al(te::env_traits::t_atom a)
 {
 	return (1 / (a + 1) + 2 / (a + 2) + 3 / (a + 3));
 }
