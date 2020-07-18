@@ -115,10 +115,6 @@ namespace te
 			void* parameters[1];
 		};
 
-#	ifndef INFINITY
-#		define INFINITY (1.0 / 0.0)
-#	endif
-
 		typedef t_vector (*te_fun2)(t_vector, t_vector);
 
 		enum
@@ -156,15 +152,15 @@ namespace te
 #	define IS_CLOSURE(TYPE)  (((TYPE)&TE_CLOSURE0) != 0)
 #	define NEW_EXPR(type, ...)                                                                                        \
 		[&]() {                                                                                                        \
-			const expr_native* _args[] = {__VA_ARGS__};                                                             \
+			const expr_native* _args[] = {__VA_ARGS__};                                                                \
 			return new_expr((type), _args);                                                                            \
 		}()
 
 		static expr_native* new_expr(const int type, const expr_native* parameters[])
 		{
-			const int arity = eval_details::arity(type);
-			const int psize = sizeof(void*) * arity;
-			const int size	= (sizeof(expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+			const int	 arity = eval_details::arity(type);
+			const int	 psize = sizeof(void*) * arity;
+			const int	 size  = (sizeof(expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
 			expr_native* ret   = (expr_native*)malloc(size);
 			memset(ret, 0, size);
 			if (arity && parameters)
@@ -435,7 +431,7 @@ namespace te
 			/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X>
 			 * "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
 			expr_native* ret;
-			int				arity;
+			int			 arity;
 
 			switch (eval_details::type_mask(s->type))
 			{
@@ -631,7 +627,7 @@ namespace te
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			const void*		left_function = NULL;
+			const void*	 left_function = NULL;
 			expr_native* insertion	   = 0;
 
 			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
@@ -641,7 +637,7 @@ namespace te
 					ret->function == t_builtins::find_builtin_address("negate_logical_not") ||
 					ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
 			{
-				left_function	   = ret->function;
+				left_function	= ret->function;
 				expr_native* se = ret->parameters[0];
 				free(ret);
 				ret = se;
@@ -656,7 +652,7 @@ namespace te
 				{
 					/* Make exponentiation go right-to-left. */
 					expr_native* insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
-					insert->function	   = t;
+					insert->function	= t;
 					insertion->parameters[1] = insert;
 					insertion				 = insert;
 				}
@@ -903,8 +899,7 @@ namespace te
 			}
 		}
 
-		static expr_native* compile_native(
-			const char* expression, const variable* variables, int var_count, int* error)
+		static expr_native* compile_native(const char* expression, const variable* variables, int var_count, int* error)
 		{
 			state s;
 			s.start = s.next = expression;
@@ -938,7 +933,7 @@ namespace te
 		static t_vector interp_native(const char* expression, int* error)
 		{
 			expr_native* n = compile_native(expression, 0, 0, error);
-			t_vector		ret;
+			t_vector	 ret;
 			if (n)
 			{
 				ret = eval_native(n);
@@ -1046,9 +1041,9 @@ namespace te
 	template<typename T_TRAITS>
 	struct portable
 	{
-		using t_traits		 = T_TRAITS;
-		using t_atom		 = typename T_TRAITS::t_atom;
-		using t_vector		 = typename T_TRAITS::t_vector;
+		using t_traits	  = T_TRAITS;
+		using t_atom	  = typename T_TRAITS::t_atom;
+		using t_vector	  = typename T_TRAITS::t_vector;
 		using expr_native = typename native<t_traits>::expr_native;
 
 		using name_map = std::unordered_map<const void*, std::string>;
@@ -1057,9 +1052,9 @@ namespace te
 
 		struct expr_portable_expression_build_indexer
 		{
-			name_map	 name_map;
+			name_map  name_map;
 			index_map index_map;
-			int			 index_counter = 0;
+			int		  index_counter = 0;
 		};
 
 		struct expr_portable_expression_build_bindings
@@ -1070,7 +1065,7 @@ namespace te
 			std::vector<const char*> index_to_name_c_str;
 		};
 
-		struct compiled_expr
+		struct compiled_expr : ::te::compiled_expr
 		{
 			expr_portable_expression_build_indexer	m_indexer;
 			expr_portable_expression_build_bindings m_bindings;
@@ -1079,22 +1074,16 @@ namespace te
 		};
 
 		static size_t export_estimate(const expr_native* n,
-			size_t&											   export_size,
-			const variable*									   lookup,
-			int												   lookup_len,
-			name_map&									   name_map,
-			index_map&									   index_map,
-			int&											   index_counter)
+			size_t&										 export_size,
+			const variable*								 lookup,
+			int											 lookup_len,
+			name_map&									 name_map,
+			index_map&									 index_map,
+			int&										 index_counter)
 		{
 #	define M(e)                                                                                                       \
-		export_estimate(                                                                                            \
-			(const expr_native*)n->parameters[e],                                                    \
-			export_size,                                                                                               \
-			lookup,                                                                                                    \
-			lookup_len,                                                                                                \
-			name_map,                                                                                                  \
-			index_map,                                                                                                 \
-			index_counter)
+		export_estimate(                                                                                               \
+			(const expr_native*)n->parameters[e], export_size, lookup, lookup_len, name_map, index_map, index_counter)
 
 			if (!n)
 				return export_size;
@@ -1188,15 +1177,14 @@ namespace te
 
 		template<typename T_REGISTER_FUNC>
 		static size_t export_write(const expr_native* n,
-			size_t&											export_size,
-			const variable*									lookup,
-			int												lookup_len,
-			const unsigned char*							out_buffer,
-			T_REGISTER_FUNC									register_func)
+			size_t&									  export_size,
+			const variable*							  lookup,
+			int										  lookup_len,
+			const unsigned char*					  out_buffer,
+			T_REGISTER_FUNC							  register_func)
 		{
 #	define M(e)                                                                                                       \
-		export_write(                                                                                               \
-			(const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
+		export_write((const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
 
 			if (!n)
 				return export_size;
@@ -1269,14 +1257,14 @@ namespace te
 		}
 
 		static t_vector eval_compare(const expr_native* n,
-			const expr_portable<t_traits>*				   n_portable,
-			const unsigned char*						   expr_buffer,
-			const void* const							   expr_context[])
+			const expr_portable<t_traits>*				n_portable,
+			const unsigned char*						expr_buffer,
+			const void* const							expr_context[])
 		{
 #	define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
 
 #	define M(e)                                                                                                       \
-		eval_compare((const expr_native*)n->parameters[e],                                                          \
+		eval_compare((const expr_native*)n->parameters[e],                                                             \
 			(const expr_portable*)&expr_buffer[n_portable->parameters[e]],                                             \
 			expr_buffer,                                                                                               \
 			expr_context)
@@ -1380,7 +1368,7 @@ namespace te
 	namespace details
 	{
 		template<typename T_TRAITS>
-		compiled_expr compile(const char* expression, const variable* variables, int var_count, int* error)
+		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
 		{
 			typename native<T_TRAITS>::expr_native* native_expr =
 				native<T_TRAITS>::compile_native(expression, variables, var_count, error);
@@ -1445,7 +1433,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		size_t get_binding_array_size(const compiled_expr _n)
+		size_t get_binding_array_size(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -1456,7 +1444,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		const void* const* get_binding_addresses(const compiled_expr _n)
+		const void* const* get_binding_addresses(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n && (n->m_bindings.index_to_address.size() > 0))
@@ -1467,7 +1455,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		const char* const* get_binding_names(const compiled_expr _n)
+		const char* const* get_binding_names(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -1478,7 +1466,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		size_t get_expr_data_size(const compiled_expr _n)
+		size_t get_expr_data_size(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -1489,7 +1477,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		const unsigned char* get_expr_data(const compiled_expr _n)
+		const unsigned char* get_expr_data(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -1498,51 +1486,36 @@ namespace te
 			}
 			return nullptr;
 		}
-
-		template<typename T_TRAITS>
-		void te_free(compiled_expr _n)
-		{
-			auto n = (typename portable<T_TRAITS>::compiled_expr*)_n;
-			if (n)
-			{
-				delete n;
-			}
-		}
 	} // namespace details
 
-	compiled_expr compile(const char* expression, const variable* variables, int var_count, int* error)
+	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
 	{
 		return details::compile<env_traits>(expression, variables, var_count, error);
 	}
 
-	size_t get_binding_array_size(const compiled_expr n)
+	size_t compiled_expr::get_binding_array_size() const
 	{
-		return details::get_binding_array_size<env_traits>(n);
+		return details::get_binding_array_size<env_traits>(this);
 	}
 
-	const void* const* get_binding_addresses(const compiled_expr n)
+	const void* const* compiled_expr::get_binding_addresses() const
 	{
-		return details::get_binding_addresses<env_traits>(n);
+		return details::get_binding_addresses<env_traits>(this);
 	}
 
-	const char* const* get_binding_names(const compiled_expr n)
+	const char* const* compiled_expr::get_binding_names() const
 	{
-		return details::get_binding_names<env_traits>(n);
+		return details::get_binding_names<env_traits>(this);
 	}
 
-	size_t get_expr_data_size(const compiled_expr n)
+	size_t compiled_expr::get_expr_data_size() const
 	{
-		return details::get_expr_data_size<env_traits>(n);
+		return details::get_expr_data_size<env_traits>(this);
 	}
 
-	const unsigned char* get_expr_data(const compiled_expr n)
+	const unsigned char* compiled_expr::get_expr_data() const
 	{
-		return details::get_expr_data<env_traits>(n);
-	}
-
-	void te_free(compiled_expr n)
-	{
-		details::te_free<env_traits>(n);
+		return details::get_expr_data<env_traits>(this);
 	}
 }
 

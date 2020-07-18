@@ -914,28 +914,32 @@ namespace te
 	}
 
 #if (TE_COMPILER_ENABLED)
-	using compiled_expr = void*;
-	compiled_expr		 compile(const char* expression, const variable* variables, int var_count, int* error);
-	size_t				 get_binding_array_size(const compiled_expr n);
-	const void* const*	 get_binding_addresses(const compiled_expr n);
-	const char* const*	 get_binding_names(const compiled_expr n);
-	size_t				 get_expr_data_size(const compiled_expr n);
-	const unsigned char* get_expr_data(const compiled_expr n);
-	void				 te_free(compiled_expr n);
-
-	inline env_traits::t_vector eval(const compiled_expr n)
+	struct compiled_expr
 	{
-		return eval(get_expr_data(n), get_binding_addresses(n));
+		virtual ~compiled_expr() = default;
+
+		size_t				 get_binding_array_size() const;
+		const void* const*	 get_binding_addresses() const;
+		const char* const*	 get_binding_names() const;
+		size_t				 get_expr_data_size() const;
+		const unsigned char* get_expr_data() const;
+	};
+
+	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error);
+
+	inline env_traits::t_vector eval(const compiled_expr* n)
+	{
+		return eval(n->get_expr_data(), n->get_binding_addresses());
 	}
 
 	inline env_traits::t_vector interp(const char* expression, int* error)
 	{
-		compiled_expr		 n = compile(expression, 0, 0, error);
+		compiled_expr*		 n = compile(expression, 0, 0, error);
 		env_traits::t_vector ret;
 		if (n)
 		{
 			ret = eval(n);
-			te_free(n);
+			delete n;
 		}
 		else
 		{
@@ -957,5 +961,7 @@ namespace te
 
 #endif // #if (TE_COMPILER_ENABLED)
 } // namespace te
+
+#define te_free(X) delete X
 
 #endif /*__TINYEXPR_H__*/
