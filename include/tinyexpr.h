@@ -202,8 +202,8 @@ namespace details
 
 struct te_traits
 {
-	using t_atom   = float;
-	using t_vector = float;
+	using t_atom	   = float;
+	using t_vector	   = float;
 	using t_vector_int = int;
 
 	static inline t_vector load_atom(t_atom a) noexcept
@@ -227,7 +227,7 @@ struct te_traits
 	}
 };
 
-inline te_traits::t_atom te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
+inline te_traits::t_vector te_eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 {
 	return details::te_eval_portable_impl<te_traits, te_traits::t_atom, te_traits::t_vector>(
 		(const te_expr_portable<te_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
@@ -235,7 +235,6 @@ inline te_traits::t_atom te_eval(const void* expr_buffer, const void* const expr
 
 #if (TE_COMPILER_ENABLED)
 using te_compiled_expr = void*;
-
 te_compiled_expr	 te_compile(const char* expression, const te_variable* variables, int var_count, int* error);
 size_t				 te_get_binding_array_size(const te_compiled_expr n);
 const void* const*	 te_get_binding_addresses(const te_compiled_expr n);
@@ -244,15 +243,15 @@ size_t				 te_get_expr_data_size(const te_compiled_expr n);
 const unsigned char* te_get_expr_data(const te_compiled_expr n);
 void				 te_free(te_compiled_expr n);
 
-inline te_traits::t_atom te_eval(const te_compiled_expr n)
+inline te_traits::t_vector te_eval(const te_compiled_expr n)
 {
 	return te_eval(te_get_expr_data(n), te_get_binding_addresses(n));
 }
 
-inline te_traits::t_atom te_interp(const char* expression, int* error)
+inline te_traits::t_vector te_interp(const char* expression, int* error)
 {
 	te_compiled_expr  n = te_compile(expression, 0, 0, error);
-	te_traits::t_atom ret;
+	te_traits::t_vector ret;
 	if (n)
 	{
 		ret = te_eval(n);
