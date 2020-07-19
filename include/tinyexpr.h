@@ -53,6 +53,7 @@ namespace te
 		TE_FUNCTION5,
 		TE_FUNCTION6,
 		TE_FUNCTION7,
+		TE_FUNCTION_MAX,
 
 		TE_CLOSURE0 = 16,
 		TE_CLOSURE1,
@@ -62,6 +63,7 @@ namespace te
 		TE_CLOSURE5,
 		TE_CLOSURE6,
 		TE_CLOSURE7,
+		TE_CLOSURE_MAX,
 
 		TE_FLAG_PURE = 32
 	};
@@ -795,13 +797,13 @@ namespace te
 			}
 			else if (t >= TE_FUNCTION0)
 			{
-				if (t <= TE_FUNCTION7)
+				if (t < TE_FUNCTION_MAX)
 				{
 					return handle_function(t - TE_FUNCTION0);
 				}
 				if (t >= TE_CLOSURE0)
 				{
-					if (t <= TE_CLOSURE7)
+					if (t < TE_CLOSURE_MAX)
 					{
 						return handle_closure(t - TE_CLOSURE0);
 					}
@@ -1012,12 +1014,7 @@ namespace te
 #	include <unordered_map>
 #	include <vector>
 #	include <memory>
-
-#	include <stdlib.h>
-#	include <string.h>
-#	include <stdio.h>
-#	include <limits.h>
-#	include <assert.h>
+#	include <cassert>
 
 namespace te
 {
@@ -1090,7 +1087,7 @@ namespace te
 
 		enum
 		{
-			TOK_NULL = TE_CLOSURE7 + 1,
+			TOK_NULL = TE_CLOSURE_MAX,
 			TOK_ERROR,
 			TOK_END,
 			TOK_SEP,
@@ -1147,29 +1144,10 @@ namespace te
 		{
 			if (!n)
 				return;
-			switch (eval_details::type_mask(n->type))
+
+			for (int arity = eval_details::arity(n->type); arity > 0; --arity)
 			{
-			case TE_FUNCTION7:
-			case TE_CLOSURE7:
-				free_native((expr_native*)n->parameters[6]); /* Falls through. */
-			case TE_FUNCTION6:
-			case TE_CLOSURE6:
-				free_native((expr_native*)n->parameters[5]); /* Falls through. */
-			case TE_FUNCTION5:
-			case TE_CLOSURE5:
-				free_native((expr_native*)n->parameters[4]); /* Falls through. */
-			case TE_FUNCTION4:
-			case TE_CLOSURE4:
-				free_native((expr_native*)n->parameters[3]); /* Falls through. */
-			case TE_FUNCTION3:
-			case TE_CLOSURE3:
-				free_native((expr_native*)n->parameters[2]); /* Falls through. */
-			case TE_FUNCTION2:
-			case TE_CLOSURE2:
-				free_native((expr_native*)n->parameters[1]); /* Falls through. */
-			case TE_FUNCTION1:
-			case TE_CLOSURE1:
-				free_native((expr_native*)n->parameters[0]);
+				free_native((expr_native*)n->parameters[arity - 1]);
 			}
 		}
 
@@ -1242,34 +1220,28 @@ namespace te
 						}
 						else
 						{
-							switch (eval_details::type_mask(var->type))
+							const auto t = eval_details::type_mask(var->type);
+							if (t == TE_VARIABLE)
 							{
-							case TE_VARIABLE:
 								s->type	 = TOK_VARIABLE;
 								s->bound = (const t_atom*)var->address;
-								break;
-
-							case TE_CLOSURE0:
-							case TE_CLOSURE1:
-							case TE_CLOSURE2:
-							case TE_CLOSURE3: /* Falls through. */
-							case TE_CLOSURE4:
-							case TE_CLOSURE5:
-							case TE_CLOSURE6:
-							case TE_CLOSURE7:			   /* Falls through. */
-								s->context = var->context; /* Falls through. */
-
-							case TE_FUNCTION0:
-							case TE_FUNCTION1:
-							case TE_FUNCTION2:
-							case TE_FUNCTION3: /* Falls through. */
-							case TE_FUNCTION4:
-							case TE_FUNCTION5:
-							case TE_FUNCTION6:
-							case TE_FUNCTION7: /* Falls through. */
-								s->type		= var->type;
-								s->function = var->address;
-								break;
+							}
+							else if (t >= TE_FUNCTION0)
+							{
+								if (t < TE_FUNCTION_MAX)
+								{
+									s->type		= var->type;
+									s->function = var->address;
+								}
+								else if (t >= TE_CLOSURE0)
+								{
+									if (t < TE_CLOSURE_MAX)
+									{
+										s->context	= var->context;
+										s->type		= var->type;
+										s->function = var->address;
+									}
+								}
 							}
 						}
 					}
@@ -1402,102 +1374,90 @@ namespace te
 			/* <base>      =    <constant> | <variable> | <function-0> {"(" ")"} | <function-1> <power> | <function-X>
 			 * "(" <expr> {"," <expr>} ")" | "(" <list> ")" */
 			expr_native* ret;
-			int			 arity;
 
-			switch (eval_details::type_mask(s->type))
+			const auto t = eval_details::type_mask(s->type);
+
+			if (t == TOK_NUMBER)
 			{
-			case TOK_NUMBER:
 				ret		   = new_expr(TE_CONSTANT, 0);
 				ret->value = s->value;
 				next_token(s);
-				break;
-
-			case TOK_VARIABLE:
+			}
+			else if (t == TOK_VARIABLE)
+			{
 				ret		   = new_expr(TE_VARIABLE, 0);
 				ret->bound = s->bound;
 				next_token(s);
-				break;
-
-			case TE_FUNCTION0:
-			case TE_CLOSURE0:
-				ret			  = new_expr(s->type, 0);
-				ret->function = s->function;
-				if (IS_CLOSURE(s->type))
-					ret->parameters[0] = s->context;
-				next_token(s);
-				if (s->type == TOK_OPEN)
+			}
+			else if ((t >= TE_FUNCTION0 && t < TE_FUNCTION_MAX) || (t >= TE_CLOSURE0 && t < TE_CLOSURE_MAX))
+			{
+				const auto arity = eval_details::arity(s->type);
+				if (arity == 0)
 				{
+					ret			  = new_expr(s->type, 0);
+					ret->function = s->function;
+					if (IS_CLOSURE(s->type))
+						ret->parameters[0] = s->context;
 					next_token(s);
-					if (s->type != TOK_CLOSE)
-					{
-						s->type = TOK_ERROR;
-					}
-					else
+					if (s->type == TOK_OPEN)
 					{
 						next_token(s);
+						if (s->type != TOK_CLOSE)
+						{
+							s->type = TOK_ERROR;
+						}
+						else
+						{
+							next_token(s);
+						}
 					}
 				}
-				break;
-
-			case TE_FUNCTION1:
-			case TE_CLOSURE1:
-				ret			  = new_expr(s->type, 0);
-				ret->function = s->function;
-				if (IS_CLOSURE(s->type))
-					ret->parameters[1] = s->context;
-				next_token(s);
-				ret->parameters[0] = power(s);
-				break;
-
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-				arity = eval_details::arity(s->type);
-
-				ret			  = new_expr(s->type, 0);
-				ret->function = s->function;
-				if (IS_CLOSURE(s->type))
-					ret->parameters[arity] = s->context;
-				next_token(s);
-
-				if (s->type != TOK_OPEN)
+				else if (arity == 1)
 				{
-					s->type = TOK_ERROR;
+					ret			  = new_expr(s->type, 0);
+					ret->function = s->function;
+					if (IS_CLOSURE(s->type))
+						ret->parameters[1] = s->context;
+					next_token(s);
+					ret->parameters[0] = power(s);
 				}
 				else
 				{
-					int i;
-					for (i = 0; i < arity; i++)
-					{
-						next_token(s);
-						ret->parameters[i] = expr(s);
-						if (s->type != TOK_SEP)
-						{
-							break;
-						}
-					}
-					if (s->type != TOK_CLOSE || i != arity - 1)
+					ret			  = new_expr(s->type, 0);
+					ret->function = s->function;
+					if (IS_CLOSURE(s->type))
+						ret->parameters[arity] = s->context;
+					next_token(s);
+
+					if (s->type != TOK_OPEN)
 					{
 						s->type = TOK_ERROR;
 					}
 					else
 					{
-						next_token(s);
+						int i;
+						for (i = 0; i < arity; i++)
+						{
+							next_token(s);
+							ret->parameters[i] = expr(s);
+							if (s->type != TOK_SEP)
+							{
+								break;
+							}
+						}
+						if (s->type != TOK_CLOSE || i != arity - 1)
+						{
+							s->type = TOK_ERROR;
+						}
+						else
+						{
+							next_token(s);
+						}
 					}
 				}
-
-				break;
-
-			case TOK_OPEN:
+			}
+			else if (t == TOK_OPEN)
+			{
 				next_token(s);
 				ret = list(s);
 				if (s->type != TOK_CLOSE)
@@ -1508,13 +1468,12 @@ namespace te
 				{
 					next_token(s);
 				}
-				break;
-
-			default:
+			}
+			else
+			{
 				ret		   = new_expr(0, 0);
 				s->type	   = TOK_ERROR;
 				ret->value = t_builtins::nan();
-				break;
 			}
 
 			return ret;
@@ -1856,31 +1815,18 @@ namespace te
 			int i, arity;
 			printf("%*s", depth, "");
 
-			switch (type_mask(n->type))
-			{
-			case TE_CONSTANT:
-				printf("%f\n", n->value);
-				break;
-			case TE_VARIABLE:
-				printf("bound %p\n", n->bound);
-				break;
+			const auto t = type_mask(n->type);
 
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
+			if (t == TE_CONSTANT)
+			{
+				printf("%f\n", n->value);
+			}
+			else if (t == TE_VARIABLE)
+			{
+				printf("bound %p\n", n->bound);
+			}
+			else if ((t >= TE_FUNCTION0 && t < TE_FUNCTION_MAX) || (t >= TE_CLOSURE0 && t < TE_CLOSURE_MAX))
+			{
 				arity = arity(n->type);
 				printf("f%d", arity);
 				for (i = 0; i < arity; i++)
@@ -1892,7 +1838,6 @@ namespace te
 				{
 					pn((const expr_native*)n->parameters[i], depth + 1);
 				}
-				break;
 			}
 		}
 
@@ -2011,7 +1956,7 @@ namespace te
 						index_map.insert(std::make_pair(var->address, index_counter++));
 					}
 
-					if (var->type >= TE_CLOSURE0 && var->type <= TE_CLOSURE7)
+					if (var->type >= TE_CLOSURE0 && var->type < TE_CLOSURE_MAX)
 					{
 						auto itor = name_map.find(var->context);
 						if (itor == name_map.end())
@@ -2217,7 +2162,7 @@ namespace te
 						assert(itor != expr->m_indexer.index_map.end());
 						out->function = itor->second;
 
-						if (v->type >= TE_CLOSURE0 && v->type <= TE_CLOSURE7)
+						if (v->type >= TE_CLOSURE0 && v->type < TE_CLOSURE_MAX)
 						{
 							auto itor2 = expr->m_indexer.index_map.find(v->context);
 							assert(itor2 != expr->m_indexer.index_map.end());
