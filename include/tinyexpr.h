@@ -996,6 +996,21 @@ namespace te
 		return ret;
 	}
 
+	struct compiled_program
+	{
+		virtual ~compiled_program() = default;
+
+		void bind_variables(const variable* variables, int var_count);
+		bool compile_statement(const char* statement, int* error);
+
+		size_t				 get_expression_offset_array_size() const;
+		const size_t*		 get_expression_offsets() const;
+		size_t				 get_binding_array_size() const;
+		const void* const*	 get_binding_addresses() const;
+		const char* const*	 get_binding_names() const;
+		size_t				 get_data_size() const;
+		const unsigned char* get_data() const;
+	};
 #endif // #if (TE_COMPILER_ENABLED)
 } // namespace te
 
@@ -2110,7 +2125,7 @@ namespace te
 		}
 	};
 
-	namespace details
+	namespace expr_details
 	{
 		template<typename T_TRAITS>
 		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
@@ -2231,36 +2246,154 @@ namespace te
 			}
 			return nullptr;
 		}
-	} // namespace details
+	} // namespace expr_details
+
+	namespace program_details
+	{
+		template<typename T_TRAITS>
+		compiled_expr* compile()
+		{
+			return nullptr;
+		}
+
+		template<typename T_TRAITS>
+		void bind_variables(compiled_program* p, const variable* variables, int var_count)
+		{
+		}
+
+		template<typename T_TRAITS>
+		bool compile_statement(compiled_program* p, const char* statement, int* error)
+		{
+			return false;
+		}
+
+		template<typename T_TRAITS>
+		size_t get_expression_offset_array_size(const compiled_program* p)
+		{
+			return 0;
+		}
+
+		template<typename T_TRAITS>
+		const size_t* get_expression_offsets(const compiled_program* p)
+		{
+			return nullptr;
+		}
+
+		template<typename T_TRAITS>
+		size_t get_binding_array_size(const compiled_program* p)
+		{
+			return 0;
+		}
+
+		template<typename T_TRAITS>
+		const void* const* get_binding_addresses(const compiled_program* p)
+		{
+			return nullptr;
+		}
+
+		template<typename T_TRAITS>
+		const char* const* get_binding_names(const compiled_program* p)
+		{
+			return nullptr;
+		}
+
+		template<typename T_TRAITS>
+		size_t get_data_size(const compiled_program* p)
+		{
+			return 0;
+		}
+
+		template<typename T_TRAITS>
+		const unsigned char* get_data(const compiled_program* p)
+		{
+			return nullptr;
+		}
+	
+		template<typename T_TRAITS>
+		compiled_program* create_program()
+		{
+			return nullptr;
+		}
+	} // namespace program_details
 
 	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
 	{
-		return details::compile<env_traits>(expression, variables, var_count, error);
+		return expr_details::compile<env_traits>(expression, variables, var_count, error);
 	}
 
 	size_t compiled_expr::get_binding_array_size() const
 	{
-		return details::get_binding_array_size<env_traits>(this);
+		return expr_details::get_binding_array_size<env_traits>(this);
 	}
 
 	const void* const* compiled_expr::get_binding_addresses() const
 	{
-		return details::get_binding_addresses<env_traits>(this);
+		return expr_details::get_binding_addresses<env_traits>(this);
 	}
 
 	const char* const* compiled_expr::get_binding_names() const
 	{
-		return details::get_binding_names<env_traits>(this);
+		return expr_details::get_binding_names<env_traits>(this);
 	}
 
 	size_t compiled_expr::get_data_size() const
 	{
-		return details::get_data_size<env_traits>(this);
+		return expr_details::get_data_size<env_traits>(this);
 	}
 
 	const unsigned char* compiled_expr::get_data() const
 	{
-		return details::get_data<env_traits>(this);
+		return expr_details::get_data<env_traits>(this);
+	}
+
+	void compiled_program::bind_variables(const variable* variables, int var_count)
+	{
+		return program_details::bind_variables<env_traits>(this, variables, var_count);
+	}
+
+	bool compiled_program::compile_statement(const char* statement, int* error)
+	{
+		return program_details::compile_statement<env_traits>(this, statement, error);
+	}
+
+	size_t compiled_program::get_expression_offset_array_size() const
+	{
+		return program_details::get_expression_offset_array_size<env_traits>(this);
+	}
+
+	const size_t* compiled_program::get_expression_offsets() const
+	{
+		return program_details::get_expression_offsets<env_traits>(this);
+	}
+
+	size_t compiled_program::get_binding_array_size() const
+	{
+		return program_details::get_binding_array_size<env_traits>(this);
+	}
+
+	const void* const* compiled_program::get_binding_addresses() const
+	{
+		return program_details::get_binding_addresses<env_traits>(this);
+	}
+
+	const char* const* compiled_program::get_binding_names() const
+	{
+		return program_details::get_binding_names<env_traits>(this);
+	}
+
+	size_t compiled_program::get_data_size() const
+	{
+		return program_details::get_data_size<env_traits>(this);
+	}
+
+	const unsigned char* compiled_program::get_data() const
+	{
+		return program_details::get_data<env_traits>(this);
+	}
+
+	compiled_program* create_program()
+	{
+		return program_details::create_program<env_traits>();
 	}
 }
 
