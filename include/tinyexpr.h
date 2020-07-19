@@ -2123,6 +2123,14 @@ namespace te
 				},
 				[&]() { return t_traits::nan(); });
 		}
+
+		struct compiled_program : ::te::compiled_program
+		{
+			expr_portable_expression_build_indexer	m_indexer;
+			expr_portable_expression_build_bindings m_bindings;
+			std::unique_ptr<unsigned char>			m_build_buffer;
+			size_t									m_build_buffer_size;
+		};
 	};
 
 	namespace expr_details
@@ -2193,56 +2201,56 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		size_t get_binding_array_size(const compiled_expr* _n)
+		size_t get_binding_array_size(const compiled_expr* n)
 		{
-			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
-			if (n)
+			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
+			if (n_impl)
 			{
-				return n->m_bindings.index_to_address.size();
+				return n_impl->m_bindings.index_to_address.size();
 			}
 			return 0;
 		}
 
 		template<typename T_TRAITS>
-		const void* const* get_binding_addresses(const compiled_expr* _n)
+		const void* const* get_binding_addresses(const compiled_expr* n)
 		{
-			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
-			if (n && (n->m_bindings.index_to_address.size() > 0))
+			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
+			if (n_impl && (n_impl->m_bindings.index_to_address.size() > 0))
 			{
-				return &(*n->m_bindings.index_to_address.cbegin());
+				return &(*n_impl->m_bindings.index_to_address.cbegin());
 			}
 			return nullptr;
 		}
 
 		template<typename T_TRAITS>
-		const char* const* get_binding_names(const compiled_expr* _n)
+		const char* const* get_binding_names(const compiled_expr* n)
 		{
-			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
-			if (n)
+			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
+			if (n_impl)
 			{
-				return &(*n->m_bindings.index_to_name_c_str.cbegin());
+				return &(*n_impl->m_bindings.index_to_name_c_str.cbegin());
 			}
 			return nullptr;
 		}
 
 		template<typename T_TRAITS>
-		size_t get_data_size(const compiled_expr* _n)
+		size_t get_data_size(const compiled_expr* n)
 		{
-			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
-			if (n)
+			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
+			if (n_impl)
 			{
-				return n->m_build_buffer_size;
+				return n_impl->m_build_buffer_size;
 			}
 			return 0;
 		}
 
 		template<typename T_TRAITS>
-		const unsigned char* get_data(const compiled_expr* _n)
+		const unsigned char* get_data(const compiled_expr* n)
 		{
-			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
-			if (n)
+			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
+			if (n_impl)
 			{
-				return n->m_build_buffer.get();
+				return n_impl->m_build_buffer.get();
 			}
 			return nullptr;
 		}
@@ -2251,61 +2259,64 @@ namespace te
 	namespace program_details
 	{
 		template<typename T_TRAITS>
-		compiled_expr* compile()
-		{
-			return nullptr;
-		}
-
-		template<typename T_TRAITS>
 		void bind_variables(compiled_program* p, const variable* variables, int var_count)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 		}
 
 		template<typename T_TRAITS>
 		bool compile_statement(compiled_program* p, const char* statement, int* error)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return false;
 		}
 
 		template<typename T_TRAITS>
 		size_t get_expression_offset_array_size(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return 0;
 		}
 
 		template<typename T_TRAITS>
 		const size_t* get_expression_offsets(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return nullptr;
 		}
 
 		template<typename T_TRAITS>
 		size_t get_binding_array_size(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return 0;
 		}
 
 		template<typename T_TRAITS>
 		const void* const* get_binding_addresses(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return nullptr;
 		}
 
 		template<typename T_TRAITS>
 		const char* const* get_binding_names(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return nullptr;
 		}
 
 		template<typename T_TRAITS>
 		size_t get_data_size(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return 0;
 		}
 
 		template<typename T_TRAITS>
 		const unsigned char* get_data(const compiled_program* p)
 		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return nullptr;
 		}
 	
@@ -2344,6 +2355,13 @@ namespace te
 	const unsigned char* compiled_expr::get_data() const
 	{
 		return expr_details::get_data<env_traits>(this);
+	}
+
+	////
+
+	compiled_program* create_program()
+	{
+		return program_details::create_program<env_traits>();
 	}
 
 	void compiled_program::bind_variables(const variable* variables, int var_count)
@@ -2389,11 +2407,6 @@ namespace te
 	const unsigned char* compiled_program::get_data() const
 	{
 		return program_details::get_data<env_traits>(this);
-	}
-
-	compiled_program* create_program()
-	{
-		return program_details::create_program<env_traits>();
 	}
 }
 
