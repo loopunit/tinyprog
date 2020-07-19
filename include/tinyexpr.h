@@ -1203,7 +1203,7 @@ namespace te
 
 			do
 			{
-				if (!*s->next)
+				if (!*s->next || *s->next == ';')
 				{
 					s->type = TOK_END;
 					return;
