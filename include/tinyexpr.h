@@ -772,6 +772,64 @@ namespace te
 			return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
 		}
 
+		template<typename T_HANDLE_CONSTANT,
+			typename T_HANDLE_VARIABLE,
+			typename T_HANDLE_FUNCTION,
+			typename T_HANDLE_CLOSURE,
+			typename T_HANDLE_ERROR>
+		static inline auto eval_generic(int type,
+			T_HANDLE_CONSTANT				handle_constant,
+			T_HANDLE_VARIABLE				handle_variable,
+			T_HANDLE_FUNCTION				handle_function,
+			T_HANDLE_CLOSURE				handle_closure,
+			T_HANDLE_ERROR					handle_error)
+		{
+			switch (type_mask(type))
+			{
+			case TE_CONSTANT:
+				return handle_constant();
+
+			case TE_VARIABLE:
+				return handle_variable();
+
+			case TE_FUNCTION0:
+				return handle_function(0);
+			case TE_FUNCTION1:
+				return handle_function(1);
+			case TE_FUNCTION2:
+				return handle_function(2);
+			case TE_FUNCTION3:
+				return handle_function(3);
+			case TE_FUNCTION4:
+				return handle_function(4);
+			case TE_FUNCTION5:
+				return handle_function(5);
+			case TE_FUNCTION6:
+				return handle_function(6);
+			case TE_FUNCTION7:
+				return handle_function(7);
+
+			case TE_CLOSURE0:
+				return handle_closure(0);
+			case TE_CLOSURE1:
+				return handle_closure(1);
+			case TE_CLOSURE2:
+				return handle_closure(2);
+			case TE_CLOSURE3:
+				return handle_closure(3);
+			case TE_CLOSURE4:
+				return handle_closure(4);
+			case TE_CLOSURE5:
+				return handle_closure(5);
+			case TE_CLOSURE6:
+				return handle_closure(6);
+			case TE_CLOSURE7:
+				return handle_closure(7);
+			}
+
+			return handle_error();
+		}
+
 		template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
 		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable,
 			const unsigned char*											 expr_buffer,
@@ -784,96 +842,84 @@ namespace te
 
 #define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
 
-#define M(e)                                                                                                           \
-	eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(                                                                    \
-		(const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context)
+			auto eval_arg = [&](int e) {
+				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(
+					(const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
+			};
 
-			switch (type_mask(n_portable->type))
-			{
-			case TE_CONSTANT:
-				return t_traits::load_atom(n_portable->value);
-
-			case TE_VARIABLE:
-				return t_traits::load_atom((expr_context != nullptr)
-											   ? *((const t_vector*)(expr_context[n_portable->bound]))
-											   : t_builtins::nan());
-
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-			{
-				switch (arity(n_portable->type))
-				{
-				case 0:
-					return TE_FUN(void)();
-				case 1:
-					return TE_FUN(t_vector)(M(0));
-				case 2:
-					return TE_FUN(t_vector, t_vector)(M(0), M(1));
-				case 3:
-					return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_builtins::nan();
-				}
-			}
-
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-			{
-				auto arity_params = (void*)expr_context[n_portable->parameters[arity(n_portable->type)]];
-
-				switch (arity(n_portable->type))
-				{
-				case 0:
-					return TE_FUN(void*)(arity_params);
-				case 1:
-					return TE_FUN(void*, t_vector)(arity_params, M(0));
-				case 2:
-					return TE_FUN(void*, t_vector, t_vector)(arity_params, M(0), M(1));
-				case 3:
-					return TE_FUN(void*, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_builtins::nan();
-				}
-			}
-
-			default:
-				return t_builtins::nan();
-			}
+			return eval_generic(
+				n_portable->type,
+				[&]() { return t_traits::load_atom(n_portable->value); },
+				[&]() {
+					return t_traits::load_atom((expr_context != nullptr)
+												   ? *((const t_vector*)(expr_context[n_portable->bound]))
+												   : t_builtins::nan());
+				},
+				[&](int a) {
+					switch (a)
+					{
+					case 0:
+						return TE_FUN(void)();
+					case 1:
+						return TE_FUN(t_vector)(eval_arg(0));
+					case 2:
+						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+					case 7:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
+					default:
+						return t_builtins::nan();
+					}
+				},
+				[&](int a) {
+					auto arity_params = (void*)expr_context[n_portable->parameters[a]];
+					switch (a)
+					{
+					case 0:
+						return TE_FUN(void*)(arity_params);
+					case 1:
+						return TE_FUN(void*, t_vector)(arity_params, eval_arg(0));
+					case 2:
+						return TE_FUN(void*, t_vector, t_vector)(arity_params, eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(void*, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+					case 7:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params,
+							eval_arg(0),
+							eval_arg(1),
+							eval_arg(2),
+							eval_arg(3),
+							eval_arg(4),
+							eval_arg(5),
+							eval_arg(6));
+					default:
+						return t_builtins::nan();
+					}
+				},
+				[&]() { return t_builtins::nan(); });
 #undef TE_FUN
-#undef M
 		}
 	} // namespace eval_details
 
@@ -1710,90 +1756,89 @@ namespace te
 		static t_vector eval_native(const expr_native* n)
 		{
 #		define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))n->function)
-#		define M(e)		eval_native((const expr_native*)n->parameters[e])
 
 			if (!n)
 				return t_builtins::nan();
 
-			switch (eval_details::type_mask(n->type))
-			{
-			case TE_CONSTANT:
-				return n->value;
-			case TE_VARIABLE:
-				return *n->bound;
+			auto eval_arg = [&](int e) {
+				return eval_native((const expr_native*)n->parameters[e]);
+			};
 
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-				switch (eval_details::arity(n->type))
-				{
-				case 0:
-					return TE_FUN(void)();
-				case 1:
-					return TE_FUN(t_vector)(M(0));
-				case 2:
-					return TE_FUN(t_vector, t_vector)(M(0), M(1));
-				case 3:
-					return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_builtins::nan();
-				}
-
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-				switch (eval_details::arity(n->type))
-				{
-				case 0:
-					return TE_FUN(void*)(n->parameters[0]);
-				case 1:
-					return TE_FUN(void*, t_vector)(n->parameters[1], M(0));
-				case 2:
-					return TE_FUN(void*, t_vector, t_vector)(n->parameters[2], M(0), M(1));
-				case 3:
-					return TE_FUN(void*, t_vector, t_vector, t_vector)(n->parameters[3], M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
-						n->parameters[4], M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						n->parameters[5], M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						n->parameters[6], M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						n->parameters[7], M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_builtins::nan();
-				}
-
-			default:
-				return t_builtins::nan();
-			}
+			return eval_details::eval_generic(
+				n->type,
+				[&]() { return n->value; },
+				[&]() { return *n->bound; },
+				[&](int a) {
+					switch (a)
+					{
+					case 0:
+						return TE_FUN(void)();
+					case 1:
+						return TE_FUN(t_vector)(eval_arg(0));
+					case 2:
+						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+					case 7:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
+					default:
+						return t_builtins::nan();
+					}
+				},
+				[&](int a) {
+					switch (a)
+					{
+					case 0:
+						return TE_FUN(void*)(n->parameters[0]);
+					case 1:
+						return TE_FUN(void*, t_vector)(n->parameters[1], eval_arg(0));
+					case 2:
+						return TE_FUN(void*, t_vector, t_vector)(n->parameters[2], eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(void*, t_vector, t_vector, t_vector)(
+							n->parameters[3], eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
+							n->parameters[4], eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							n->parameters[5], eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							n->parameters[6],
+							eval_arg(0),
+							eval_arg(1),
+							eval_arg(2),
+							eval_arg(3),
+							eval_arg(4),
+							eval_arg(5));
+					case 7:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							n->parameters[7],
+							eval_arg(0),
+							eval_arg(1),
+							eval_arg(2),
+							eval_arg(3),
+							eval_arg(4),
+							eval_arg(5),
+							eval_arg(6));
+					default:
+						return t_builtins::nan();
+					}
+				},
+				[&]() { return t_builtins::nan(); });
 
 #		undef TE_FUN
-#		undef M
 		}
 
 		static void optimize(expr_native* n)
@@ -2010,19 +2055,20 @@ namespace te
 			index_map&									 index_map,
 			int&										 index_counter)
 		{
-#		define M(e)                                                                                                   \
-			export_estimate((const expr_native*)n->parameters[e],                                                      \
-				export_size,                                                                                           \
-				lookup,                                                                                                \
-				lookup_len,                                                                                            \
-				name_map,                                                                                              \
-				index_map,                                                                                             \
-				index_counter)
-
 			if (!n)
 				return export_size;
 
 			export_size += sizeof(expr_native);
+
+			auto eval_arg = [&](int e) {
+				export_estimate((const expr_native*)n->parameters[e],
+					export_size,
+					lookup,
+					lookup_len,
+					name_map,
+					index_map,
+					index_counter);
+			};
 
 			auto handle_addr = [&](const variable* var) -> bool {
 				if (var)
@@ -2049,64 +2095,37 @@ namespace te
 				return false;
 			};
 
-			switch (eval_details::type_mask(n->type))
-			{
-			case TE_CONSTANT:
-			{
-				return export_size;
-			}
+			return eval_details::eval_generic(
+				n->type,
+				[&]() { return export_size; },
+				[&]() {
+					auto res = handle_addr(native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
+					assert(res);
+					return export_size;
+				},
+				[&](int a) {
+					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					assert(res);
+					export_size += sizeof(n->parameters[0]) * a;
 
-			case TE_VARIABLE:
-			{
-				auto res = handle_addr(native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
-				assert(res);
-				return export_size;
-			}
+					for (int i = 0; i < a; ++i)
+					{
+						eval_arg(i);
+					}
+					return export_size;
+				},
+				[&](int a) {
+					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					assert(res);
+					export_size += sizeof(n->parameters[0]) * a;
 
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-			{
-				auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
-				assert(res);
-				export_size += sizeof(n->parameters[0]) * (eval_details::arity(n->type));
-
-				for (int i = 0; i < eval_details::arity(n->type); ++i)
-				{
-					M(i);
-				}
-			}
-			break;
-
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-			{
-				auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
-				assert(res);
-
-				export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
-
-				for (int i = 0; i < eval_details::arity(n->type); ++i)
-				{
-					M(i);
-				}
-			}
-			break;
-			}
-			return export_size;
-#		undef TE_FUN
-#		undef M
+					for (int i = 0; i < a; ++i)
+					{
+						eval_arg(i);
+					}
+					return export_size;
+				},
+				[&]() { return export_size; });
 		}
 
 		template<typename T_REGISTER_FUNC>
@@ -2117,10 +2136,6 @@ namespace te
 			const unsigned char*					  out_buffer,
 			T_REGISTER_FUNC							  register_func)
 		{
-#		define M(e)                                                                                                   \
-			export_write(                                                                                              \
-				(const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func)
-
 			if (!n)
 				return export_size;
 
@@ -2128,67 +2143,51 @@ namespace te
 
 			export_size += sizeof(expr_native);
 			n_out->type = n->type;
-			switch (eval_details::type_mask(n->type))
-			{
-			case TE_CONSTANT:
-			{
-				n_out->value = n->value;
-				return export_size;
-			}
 
-			case TE_VARIABLE:
-			{
-				register_func(n->bound, n_out, native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
-				return export_size;
-			}
+			auto eval_arg = [&](int e) {
+				return export_write(
+					(const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func);
+			};
 
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
-			{
-				register_func(
-					n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+			return eval_details::eval_generic(
+				n->type,
+				[&]() {
+					n_out->value = n->value;
+					return export_size;
+				},
+				[&]() {
+					register_func(n->bound, n_out, native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
+					return export_size;
+				},
+				[&](int a) {
+					register_func(n->function,
+						n_out,
+						native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
-				export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
+					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
-				for (int i = 0; i < eval_details::arity(n->type); ++i)
-				{
-					n_out->parameters[i] = export_size;
-					M(i);
-				}
-			}
-			break;
+					for (int i = 0; i < eval_details::arity(n->type); ++i)
+					{
+						n_out->parameters[i] = export_size;
+						eval_arg(i);
+					}
+					return export_size;
+				},
+				[&](int a) {
+					register_func(n->function,
+						n_out,
+						native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-			{
-				register_func(
-					n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
-				export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
-
-				for (int i = 0; i < eval_details::arity(n->type); ++i)
-				{
-					n_out->parameters[i] = export_size;
-					M(i);
-				}
-			}
-			break;
-			}
-			return export_size;
-#		undef TE_FUN
-#		undef M
+					for (int i = 0; i < eval_details::arity(n->type); ++i)
+					{
+						n_out->parameters[i] = export_size;
+						eval_arg(i);
+					}
+					return export_size;
+				},
+				[&]() { return export_size; });
 		}
 
 		static t_vector eval_compare(const expr_native* n,
@@ -2198,105 +2197,97 @@ namespace te
 		{
 #		define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
 
-#		define M(e)                                                                                                   \
-			eval_compare((const expr_native*)n->parameters[e],                                                         \
-				(const expr_portable*)&expr_buffer[n_portable->parameters[e]],                                         \
-				expr_buffer,                                                                                           \
-				expr_context)
-
 			if (!n)
 				return t_traits::nan();
 
 			assert(n->type == n_portable->type);
 
-			switch (type_mask(n_portable->type))
-			{
-			case TE_CONSTANT:
-				return n_portable->value;
-			case TE_VARIABLE:
-				assert(n->bound == expr_context[n_portable->bound]);
-				return t_traits::load_atom(*((const t_atom*)(expr_context[n_portable->bound])));
+			auto eval_arg = [&](int e) {
+				return eval_compare((const expr_native*)n->parameters[e],
+					(const expr_portable*)&expr_buffer[n_portable->parameters[e]],
+					expr_buffer,
+					expr_context);
+			};
 
-			case TE_FUNCTION0:
-			case TE_FUNCTION1:
-			case TE_FUNCTION2:
-			case TE_FUNCTION3:
-			case TE_FUNCTION4:
-			case TE_FUNCTION5:
-			case TE_FUNCTION6:
-			case TE_FUNCTION7:
+			return eval_details::eval_generic(
+				n->type,
+				[&]() { return n_portable->value; },
+				[&]() {
+					assert(n->bound == expr_context[n_portable->bound]);
+					return t_traits::load_atom(*((const t_atom*)(expr_context[n_portable->bound])));
+				},
+				[&](int a) {
+					assert(n->function == expr_context[n_portable->function]);
 
-				assert(n->function == expr_context[n_portable->function]);
+					switch (a)
+					{
+					case 0:
+						return TE_FUN(void)();
+					case 1:
+						return TE_FUN(t_vector)(eval_arg(0));
+					case 2:
+						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+					case 7:
+						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
+					default:
+						return t_traits::nan();
+					}
+				},
+				[&](int a) {
+					assert(n->function == expr_context[n_portable->function]);
+					assert(n->parameters[arity(n->type)] == expr_context[n_portable->parameters[arity(n->type)]]);
 
-				switch (arity(n_portable->type))
-				{
-				case 0:
-					return TE_FUN(void)();
-				case 1:
-					return TE_FUN(t_vector)(M(0));
-				case 2:
-					return TE_FUN(t_vector, t_vector)(M(0), M(1));
-				case 3:
-					return TE_FUN(t_vector, t_vector, t_vector)(M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_traits::nan();
-				}
+					auto arity_params = (void*)expr_context[n_portable->parameters[arity(n->type)]];
 
-			case TE_CLOSURE0:
-			case TE_CLOSURE1:
-			case TE_CLOSURE2:
-			case TE_CLOSURE3:
-			case TE_CLOSURE4:
-			case TE_CLOSURE5:
-			case TE_CLOSURE6:
-			case TE_CLOSURE7:
-			{
-				assert(n->function == expr_context[n_portable->function]);
-				assert(n->parameters[arity(n->type)] == expr_context[n_portable->parameters[arity(n->type)]]);
+					switch (arity(n_portable->type))
+					{
+					case 0:
+						return TE_FUN(void*)(arity_params);
+					case 1:
+						return TE_FUN(void*, t_vector)(arity_params, eval_arg(0));
+					case 2:
+						return TE_FUN(void*, t_vector, t_vector)(arity_params, eval_arg(0), eval_arg(1));
+					case 3:
+						return TE_FUN(void*, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
+					case 4:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+					case 5:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+					case 6:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+					case 7:
+						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
+							arity_params,
+							eval_arg(0),
+							eval_arg(1),
+							eval_arg(2),
+							eval_arg(3),
+							eval_arg(4),
+							eval_arg(5),
+							eval_arg(6));
+					default:
+						return t_traits::nan();
+					}
+				},
+				[&]() { return t_traits::nan(); });
 
-				auto arity_params = (void*)expr_context[n_portable->parameters[arity(n->type)]];
-
-				switch (arity(n_portable->type))
-				{
-				case 0:
-					return TE_FUN(void*)(arity_params);
-				case 1:
-					return TE_FUN(void*, t_vector)(arity_params, M(0));
-				case 2:
-					return TE_FUN(void*, t_vector, t_vector)(arity_params, M(0), M(1));
-				case 3:
-					return TE_FUN(void*, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2));
-				case 4:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(arity_params, M(0), M(1), M(2), M(3));
-				case 5:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4));
-				case 6:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4), M(5));
-				case 7:
-					return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-						arity_params, M(0), M(1), M(2), M(3), M(4), M(5), M(6));
-				default:
-					return t_traits::nan();
-				}
-			}
-
-			default:
-				return t_traits::nan();
-			}
 #		undef TE_FUN
-#		undef M
 		}
 	};
 
