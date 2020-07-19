@@ -969,15 +969,15 @@ namespace te
 		size_t				 get_binding_array_size() const;
 		const void* const*	 get_binding_addresses() const;
 		const char* const*	 get_binding_names() const;
-		size_t				 get_expr_data_size() const;
-		const unsigned char* get_expr_data() const;
+		size_t				 get_data_size() const;
+		const unsigned char* get_data() const;
 	};
 
 	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error);
 
 	inline env_traits::t_vector eval(const compiled_expr* n)
 	{
-		return eval(n->get_expr_data(), n->get_binding_addresses());
+		return eval(n->get_data(), n->get_binding_addresses());
 	}
 
 	inline env_traits::t_vector interp(const char* expression, int* error)
@@ -995,17 +995,6 @@ namespace te
 		}
 		return ret;
 	}
-
-	// struct program
-	//{
-	//	virtual void bind_variables(const variable* variables, int var_count) = 0;
-	//	virtual bool compile_statement(const char* statement, int* error)		 = 0;
-	//
-	//	virtual const void* const*	 get_binding_addresses()				 = 0;
-	//	virtual const char* const*	 get_binding_names()					 = 0;
-	//	virtual size_t				 get_data_size(const compiled_expr n) = 0;
-	//	virtual const unsigned char* get_data(const compiled_expr n)		 = 0;
-	//};
 
 #endif // #if (TE_COMPILER_ENABLED)
 } // namespace te
@@ -2222,7 +2211,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		size_t get_expr_data_size(const compiled_expr* _n)
+		size_t get_data_size(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -2233,7 +2222,7 @@ namespace te
 		}
 
 		template<typename T_TRAITS>
-		const unsigned char* get_expr_data(const compiled_expr* _n)
+		const unsigned char* get_data(const compiled_expr* _n)
 		{
 			auto n = (const portable<T_TRAITS>::compiled_expr*)_n;
 			if (n)
@@ -2264,14 +2253,14 @@ namespace te
 		return details::get_binding_names<env_traits>(this);
 	}
 
-	size_t compiled_expr::get_expr_data_size() const
+	size_t compiled_expr::get_data_size() const
 	{
-		return details::get_expr_data_size<env_traits>(this);
+		return details::get_data_size<env_traits>(this);
 	}
 
-	const unsigned char* compiled_expr::get_expr_data() const
+	const unsigned char* compiled_expr::get_data() const
 	{
-		return details::get_expr_data<env_traits>(this);
+		return details::get_data<env_traits>(this);
 	}
 }
 
