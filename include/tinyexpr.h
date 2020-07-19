@@ -1115,9 +1115,21 @@ namespace te
 			int				lookup_len;
 		};
 
-#		define IS_PURE(TYPE)	  (((TYPE)&TE_FLAG_PURE) != 0)
-#		define IS_FUNCTION(TYPE) (((TYPE)&TE_FUNCTION0) != 0)
-#		define IS_CLOSURE(TYPE)  (((TYPE)&TE_CLOSURE0) != 0)
+		static inline bool is_pure(int t) noexcept
+		{
+			return (((t)&TE_FLAG_PURE) != 0);
+		}
+
+		static inline bool is_function(int t) noexcept
+		{
+			return (((t)&TE_FUNCTION0) != 0);
+		}
+
+		static inline bool is_closure(int t) noexcept
+		{
+			return (((t)&TE_CLOSURE0) != 0);
+		}
+
 #		define NEW_EXPR(type, ...)                                                                                    \
 			[&]() {                                                                                                    \
 				const expr_native* _args[] = {__VA_ARGS__};                                                            \
@@ -1128,7 +1140,7 @@ namespace te
 		{
 			const int	 arity = eval_details::arity(type);
 			const int	 psize = sizeof(void*) * arity;
-			const int	 size  = (sizeof(expr_native) - sizeof(void*)) + psize + (IS_CLOSURE(type) ? sizeof(void*) : 0);
+			const int	 size  = (sizeof(expr_native) - sizeof(void*)) + psize + (is_closure(type) ? sizeof(void*) : 0);
 			expr_native* ret   = (expr_native*)malloc(size);
 			memset(ret, 0, size);
 			if (arity && parameters)
@@ -1396,7 +1408,7 @@ namespace te
 				{
 					ret			  = new_expr(s->type, 0);
 					ret->function = s->function;
-					if (IS_CLOSURE(s->type))
+					if (is_closure(s->type))
 						ret->parameters[0] = s->context;
 					next_token(s);
 					if (s->type == TOK_OPEN)
@@ -1416,7 +1428,7 @@ namespace te
 				{
 					ret			  = new_expr(s->type, 0);
 					ret->function = s->function;
-					if (IS_CLOSURE(s->type))
+					if (is_closure(s->type))
 						ret->parameters[1] = s->context;
 					next_token(s);
 					ret->parameters[0] = power(s);
@@ -1425,7 +1437,7 @@ namespace te
 				{
 					ret			  = new_expr(s->type, 0);
 					ret->function = s->function;
-					if (IS_CLOSURE(s->type))
+					if (is_closure(s->type))
 						ret->parameters[arity] = s->context;
 					next_token(s);
 
@@ -1740,7 +1752,7 @@ namespace te
 				return;
 
 			/* Only optimize out functions flagged as pure. */
-			if (IS_PURE(n->type))
+			if (is_pure(n->type))
 			{
 				const int arity = eval_details::arity(n->type);
 				int		  known = 1;
