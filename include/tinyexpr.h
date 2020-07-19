@@ -784,50 +784,102 @@ namespace te
 			T_HANDLE_CLOSURE				handle_closure,
 			T_HANDLE_ERROR					handle_error)
 		{
-			switch (type_mask(type))
+			const auto t = type_mask(type);
+			if (t == TE_CONSTANT)
 			{
-			case TE_CONSTANT:
 				return handle_constant();
-
-			case TE_VARIABLE:
+			}
+			else if (t == TE_VARIABLE)
+			{
 				return handle_variable();
-
-			case TE_FUNCTION0:
-				return handle_function(0);
-			case TE_FUNCTION1:
-				return handle_function(1);
-			case TE_FUNCTION2:
-				return handle_function(2);
-			case TE_FUNCTION3:
-				return handle_function(3);
-			case TE_FUNCTION4:
-				return handle_function(4);
-			case TE_FUNCTION5:
-				return handle_function(5);
-			case TE_FUNCTION6:
-				return handle_function(6);
-			case TE_FUNCTION7:
-				return handle_function(7);
-
-			case TE_CLOSURE0:
-				return handle_closure(0);
-			case TE_CLOSURE1:
-				return handle_closure(1);
-			case TE_CLOSURE2:
-				return handle_closure(2);
-			case TE_CLOSURE3:
-				return handle_closure(3);
-			case TE_CLOSURE4:
-				return handle_closure(4);
-			case TE_CLOSURE5:
-				return handle_closure(5);
-			case TE_CLOSURE6:
-				return handle_closure(6);
-			case TE_CLOSURE7:
-				return handle_closure(7);
+			}
+			else if (t >= TE_FUNCTION0)
+			{
+				if (t <= TE_FUNCTION7)
+				{
+					return handle_function(t - TE_FUNCTION0);
+				}
+				if (t >= TE_CLOSURE0)
+				{
+					if (t <= TE_CLOSURE7)
+					{
+						return handle_closure(t - TE_CLOSURE0);
+					}
+				}
 			}
 
 			return handle_error();
+		}
+
+		template<typename T_VECTOR, typename T_RET, typename T_EVAL_ARG>
+		auto eval_function(int a, const void* fn, T_RET error_val, T_EVAL_ARG eval_arg) -> T_RET
+		{
+#define TE_FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
+			switch (a)
+			{
+			case 0:
+				return TE_FUN(void)();
+			case 1:
+				return TE_FUN(T_VECTOR)(eval_arg(0));
+			case 2:
+				return TE_FUN(T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1));
+			case 3:
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2));
+			case 4:
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+			case 5:
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+			case 6:
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+			case 7:
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
+			}
+#undef TE_FUN
+			return error_val;
+		}
+
+		template<typename T_VECTOR, typename T_RET, typename T_EVAL_ARG>
+		auto eval_closure(int a, const void* fn, const void* arity_params, T_RET error_val, T_EVAL_ARG eval_arg)
+			-> T_RET
+		{
+#define TE_FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
+			switch (a)
+			{
+			case 0:
+				return TE_FUN(const void*)(arity_params);
+			case 1:
+				return TE_FUN(const void*, T_VECTOR)(arity_params, eval_arg(0));
+			case 2:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1));
+			case 3:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR)(
+					arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
+			case 4:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+			case 5:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+			case 6:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+			case 7:
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+					arity_params,
+					eval_arg(0),
+					eval_arg(1),
+					eval_arg(2),
+					eval_arg(3),
+					eval_arg(4),
+					eval_arg(5),
+					eval_arg(6));
+			}
+#undef TE_FUN
+			return error_val;
 		}
 
 		template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
@@ -839,8 +891,6 @@ namespace te
 			using t_vector	 = T_VECTOR;
 			using t_traits	 = T_TRAITS;
 			using t_builtins = typename T_TRAITS::t_vector_builtins;
-
-#define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
 
 			auto eval_arg = [&](int e) {
 				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(
@@ -856,70 +906,16 @@ namespace te
 												   : t_builtins::nan());
 				},
 				[&](int a) {
-					switch (a)
-					{
-					case 0:
-						return TE_FUN(void)();
-					case 1:
-						return TE_FUN(t_vector)(eval_arg(0));
-					case 2:
-						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
-					case 7:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
-					default:
-						return t_builtins::nan();
-					}
+					return eval_function<t_vector>(a, expr_context[n_portable->function], t_builtins::nan(), eval_arg);
 				},
 				[&](int a) {
-					auto arity_params = (void*)expr_context[n_portable->parameters[a]];
-					switch (a)
-					{
-					case 0:
-						return TE_FUN(void*)(arity_params);
-					case 1:
-						return TE_FUN(void*, t_vector)(arity_params, eval_arg(0));
-					case 2:
-						return TE_FUN(void*, t_vector, t_vector)(arity_params, eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(void*, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
-					case 7:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params,
-							eval_arg(0),
-							eval_arg(1),
-							eval_arg(2),
-							eval_arg(3),
-							eval_arg(4),
-							eval_arg(5),
-							eval_arg(6));
-					default:
-						return t_builtins::nan();
-					}
+					return eval_closure<t_vector>(a,
+						expr_context[n_portable->function],
+						(void*)expr_context[n_portable->parameters[a]],
+						t_builtins::nan(),
+						eval_arg);
 				},
 				[&]() { return t_builtins::nan(); });
-#undef TE_FUN
 		}
 	} // namespace eval_details
 
@@ -1755,8 +1751,6 @@ namespace te
 
 		static t_vector eval_native(const expr_native* n)
 		{
-#		define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))n->function)
-
 			if (!n)
 				return t_builtins::nan();
 
@@ -1769,76 +1763,13 @@ namespace te
 				[&]() { return n->value; },
 				[&]() { return *n->bound; },
 				[&](int a) {
-					switch (a)
-					{
-					case 0:
-						return TE_FUN(void)();
-					case 1:
-						return TE_FUN(t_vector)(eval_arg(0));
-					case 2:
-						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
-					case 7:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
-					default:
-						return t_builtins::nan();
-					}
+					return eval_details::eval_function<t_vector>(a, n->function, t_builtins::nan(), eval_arg);
 				},
 				[&](int a) {
-					switch (a)
-					{
-					case 0:
-						return TE_FUN(void*)(n->parameters[0]);
-					case 1:
-						return TE_FUN(void*, t_vector)(n->parameters[1], eval_arg(0));
-					case 2:
-						return TE_FUN(void*, t_vector, t_vector)(n->parameters[2], eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(void*, t_vector, t_vector, t_vector)(
-							n->parameters[3], eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
-							n->parameters[4], eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							n->parameters[5], eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							n->parameters[6],
-							eval_arg(0),
-							eval_arg(1),
-							eval_arg(2),
-							eval_arg(3),
-							eval_arg(4),
-							eval_arg(5));
-					case 7:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							n->parameters[7],
-							eval_arg(0),
-							eval_arg(1),
-							eval_arg(2),
-							eval_arg(3),
-							eval_arg(4),
-							eval_arg(5),
-							eval_arg(6));
-					default:
-						return t_builtins::nan();
-					}
+					return eval_details::eval_closure<t_vector>(
+						a, n->function, (void*)n->parameters[a], t_builtins::nan(), eval_arg);
 				},
 				[&]() { return t_builtins::nan(); });
-
-#		undef TE_FUN
 		}
 
 		static void optimize(expr_native* n)
@@ -2195,8 +2126,6 @@ namespace te
 			const unsigned char*						expr_buffer,
 			const void* const							expr_context[])
 		{
-#		define TE_FUN(...) ((t_vector(*)(__VA_ARGS__))expr_context[n_portable->function])
-
 			if (!n)
 				return t_traits::nan();
 
@@ -2218,76 +2147,20 @@ namespace te
 				},
 				[&](int a) {
 					assert(n->function == expr_context[n_portable->function]);
-
-					switch (a)
-					{
-					case 0:
-						return TE_FUN(void)();
-					case 1:
-						return TE_FUN(t_vector)(eval_arg(0));
-					case 2:
-						return TE_FUN(t_vector, t_vector)(eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(t_vector, t_vector, t_vector)(eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
-					case 7:
-						return TE_FUN(t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
-					default:
-						return t_traits::nan();
-					}
+					return eval_details::eval_function<t_vector>(
+						a, expr_context[n_portable->function], t_traits::nan(), eval_arg);
 				},
 				[&](int a) {
 					assert(n->function == expr_context[n_portable->function]);
 					assert(n->parameters[arity(n->type)] == expr_context[n_portable->parameters[arity(n->type)]]);
 
-					auto arity_params = (void*)expr_context[n_portable->parameters[arity(n->type)]];
-
-					switch (arity(n_portable->type))
-					{
-					case 0:
-						return TE_FUN(void*)(arity_params);
-					case 1:
-						return TE_FUN(void*, t_vector)(arity_params, eval_arg(0));
-					case 2:
-						return TE_FUN(void*, t_vector, t_vector)(arity_params, eval_arg(0), eval_arg(1));
-					case 3:
-						return TE_FUN(void*, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
-					case 4:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
-					case 5:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
-					case 6:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
-					case 7:
-						return TE_FUN(void*, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector, t_vector)(
-							arity_params,
-							eval_arg(0),
-							eval_arg(1),
-							eval_arg(2),
-							eval_arg(3),
-							eval_arg(4),
-							eval_arg(5),
-							eval_arg(6));
-					default:
-						return t_traits::nan();
-					}
+					return eval_details::eval_closure<t_vector>(a,
+						expr_context[n_portable->function],
+						(void*)expr_context[n_portable->parameters[arity(n->type)]],
+						t_traits::nan(),
+						eval_arg);
 				},
 				[&]() { return t_traits::nan(); });
-
-#		undef TE_FUN
 		}
 	};
 
