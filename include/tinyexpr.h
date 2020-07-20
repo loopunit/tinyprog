@@ -28,6 +28,7 @@
 #define __TINYEXPR_H__
 
 #include <limits>
+#include <cctype>
 
 #ifndef TE_COMPILER_ENABLED
 #	define TE_COMPILER_ENABLED 1
@@ -1011,6 +1012,8 @@ namespace te
 		size_t				 get_data_size() const;
 		const unsigned char* get_data() const;
 	};
+
+	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error);
 #endif // #if (TE_COMPILER_ENABLED)
 } // namespace te
 
@@ -1933,7 +1936,6 @@ namespace te
 
 		struct compiled_expr : ::te::compiled_expr
 		{
-			expr_portable_expression_build_indexer	m_indexer;
 			expr_portable_expression_build_bindings m_bindings;
 			std::unique_ptr<unsigned char>			m_build_buffer;
 			size_t									m_build_buffer_size;
@@ -2126,10 +2128,10 @@ namespace te
 
 		struct compiled_program : ::te::compiled_program
 		{
-			expr_portable_expression_build_indexer	m_indexer;
 			expr_portable_expression_build_bindings m_bindings;
 			std::unique_ptr<unsigned char>			m_build_buffer;
 			size_t									m_build_buffer_size;
+			std::vector<size_t>						m_expression_offsets;
 		};
 	};
 
@@ -2138,6 +2140,8 @@ namespace te
 		template<typename T_TRAITS>
 		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
 		{
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
+
 			typename native<T_TRAITS>::expr_native* native_expr =
 				native<T_TRAITS>::compile_native(expression, variables, var_count, error);
 
@@ -2150,22 +2154,22 @@ namespace te
 					export_size,
 					variables,
 					var_count,
-					expr->m_indexer.name_map,
-					expr->m_indexer.index_map,
-					expr->m_indexer.index_counter);
+					indexer.name_map,
+					indexer.index_map,
+					indexer.index_counter);
 
-				expr->m_bindings.index_to_address.resize(expr->m_indexer.index_counter);
-				for (const auto& itor : expr->m_indexer.index_map)
+				expr->m_bindings.index_to_address.resize(indexer.index_counter);
+				for (const auto& itor : indexer.index_map)
 				{
 					expr->m_bindings.index_to_address[itor.second] = itor.first;
 				}
 
-				expr->m_bindings.index_to_name.resize(expr->m_indexer.index_counter);
-				expr->m_bindings.index_to_name_c_str.resize(expr->m_indexer.index_counter);
-				for (int i = 0; i < expr->m_indexer.index_counter; ++i)
+				expr->m_bindings.index_to_name.resize(indexer.index_counter);
+				expr->m_bindings.index_to_name_c_str.resize(indexer.index_counter);
+				for (int i = 0; i < indexer.index_counter; ++i)
 				{
-					auto itor = expr->m_indexer.name_map.find(expr->m_bindings.index_to_address[i]);
-					assert(itor != expr->m_indexer.name_map.end());
+					auto itor = indexer.name_map.find(expr->m_bindings.index_to_address[i]);
+					assert(itor != indexer.name_map.end());
 					expr->m_bindings.index_to_name[i]		= itor->second;
 					expr->m_bindings.index_to_name_c_str[i] = expr->m_bindings.index_to_name[i].c_str();
 				}
@@ -2182,14 +2186,14 @@ namespace te
 					expr->m_build_buffer.get(),
 					[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
 						assert(v != nullptr);
-						auto itor = expr->m_indexer.index_map.find(addr);
-						assert(itor != expr->m_indexer.index_map.end());
+						auto itor = indexer.index_map.find(addr);
+						assert(itor != indexer.index_map.end());
 						out->function = itor->second;
 
 						if (v->type >= TE_CLOSURE0 && v->type < TE_CLOSURE_MAX)
 						{
-							auto itor2 = expr->m_indexer.index_map.find(v->context);
-							assert(itor2 != expr->m_indexer.index_map.end());
+							auto itor2 = indexer.index_map.find(v->context);
+							assert(itor2 != indexer.index_map.end());
 							out->parameters[eval_details::arity(v->type)] = itor2->second;
 						}
 					});
@@ -2258,6 +2262,247 @@ namespace te
 
 	namespace program_details
 	{
+		struct parser
+		{
+			static inline std::string_view trim_leading_space(std::string_view v) noexcept
+			{
+				if (v.length() > 0)
+				{
+					for (size_t i = 0; i < v.length(); ++i)
+					{
+						if (!::isspace(v[i]))
+						{
+							return std::string_view(&v[i], v.length() - i);
+						}
+					}
+
+					return std::string_view(&v[v.length()], 0);
+				}
+				return v;
+			}
+
+			static inline std::string_view trim_trailing_space(std::string_view v) noexcept
+			{
+				if (v.length() > 0)
+				{
+					for (size_t i = v.length(); i > 0; --i)
+					{
+						if (!::isspace(v[i - 1]))
+						{
+							return std::string_view(&v[0], i);
+						}
+					}
+
+					if (!::isspace(v[0]))
+					{
+						std::string_view(&v[0], 1);
+					}
+
+					return std::string_view(&v[0], 0);
+				}
+				return v;
+			}
+
+			static inline std::string_view trim_all_space(std::string_view v) noexcept
+			{
+				return trim_leading_space(trim_trailing_space(v));
+			}
+
+			static inline std::tuple<std::string_view, std::string_view> split_at_index(
+				std::string_view s, size_t index)
+			{
+				if (index < s.length())
+				{
+					return {trim_all_space(std::string_view {&s[0], index}),
+						trim_all_space(std::string_view {&s[index], s.length() - index})};
+				}
+				return {s, std::string_view {}};
+			}
+
+			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(
+				std::string_view s, size_t index)
+			{
+				auto [l, r] = split_at_index(s, index);
+				if (r.length() > 1)
+				{
+					return {l, std::string_view {&r[1], r.length() - 1}};
+				}
+				return {l, std::string_view {}};
+			}
+
+			static inline std::tuple<std::string_view, std::string_view> split_at_char(std::string_view program, char c)
+			{
+				for (size_t i = 0; i < program.length(); ++i)
+				{
+					if (program[i] == c)
+					{
+						return split_at_index(program, i);
+					}
+				}
+				return {program, std::string_view {}};
+			}
+
+			static inline std::tuple<std::string_view, std::string_view> split_at_char_excl(
+				std::string_view program, char c)
+			{
+				for (size_t i = 0; i < program.length(); ++i)
+				{
+					if (program[i] == c)
+					{
+						return split_at_index_excl(program, i);
+					}
+				}
+				return {program, std::string_view {}};
+			}
+
+			////
+
+			enum class statement_type
+			{
+				label,		  // "label: example_label;"
+				jump,		  // "jump: example_label;"
+				jump_if,	  // "jump: example_label ? x * 0.5 > 1;"
+				return_value, // "return: x * 0.5;"
+				assign,		  // x : y * 0.1;
+				call,		  // func(x * 0.1);
+				empty,
+			};
+
+			static inline const auto keyword_return = std::string_view("return");
+			static inline const auto keyword_jump	= std::string_view("jump");
+			static inline const auto keyword_label	= std::string_view("label");
+
+			std::tuple<statement_type, std::string_view, std::string_view> parse_statement(std::string_view statement)
+			{
+				auto [operation, expression] = split_at_char_excl(statement, ':');
+
+				if (expression.length() == 0)
+				{
+					return {statement_type::call, operation, std::string_view {}};
+				}
+				else
+				{
+					if (operation == keyword_label)
+					{
+						return {statement_type::label, expression, std::string_view {}};
+					}
+					else if (operation == keyword_jump)
+					{
+						auto [jump_label, jump_condition] = split_at_char_excl(expression, '?');
+						return {statement_type::jump, jump_label, jump_condition};
+					}
+					else if (operation == keyword_return)
+					{
+						return {statement_type::empty, std::string_view {}, expression};
+					}
+					else
+					{
+						return {statement_type::assign, operation, expression};
+					}
+				}
+
+				//	statement					 = trim_all_space(statement);
+				//	auto [operation, expression] = split_at_first_char(statement, ':');
+				//
+				//	if (expression.length() == 0)
+				//	{
+				//		return {statement_type::call, operation, std::string_view {}};
+				//	}
+				//	else
+				//	{
+				//	}
+				//
+				return {statement_type::empty, std::string_view {}, std::string_view {}};
+			}
+		};
+
+		template<typename T_TRAITS>
+		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
+		{
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
+
+			auto program		   = new typename portable<T_TRAITS>::compiled_program();
+			auto program_src	   = parser::trim_all_space(std::string_view {text, strlen(text)});
+			auto program_remaining = program_src;
+
+			while (program_remaining.length() > 0)
+			{
+				auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
+
+				program_remaining = remaining;
+			}
+
+			// const char* expression_current = parser::skip_space(expression);
+			// const char* expression_next	   = parser::advance_expression(expression_current);
+
+			// typename native<T_TRAITS>::expr_native* native_expr =
+			//	native<T_TRAITS>::compile_native(expression, variables, var_count, error);
+			//
+			// if (native_expr)
+			//{
+			//	std::unique_ptr<unsigned char> expression_buffer;
+			//	size_t						   expression_buffer_size;
+			//
+			//	size_t export_size = 0;
+			//	portable<T_TRAITS>::export_estimate(native_expr,
+			//		export_size,
+			//		variables,
+			//		var_count,
+			//		indexer.name_map,
+			//		indexer.index_map,
+			//		indexer.index_counter);
+			//
+			//	// update bindings
+			//	program->m_bindings.index_to_address.resize(indexer.index_counter);
+			//	for (const auto& itor : indexer.index_map)
+			//	{
+			//		program->m_bindings.index_to_address[itor.second] = itor.first;
+			//	}
+			//
+			//	program->m_bindings.index_to_name.resize(indexer.index_counter);
+			//	program->m_bindings.index_to_name_c_str.resize(indexer.index_counter);
+			//	for (int i = 0; i < indexer.index_counter; ++i)
+			//	{
+			//		auto itor = indexer.name_map.find(program->m_bindings.index_to_address[i]);
+			//		assert(itor != indexer.name_map.end());
+			//		program->m_bindings.index_to_name[i]	   = itor->second;
+			//		program->m_bindings.index_to_name_c_str[i] = program->m_bindings.index_to_name[i].c_str();
+			//	}
+			//
+			//	////
+			//
+			//	expression_buffer.reset(new uint8_t[export_size]);
+			//	::memset(expression_buffer.get(), 0x0, export_size);
+			//	expression_buffer_size = export_size;
+			//
+			//	size_t actual_export_size = 0;
+			//	portable<T_TRAITS>::export_write(native_expr,
+			//		actual_export_size,
+			//		variables,
+			//		var_count,
+			//		expression_buffer.get(),
+			//		[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
+			//			assert(v != nullptr);
+			//			auto itor = indexer.index_map.find(addr);
+			//			assert(itor != indexer.index_map.end());
+			//			out->function = itor->second;
+			//
+			//			if (v->type >= TE_CLOSURE0 && v->type < TE_CLOSURE_MAX)
+			//			{
+			//				auto itor2 = indexer.index_map.find(v->context);
+			//				assert(itor2 != indexer.index_map.end());
+			//				out->parameters[eval_details::arity(v->type)] = itor2->second;
+			//			}
+			//		});
+			//
+			//	native<T_TRAITS>::free_native(native_expr);
+			//
+			//	program->m_
+			//}
+
+			return program;
+		}
+
 		template<typename T_TRAITS>
 		void bind_variables(compiled_program* p, const variable* variables, int var_count)
 		{
@@ -2319,12 +2564,6 @@ namespace te
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return nullptr;
 		}
-	
-		template<typename T_TRAITS>
-		compiled_program* create_program()
-		{
-			return nullptr;
-		}
 	} // namespace program_details
 
 	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
@@ -2359,9 +2598,9 @@ namespace te
 
 	////
 
-	compiled_program* create_program()
+	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
 	{
-		return program_details::create_program<env_traits>();
+		return program_details::compile<env_traits>(program, variables, var_count, error);
 	}
 
 	void compiled_program::bind_variables(const variable* variables, int var_count)
@@ -2409,8 +2648,7 @@ namespace te
 		return program_details::get_data<env_traits>(this);
 	}
 }
-
 #	endif // #if (TE_COMPILER_ENABLED)
-#endif
+#endif	   // #if TE_IMPLEMENT
 
 #endif /*__TINYEXPR_H__*/
