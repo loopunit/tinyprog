@@ -1,8 +1,11 @@
 /*
- * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
+ * TinyProg - a minimalist shader-like scripting language.
  *
  * Copyright (c) 2020 Nathan Rausch
  * http://loopunit.com
+ *
+ * Based on:
+ * TINYEXPR - Tiny recursive descent parser and evaluation engine in C
  *
  * Copyright (c) 2015-2018 Lewis Van Winkle
  * http://CodePlea.com
@@ -24,8 +27,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#ifndef __TINYEXPR_H__
-#define __TINYEXPR_H__
+#ifndef __TINYPROG_H__
+#define __TINYPROG_H__
 
 #include <limits>
 #include <cctype>
@@ -2861,4 +2864,4 @@ namespace te
 #endif // #if (TE_COMPILER_ENABLED)
 #endif // #if TE_IMPLEMENT
 
-#endif /*__TINYEXPR_H__*/
+#endif /*__TINYPROG_H__*/

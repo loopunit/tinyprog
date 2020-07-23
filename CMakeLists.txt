@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
 
-project(tinyexprpp VERSION 0.0 LANGUAGES CXX)
+project(tinyprog VERSION 0.0 LANGUAGES CXX)
 
 include(FetchContent)
 
@@ -55,7 +55,7 @@ option(TE_NAT_LOG "Define the log function as natural logarithm." OFF)
 
 vcpkg_interface_library(${PROJECT_NAME}
 	INTERFACE_HEADERS
-		include/tinyexpr.h
+		include/tinyprog.h
 	INTERFACE_INCLUDES
 		${CMAKE_CURRENT_SOURCE_DIR}/include
 )

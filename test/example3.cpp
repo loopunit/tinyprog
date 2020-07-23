@@ -1,5 +1,5 @@
 #define TE_IMPLEMENT 1
-#include "tinyexpr.h"
+#include "tinyprog.h"
 #include <stdio.h>
 
 /* An example of calling a C function. */

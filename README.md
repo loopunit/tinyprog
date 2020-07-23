@@ -1,6 +1,6 @@
-# TinyExprpp
+# TinyProg
 
-TinyExprpp is minimalist shader-like scripting language, based on a C++ refactor of Tinyexpr, a very small recursive descent parser and evaluation engine for math expressions.
+TinyProg is minimalist shader-like scripting language, based on a C++ refactor of Tinyexpr, a very small recursive descent parser and evaluation engine for math expressions.
 
 A simple program:
 
@@ -19,7 +19,7 @@ double x, y, z;
     te_variable vars[] = {{"x", &x}, {"y", &y}, {"z", &z}};
 ```
 
-TinyExprpp can also call custom native functions. Here is a short example:
+TinyProg can also call custom native functions. Here is a short example:
 
 ```C
 double my_sum(double a, double b) {

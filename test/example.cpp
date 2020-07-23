@@ -1,5 +1,5 @@
 #define TE_IMPLEMENT 1
-#include "tinyexpr.h"
+#include "tinyprog.h"
 #include <stdio.h>
 
 int main(int argc, char *argv[])
