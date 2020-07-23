@@ -593,32 +593,58 @@ namespace te
 		using t_impl = native_builtins_impl<T_ATOM>;
 
 		static inline constexpr variable functions[] = {/* must be in alphabetical order */
-			{"abs", t_impl::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"acos", t_impl::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"asin", t_impl::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"atan", t_impl::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"atan2", t_impl::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"ceil", t_impl::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"cos", t_impl::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"cosh", t_impl::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"e", t_impl::e, TE_FUNCTION0 | TE_FLAG_PURE, 0}, {"exp", t_impl::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"fac", t_impl::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"floor", t_impl::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"ln", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"abs", t_impl::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"acos", t_impl::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"asin", t_impl::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"atan", t_impl::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"atan2", t_impl::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"ceil", t_impl::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"cos", t_impl::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"cosh", t_impl::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"e", t_impl::e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+														{"exp", t_impl::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"fac", t_impl::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"floor", t_impl::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"ln", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
-			{"log", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"log", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
-			{"log", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"log", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-			{"log10", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"ncr", t_impl::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"npr", t_impl::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"pi", t_impl::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0}, {"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"sin", t_impl::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"sinh", t_impl::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"sqrt", t_impl::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"tan", t_impl::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"tanh", t_impl::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {0, 0, 0, 0}};
+														{"log10", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"ncr", t_impl::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"npr", t_impl::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"pi", t_impl::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
+														{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"sin", t_impl::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"sinh", t_impl::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"sqrt", t_impl::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"tan", t_impl::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"tanh", t_impl::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{0, 0, 0, 0}};
 
 		static inline constexpr variable operators[] = {/* must be in alphabetical order */
-			{"add", t_impl::add, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"comma", t_impl::comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"divide", t_impl::divide, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"equal", t_impl::equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"fmod", t_impl::fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"greater", t_impl::greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"greater_eq", t_impl::greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"logical_and", t_impl::logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"logical_not", t_impl::logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"logical_notnot", t_impl::logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"logical_or", t_impl::logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"lower", t_impl::lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"lower_eq", t_impl::lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"mul", t_impl::mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"negate", t_impl::negate, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"negate_logical_not", t_impl::negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"negate_logical_notnot", t_impl::negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"not_equal", t_impl::not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"sub", t_impl::sub, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {0, 0, 0, 0}};
+														{"add", t_impl::add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"comma", t_impl::comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"divide", t_impl::divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"equal", t_impl::equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"fmod", t_impl::fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"greater", t_impl::greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"greater_eq", t_impl::greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"logical_and", t_impl::logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"logical_not", t_impl::logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"logical_notnot", t_impl::logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"logical_or", t_impl::logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"lower", t_impl::lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"lower_eq", t_impl::lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"mul", t_impl::mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"negate", t_impl::negate, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"negate_logical_not", t_impl::negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"negate_logical_notnot", t_impl::negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"not_equal", t_impl::not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"sub", t_impl::sub, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{0, 0, 0, 0}};
 
 		static inline int name_compare(const char* a, const char* b, size_t n)
 		{
@@ -753,8 +779,9 @@ namespace te
 		}
 
 		template<typename T_HANDLE_CONSTANT, typename T_HANDLE_VARIABLE, typename T_HANDLE_FUNCTION, typename T_HANDLE_CLOSURE, typename T_HANDLE_ERROR>
-		static inline auto eval_generic(int type, T_HANDLE_CONSTANT handle_constant, T_HANDLE_VARIABLE handle_variable, T_HANDLE_FUNCTION handle_function,
-			T_HANDLE_CLOSURE handle_closure, T_HANDLE_ERROR handle_error)
+		static inline auto eval_generic(
+			int type, T_HANDLE_CONSTANT handle_constant, T_HANDLE_VARIABLE handle_variable, T_HANDLE_FUNCTION handle_function, T_HANDLE_CLOSURE handle_closure,
+			T_HANDLE_ERROR handle_error)
 		{
 			const auto t = type_mask(type);
 			if (t == TE_CONSTANT)
@@ -928,28 +955,28 @@ namespace te
 			case statement_type::jump:
 				statement_index = statement.arg_a;
 				break;
-			
+
 			case statement_type::jump_if:
 				if (0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context)) // TODO: traits function like nan for zero, or compare function?
 				{
 					statement_index = statement.arg_a;
 				}
 				break;
-			
+
 			case statement_type::return_value:
 				return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-			
+
 			case statement_type::assign:
-				{
-					auto dest = (env_traits::t_vector*)expr_context[statement.arg_a];
-					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
-				}
-				break;
-			
+			{
+				auto dest = (env_traits::t_vector*)expr_context[statement.arg_a];
+				*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
+			}
+			break;
+
 			case statement_type::call:
 				eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
 				break;
-			
+
 			default:
 				// fatal error
 				return env_traits::t_vector_builtins::nan();
@@ -1504,9 +1531,8 @@ namespace te
 			}
 
 			int logical = 0;
-			while (s->type == TOK_INFIX
-				   && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")
-					   || s->function == t_builtins::find_builtin_address("logical_not")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub") ||
+											s->function == t_builtins::find_builtin_address("logical_not")))
 			{
 				if (s->function == t_builtins::find_builtin_address("logical_not"))
 				{
@@ -1572,10 +1598,10 @@ namespace te
 			const void*	 left_function = NULL;
 			expr_native* insertion	   = 0;
 
-			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE)
-				&& (ret->function == t_builtins::find_builtin_address("negate") || ret->function == t_builtins::find_builtin_address("logical_not")
-					|| ret->function == t_builtins::find_builtin_address("logical_notnot") || ret->function == t_builtins::find_builtin_address("negate_logical_not")
-					|| ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
+			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
+				(ret->function == t_builtins::find_builtin_address("negate") || ret->function == t_builtins::find_builtin_address("logical_not") ||
+				 ret->function == t_builtins::find_builtin_address("logical_notnot") || ret->function == t_builtins::find_builtin_address("negate_logical_not") ||
+				 ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
 			{
 				left_function	= ret->function;
 				expr_native* se = ret->parameters[0];
@@ -1635,9 +1661,8 @@ namespace te
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == TOK_INFIX
-				   && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide")
-					   || s->function == t_builtins::find_builtin_address("fmod")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide") ||
+											s->function == t_builtins::find_builtin_address("fmod")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1669,10 +1694,9 @@ namespace te
 			/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 			expr_native* ret = sum_expr(s);
 
-			while (s->type == TOK_INFIX
-				   && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq")
-					   || s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq")
-					   || s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq") ||
+											s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq") ||
+											s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1953,8 +1977,8 @@ namespace te
 			size_t									m_build_buffer_size;
 		};
 
-		static size_t export_estimate(
-			const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, name_map& name_map, index_map& index_map, int& index_counter)
+		static size_t
+		export_estimate(const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, name_map& name_map, index_map& index_map, int& index_counter)
 		{
 			if (!n)
 				return export_size;
@@ -2023,8 +2047,8 @@ namespace te
 		}
 
 		template<typename T_REGISTER_FUNC>
-		static size_t export_write(
-			const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, const unsigned char* out_buffer, T_REGISTER_FUNC register_func)
+		static size_t
+		export_write(const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, const unsigned char* out_buffer, T_REGISTER_FUNC register_func)
 		{
 			if (!n)
 				return export_size;
@@ -2153,7 +2177,8 @@ namespace te
 				expr->m_build_buffer_size = export_size;
 
 				size_t actual_export_size = 0;
-				portable<T_TRAITS>::export_write(native_expr, actual_export_size, variables, var_count, expr->m_build_buffer.get(),
+				portable<T_TRAITS>::export_write(
+					native_expr, actual_export_size, variables, var_count, expr->m_build_buffer.get(),
 					[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
 						assert(v != nullptr);
 						auto itor = indexer.index_map.find(addr);
@@ -2289,9 +2314,9 @@ namespace te
 			{
 				if (index < s.length())
 				{
-					return {trim_all_space(std::string_view {&s[0], index}), trim_all_space(std::string_view {&s[index], s.length() - index})};
+					return {trim_all_space(std::string_view{&s[0], index}), trim_all_space(std::string_view{&s[index], s.length() - index})};
 				}
-				return {s, std::string_view {}};
+				return {s, std::string_view{}};
 			}
 
 			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(std::string_view s, size_t index)
@@ -2299,9 +2324,9 @@ namespace te
 				auto [l, r] = split_at_index(s, index);
 				if (r.length() > 1)
 				{
-					return {trim_all_space(l), trim_all_space(std::string_view {&r[1], r.length() - 1})};
+					return {trim_all_space(l), trim_all_space(std::string_view{&r[1], r.length() - 1})};
 				}
-				return {l, std::string_view {}};
+				return {l, std::string_view{}};
 			}
 
 			static inline std::tuple<std::string_view, std::string_view> split_at_char(std::string_view program, char c)
@@ -2313,7 +2338,7 @@ namespace te
 						return split_at_index(program, i);
 					}
 				}
-				return {program, std::string_view {}};
+				return {program, std::string_view{}};
 			}
 
 			static inline std::tuple<std::string_view, std::string_view> split_at_char_excl(std::string_view program, char c)
@@ -2325,7 +2350,7 @@ namespace te
 						return split_at_index_excl(program, i);
 					}
 				}
-				return {program, std::string_view {}};
+				return {program, std::string_view{}};
 			}
 
 			////
@@ -2335,8 +2360,9 @@ namespace te
 			static inline const auto keyword_label	= std::string_view("label");
 
 			template<typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
-			static inline void parse_statement(std::string_view statement, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if,
-				T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
+			static inline void parse_statement(
+				std::string_view statement, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if, T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign,
+				T_ADD_CALL add_call)
 			{
 				auto [operation, expression] = split_at_char_excl(statement, ':');
 
@@ -2522,7 +2548,7 @@ namespace te
 		template<typename T_TRAITS>
 		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
 		{
-			auto program_src	   = parser::trim_all_space(std::string_view {text, strlen(text)});
+			auto program_src	   = parser::trim_all_space(std::string_view{text, strlen(text)});
 			auto program_remaining = program_src;
 
 			std::vector<any_statement> program_statements;
@@ -2544,31 +2570,31 @@ namespace te
 
 					// jump
 					[&](std::string_view destination_label) {
-						any_statement s = jump_statement {lm.find_label(destination_label)};
+						any_statement s = jump_statement{lm.find_label(destination_label)};
 						program_statements.push_back(s);
 					},
 
 					// jump_if
 					[&](std::string_view destination_label, std::string_view condition) {
-						any_statement s = jump_if_statement {lm.find_label(destination_label), em.add_expression(condition)};
+						any_statement s = jump_if_statement{lm.find_label(destination_label), em.add_expression(condition)};
 						program_statements.push_back(s);
 					},
 
 					// return_value
 					[&](std::string_view expression) {
-						any_statement s = return_value_statement {em.add_expression(expression)};
+						any_statement s = return_value_statement{em.add_expression(expression)};
 						program_statements.push_back(s);
 					},
 
 					// assign
 					[&](std::string_view destination, std::string_view expression) {
-						any_statement s = assign_statement {vm.find_label(destination), em.add_expression(expression)};
+						any_statement s = assign_statement{vm.find_label(destination), em.add_expression(expression)};
 						program_statements.push_back(s);
 					},
 
 					// call
 					[&](std::string_view expression) {
-						any_statement s = call_statement {em.add_expression(expression)};
+						any_statement s = call_statement{em.add_expression(expression)};
 						program_statements.push_back(s);
 					});
 
