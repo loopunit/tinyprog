@@ -932,7 +932,6 @@ namespace te
 	enum class statement_type : int
 	{
 		jump,
-		jump_if,
 		return_value,
 		assign,
 		call,
@@ -953,11 +952,7 @@ namespace te
 			switch (statement.type)
 			{
 			case statement_type::jump:
-				statement_index = statement.arg_a;
-				break;
-
-			case statement_type::jump_if:
-				if (0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context)) // TODO: traits function like nan for zero, or compare function?
+				if (statement.arg_b == -1 || (0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
 				{
 					statement_index = statement.arg_a;
 				}
@@ -2399,23 +2394,6 @@ namespace te
 					}
 				}
 			}
-
-			//        jump |     jump_if | return_value |              assign |       call
-			// label index | label index |   expression | dest variable index | expression
-			//       empty |  expression |        empty |          expression |      empty
-			// struct statement
-			//{
-			//	//enum class instruction
-			//	//{
-			//	//	jump,		  // "jump: example_label;"
-			//	//	jump_if,	  // "jump: example_label ? x * 0.5 > 1;"
-			//	//	return_value, // "return: x * 0.5;"
-			//	//	assign,		  // "x: y * 0.1;"
-			//	//	call,		  // "func(x * 0.1);"
-			//	//};
-			//	//
-			//	//instruction m_instruction;
-			//};
 		};
 
 		struct label_manager
@@ -2508,13 +2486,6 @@ namespace te
 		struct jump_statement
 		{
 			label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
-
-			int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
-		};
-
-		struct jump_if_statement
-		{
-			label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
 			int					  m_expression_index;
 
 			int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
@@ -2543,7 +2514,7 @@ namespace te
 			int m_expression_offset;
 		};
 
-		using any_statement = std::variant<jump_statement, jump_if_statement, return_value_statement, assign_statement, call_statement>;
+		using any_statement = std::variant<jump_statement, return_value_statement, assign_statement, call_statement>;
 
 		template<typename T_TRAITS>
 		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
@@ -2570,13 +2541,13 @@ namespace te
 
 					// jump
 					[&](std::string_view destination_label) {
-						any_statement s = jump_statement{lm.find_label(destination_label)};
+						any_statement s = jump_statement{lm.find_label(destination_label), -1};
 						program_statements.push_back(s);
 					},
 
 					// jump_if
 					[&](std::string_view destination_label, std::string_view condition) {
-						any_statement s = jump_if_statement{lm.find_label(destination_label), em.add_expression(condition)};
+						any_statement s = jump_statement{lm.find_label(destination_label), em.add_expression(condition)};
 						program_statements.push_back(s);
 					},
 
@@ -2607,10 +2578,6 @@ namespace te
 				if (std::holds_alternative<jump_statement>(s))
 				{
 					std::get<jump_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_statement>(s).m_target_handle);
-				}
-				else if (std::holds_alternative<jump_if_statement>(s))
-				{
-					std::get<jump_if_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_if_statement>(s).m_target_handle);
 				}
 			}
 
@@ -2700,11 +2667,11 @@ namespace te
 							}
 						}
 
-						if (std::holds_alternative<jump_if_statement>(s))
+						if (std::holds_alternative<jump_statement>(s))
 						{
-							if (std::get<jump_if_statement>(s).m_expression_index == expr_idx)
+							if (std::get<jump_statement>(s).m_expression_index == expr_idx)
 							{
-								std::get<jump_if_statement>(s).m_expression_offset = current_expr_offset;
+								std::get<jump_statement>(s).m_expression_offset = current_expr_offset;
 							}
 						}
 					}
@@ -2738,17 +2705,11 @@ namespace te
 					s_out.arg_a = std::get<return_value_statement>(s_in).m_expression_offset;
 					s_out.arg_b = -1;
 				}
-				else if (std::holds_alternative<jump_if_statement>(s_in))
-				{
-					s_out.type	= statement_type::jump_if;
-					s_out.arg_a = std::get<jump_if_statement>(s_in).m_target_index;
-					s_out.arg_b = std::get<jump_if_statement>(s_in).m_expression_offset;
-				}
 				else if (std::holds_alternative<jump_statement>(s_in))
 				{
 					s_out.type	= statement_type::jump;
 					s_out.arg_a = std::get<jump_statement>(s_in).m_target_index;
-					s_out.arg_b = -1;
+					s_out.arg_b = std::get<jump_statement>(s_in).m_expression_offset;
 				}
 
 				program->program_statements.push_back(s_out);
