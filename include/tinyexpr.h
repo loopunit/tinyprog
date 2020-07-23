@@ -31,11 +31,11 @@
 #include <cctype>
 
 #ifndef TE_COMPILER_ENABLED
-#	define TE_COMPILER_ENABLED 1
+#define TE_COMPILER_ENABLED 1
 #endif // TE_COMPILER_ENABLED
 
 #ifndef TE_IMPLEMENT
-#	define TE_IMPLEMENT 0
+#define TE_IMPLEMENT 0
 #endif // TE_COMPILER_ENABLED
 
 namespace te
@@ -590,58 +590,32 @@ namespace te
 		using t_impl = native_builtins_impl<T_ATOM>;
 
 		static inline constexpr variable functions[] = {/* must be in alphabetical order */
-			{"abs", t_impl::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"acos", t_impl::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"asin", t_impl::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"atan", t_impl::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"atan2", t_impl::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"ceil", t_impl::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"cos", t_impl::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"cosh", t_impl::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"e", t_impl::e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-			{"exp", t_impl::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"fac", t_impl::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"floor", t_impl::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"ln", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"abs", t_impl::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"acos", t_impl::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"asin", t_impl::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"atan", t_impl::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"atan2", t_impl::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"ceil", t_impl::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"cos", t_impl::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"cosh", t_impl::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"e", t_impl::e, TE_FUNCTION0 | TE_FLAG_PURE, 0}, {"exp", t_impl::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"fac", t_impl::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"floor", t_impl::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"ln", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #ifdef TE_NAT_LOG
 			{"log", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #else
 			{"log", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
 #endif
-			{"log10", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"ncr", t_impl::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"npr", t_impl::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"pi", t_impl::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-			{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"sin", t_impl::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"sinh", t_impl::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"sqrt", t_impl::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"tan", t_impl::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"tanh", t_impl::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{0, 0, 0, 0}};
+			{"log10", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"ncr", t_impl::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"npr", t_impl::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"pi", t_impl::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0}, {"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"sin", t_impl::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"sinh", t_impl::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"sqrt", t_impl::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"tan", t_impl::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"tanh", t_impl::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {0, 0, 0, 0}};
 
 		static inline constexpr variable operators[] = {/* must be in alphabetical order */
-			{"add", t_impl::add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"comma", t_impl::comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"divide", t_impl::divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"equal", t_impl::equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"fmod", t_impl::fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"greater", t_impl::greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"greater_eq", t_impl::greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"logical_and", t_impl::logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"logical_not", t_impl::logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"logical_notnot", t_impl::logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"logical_or", t_impl::logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"lower", t_impl::lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"lower_eq", t_impl::lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"mul", t_impl::mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"negate", t_impl::negate, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"negate_logical_not", t_impl::negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"negate_logical_notnot", t_impl::negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-			{"not_equal", t_impl::not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{"sub", t_impl::sub, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-			{0, 0, 0, 0}};
+			{"add", t_impl::add, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"comma", t_impl::comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"divide", t_impl::divide, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"equal", t_impl::equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"fmod", t_impl::fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"greater", t_impl::greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"greater_eq", t_impl::greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"logical_and", t_impl::logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"logical_not", t_impl::logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"logical_notnot", t_impl::logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"logical_or", t_impl::logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"lower", t_impl::lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"lower_eq", t_impl::lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"mul", t_impl::mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"negate", t_impl::negate, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"negate_logical_not", t_impl::negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+			{"negate_logical_notnot", t_impl::negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0}, {"not_equal", t_impl::not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+			{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {"sub", t_impl::sub, TE_FUNCTION2 | TE_FLAG_PURE, 0}, {0, 0, 0, 0}};
 
 		static inline int name_compare(const char* a, const char* b, size_t n)
 		{
@@ -775,17 +749,9 @@ namespace te
 			return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
 		}
 
-		template<typename T_HANDLE_CONSTANT,
-			typename T_HANDLE_VARIABLE,
-			typename T_HANDLE_FUNCTION,
-			typename T_HANDLE_CLOSURE,
-			typename T_HANDLE_ERROR>
-		static inline auto eval_generic(int type,
-			T_HANDLE_CONSTANT				handle_constant,
-			T_HANDLE_VARIABLE				handle_variable,
-			T_HANDLE_FUNCTION				handle_function,
-			T_HANDLE_CLOSURE				handle_closure,
-			T_HANDLE_ERROR					handle_error)
+		template<typename T_HANDLE_CONSTANT, typename T_HANDLE_VARIABLE, typename T_HANDLE_FUNCTION, typename T_HANDLE_CLOSURE, typename T_HANDLE_ERROR>
+		static inline auto eval_generic(int type, T_HANDLE_CONSTANT handle_constant, T_HANDLE_VARIABLE handle_variable, T_HANDLE_FUNCTION handle_function,
+			T_HANDLE_CLOSURE handle_closure, T_HANDLE_ERROR handle_error)
 		{
 			const auto t = type_mask(type);
 			if (t == TE_CONSTANT)
@@ -829,14 +795,11 @@ namespace te
 			case 3:
 				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2));
 			case 4:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
 			case 5:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
 			case 6:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
 			case 7:
 				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
 					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
@@ -846,8 +809,7 @@ namespace te
 		}
 
 		template<typename T_VECTOR, typename T_RET, typename T_EVAL_ARG>
-		auto eval_closure(int a, const void* fn, const void* arity_params, T_RET error_val, T_EVAL_ARG eval_arg)
-			-> T_RET
+		auto eval_closure(int a, const void* fn, const void* arity_params, T_RET error_val, T_EVAL_ARG eval_arg) -> T_RET
 		{
 #define TE_FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
 			switch (a)
@@ -859,36 +821,25 @@ namespace te
 			case 2:
 				return TE_FUN(const void*, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1));
 			case 3:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR)(
-					arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
 			case 4:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
 			case 5:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
 			case 6:
 				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
 					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
 			case 7:
 				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
-					arity_params,
-					eval_arg(0),
-					eval_arg(1),
-					eval_arg(2),
-					eval_arg(3),
-					eval_arg(4),
-					eval_arg(5),
-					eval_arg(6));
+					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
 			}
 #undef TE_FUN
 			return error_val;
 		}
 
 		template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
-		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable,
-			const unsigned char*											 expr_buffer,
-			const void* const expr_context[]) noexcept -> typename T_VECTOR
+		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept ->
+			typename T_VECTOR
 		{
 			using t_atom	 = T_ATOM;
 			using t_vector	 = T_VECTOR;
@@ -896,28 +847,14 @@ namespace te
 			using t_builtins = typename T_TRAITS::t_vector_builtins;
 
 			auto eval_arg = [&](int e) {
-				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>(
-					(const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
+				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>((const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
 			};
 
 			return eval_generic(
-				n_portable->type,
-				[&]() { return t_traits::load_atom(n_portable->value); },
-				[&]() {
-					return t_traits::load_atom((expr_context != nullptr)
-												   ? *((const t_vector*)(expr_context[n_portable->bound]))
-												   : t_builtins::nan());
-				},
-				[&](int a) {
-					return eval_function<t_vector>(a, expr_context[n_portable->function], t_builtins::nan(), eval_arg);
-				},
-				[&](int a) {
-					return eval_closure<t_vector>(a,
-						expr_context[n_portable->function],
-						(void*)expr_context[n_portable->parameters[a]],
-						t_builtins::nan(),
-						eval_arg);
-				},
+				n_portable->type, [&]() { return t_traits::load_atom(n_portable->value); },
+				[&]() { return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_builtins::nan()); },
+				[&](int a) { return eval_function<t_vector>(a, expr_context[n_portable->function], t_builtins::nan(), eval_arg); },
+				[&](int a) { return eval_closure<t_vector>(a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[a]], t_builtins::nan(), eval_arg); },
 				[&]() { return t_builtins::nan(); });
 		}
 	} // namespace eval_details
@@ -1004,8 +941,6 @@ namespace te
 		void bind_variables(const variable* variables, int var_count);
 		bool compile_statement(const char* statement, int* error);
 
-		size_t				 get_expression_offset_array_size() const;
-		const size_t*		 get_expression_offsets() const;
 		size_t				 get_binding_array_size() const;
 		const void* const*	 get_binding_addresses() const;
 		const char* const*	 get_binding_names() const;
@@ -1018,14 +953,16 @@ namespace te
 } // namespace te
 
 #if TE_IMPLEMENT
-#	include <unordered_map>
-#	include <vector>
-#	include <memory>
-#	include <cassert>
+#include <unordered_map>
+#include <vector>
+#include <variant>
+#include <memory>
+#include <cassert>
+
+#if (TE_COMPILER_ENABLED)
 
 namespace te
 {
-#	if (TE_COMPILER_ENABLED)
 	template<typename T_VECTOR>
 	struct compiler_builtins : native_builtins<T_VECTOR>
 	{
@@ -1137,11 +1074,11 @@ namespace te
 			return (((t)&TE_CLOSURE0) != 0);
 		}
 
-#		define NEW_EXPR(type, ...)                                                                                    \
-			[&]() {                                                                                                    \
-				const expr_native* _args[] = {__VA_ARGS__};                                                            \
-				return new_expr((type), _args);                                                                        \
-			}()
+#define NEW_EXPR(type, ...)                                                                                                                                                        \
+	[&]() {                                                                                                                                                                        \
+		const expr_native* _args[] = {__VA_ARGS__};                                                                                                                                \
+		return new_expr((type), _args);                                                                                                                                            \
+	}()
 
 		static expr_native* new_expr(const int type, const expr_native* parameters[])
 		{
@@ -1225,8 +1162,7 @@ namespace te
 					{
 						const char* start;
 						start = s->next;
-						while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') ||
-							   (s->next[0] == '_'))
+						while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') || (s->next[0] == '_'))
 							s->next++;
 
 						const variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
@@ -1502,8 +1438,7 @@ namespace te
 		{
 			/* <power>     =    {("-" | "+" | "!")} <base> */
 			int sign = 1;
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") ||
-											   s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
 			{
 				if (s->function == t_builtins::find_builtin_address("sub"))
 					sign = -sign;
@@ -1511,9 +1446,9 @@ namespace te
 			}
 
 			int logical = 0;
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") ||
-											   s->function == t_builtins::find_builtin_address("sub") ||
-											   s->function == t_builtins::find_builtin_address("logical_not")))
+			while (s->type == TOK_INFIX
+				   && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")
+					   || s->function == t_builtins::find_builtin_address("logical_not")))
 			{
 				if (s->function == t_builtins::find_builtin_address("logical_not"))
 				{
@@ -1570,7 +1505,7 @@ namespace te
 			return ret;
 		}
 
-#		ifdef TE_POW_FROM_RIGHT
+#ifdef TE_POW_FROM_RIGHT
 		static expr_native* factor(state* s)
 		{
 			/* <factor>    =    <power> {"^" <power>} */
@@ -1579,12 +1514,10 @@ namespace te
 			const void*	 left_function = NULL;
 			expr_native* insertion	   = 0;
 
-			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
-				(ret->function == t_builtins::find_builtin_address("negate") ||
-					ret->function == t_builtins::find_builtin_address("logical_not") ||
-					ret->function == t_builtins::find_builtin_address("logical_notnot") ||
-					ret->function == t_builtins::find_builtin_address("negate_logical_not") ||
-					ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
+			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE)
+				&& (ret->function == t_builtins::find_builtin_address("negate") || ret->function == t_builtins::find_builtin_address("logical_not")
+					|| ret->function == t_builtins::find_builtin_address("logical_notnot") || ret->function == t_builtins::find_builtin_address("negate_logical_not")
+					|| ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
 			{
 				left_function	= ret->function;
 				expr_native* se = ret->parameters[0];
@@ -1600,8 +1533,8 @@ namespace te
 				if (insertion)
 				{
 					/* Make exponentiation go right-to-left. */
-					expr_native* insert = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
-					insert->function	= t;
+					expr_native* insert		 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+					insert->function		 = t;
 					insertion->parameters[1] = insert;
 					insertion				 = insert;
 				}
@@ -1621,7 +1554,7 @@ namespace te
 
 			return ret;
 		}
-#		else
+#else
 		static expr_native* factor(state* s)
 		{
 			/* <factor>    =    <power> {"^" <power>} */
@@ -1637,16 +1570,16 @@ namespace te
 
 			return ret;
 		}
-#		endif
+#endif
 
 		static expr_native* term(state* s)
 		{
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("mul") ||
-											   s->function == t_builtins::find_builtin_address("divide") ||
-											   s->function == t_builtins::find_builtin_address("fmod")))
+			while (s->type == TOK_INFIX
+				   && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide")
+					   || s->function == t_builtins::find_builtin_address("fmod")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1662,8 +1595,7 @@ namespace te
 			/* <expr>      =    <term> {("+" | "-") <term>} */
 			expr_native* ret = term(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") ||
-											   s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1679,12 +1611,10 @@ namespace te
 			/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 			expr_native* ret = sum_expr(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("greater") ||
-											   s->function == t_builtins::find_builtin_address("greater_eq") ||
-											   s->function == t_builtins::find_builtin_address("lower") ||
-											   s->function == t_builtins::find_builtin_address("lower_eq") ||
-											   s->function == t_builtins::find_builtin_address("equal") ||
-											   s->function == t_builtins::find_builtin_address("not_equal")))
+			while (s->type == TOK_INFIX
+				   && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq")
+					   || s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq")
+					   || s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1700,8 +1630,7 @@ namespace te
 			/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 			expr_native* ret = test_expr(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("logical_and") ||
-											   s->function == t_builtins::find_builtin_address("logical_or")))
+			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("logical_and") || s->function == t_builtins::find_builtin_address("logical_or")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1737,16 +1666,9 @@ namespace te
 			};
 
 			return eval_details::eval_generic(
-				n->type,
-				[&]() { return n->value; },
-				[&]() { return *n->bound; },
-				[&](int a) {
-					return eval_details::eval_function<t_vector>(a, n->function, t_builtins::nan(), eval_arg);
-				},
-				[&](int a) {
-					return eval_details::eval_closure<t_vector>(
-						a, n->function, (void*)n->parameters[a], t_builtins::nan(), eval_arg);
-				},
+				n->type, [&]() { return n->value; }, [&]() { return *n->bound; },
+				[&](int a) { return eval_details::eval_function<t_vector>(a, n->function, t_builtins::nan(), eval_arg); },
+				[&](int a) { return eval_details::eval_closure<t_vector>(a, n->function, (void*)n->parameters[a], t_builtins::nan(), eval_arg); },
 				[&]() { return t_builtins::nan(); });
 		}
 
@@ -1924,12 +1846,44 @@ namespace te
 			name_map  name_map;
 			index_map index_map;
 			int		  index_counter = 0;
+
+			int add_referenced_variable(const variable* var)
+			{
+				int idx = index_counter++;
+				name_map.insert(std::make_pair(var->address, std::string(var->name)));
+				index_map.insert(std::make_pair(var->address, idx));
+				return idx;
+			}
+
+			std::vector<std::string> get_binding_table()
+			{
+				std::vector<std::string> t;
+				t.resize(index_counter);
+				for (auto index_map_itor : index_map)
+				{
+					auto name_map_itor		 = name_map.find(index_map_itor.first);
+					t[index_map_itor.second] = name_map_itor->second;
+				}
+
+				return t;
+			}
+
+			std::vector<const void*> get_address_table()
+			{
+				std::vector<const void*> t;
+				t.resize(index_counter);
+				for (auto index_map_itor : index_map)
+				{
+					t[index_map_itor.second] = index_map_itor.first;
+				}
+
+				return t;
+			}
 		};
 
 		struct expr_portable_expression_build_bindings
 		{
-			std::vector<const void*>
-									 index_to_address; // this contains the native function/value address as originally compiled
+			std::vector<const void*> index_to_address; // this contains the native function/value address as originally compiled
 			std::vector<std::string> index_to_name;
 			std::vector<const char*> index_to_name_c_str;
 		};
@@ -1941,13 +1895,8 @@ namespace te
 			size_t									m_build_buffer_size;
 		};
 
-		static size_t export_estimate(const expr_native* n,
-			size_t&										 export_size,
-			const variable*								 lookup,
-			int											 lookup_len,
-			name_map&									 name_map,
-			index_map&									 index_map,
-			int&										 index_counter)
+		static size_t export_estimate(
+			const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, name_map& name_map, index_map& index_map, int& index_counter)
 		{
 			if (!n)
 				return export_size;
@@ -1955,13 +1904,7 @@ namespace te
 			export_size += sizeof(expr_native);
 
 			auto eval_arg = [&](int e) {
-				export_estimate((const expr_native*)n->parameters[e],
-					export_size,
-					lookup,
-					lookup_len,
-					name_map,
-					index_map,
-					index_counter);
+				export_estimate((const expr_native*)n->parameters[e], export_size, lookup, lookup_len, name_map, index_map, index_counter);
 			};
 
 			auto handle_addr = [&](const variable* var) -> bool {
@@ -1990,8 +1933,7 @@ namespace te
 			};
 
 			return eval_details::eval_generic(
-				n->type,
-				[&]() { return export_size; },
+				n->type, [&]() { return export_size; },
 				[&]() {
 					auto res = handle_addr(native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
 					assert(res);
@@ -2023,12 +1965,8 @@ namespace te
 		}
 
 		template<typename T_REGISTER_FUNC>
-		static size_t export_write(const expr_native* n,
-			size_t&									  export_size,
-			const variable*							  lookup,
-			int										  lookup_len,
-			const unsigned char*					  out_buffer,
-			T_REGISTER_FUNC							  register_func)
+		static size_t export_write(
+			const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, const unsigned char* out_buffer, T_REGISTER_FUNC register_func)
 		{
 			if (!n)
 				return export_size;
@@ -2039,8 +1977,7 @@ namespace te
 			n_out->type = n->type;
 
 			auto eval_arg = [&](int e) {
-				return export_write(
-					(const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func);
+				return export_write((const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func);
 			};
 
 			return eval_details::eval_generic(
@@ -2054,9 +1991,7 @@ namespace te
 					return export_size;
 				},
 				[&](int a) {
-					register_func(n->function,
-						n_out,
-						native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					register_func(n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
@@ -2068,9 +2003,7 @@ namespace te
 					return export_size;
 				},
 				[&](int a) {
-					register_func(n->function,
-						n_out,
-						native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					register_func(n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
@@ -2084,10 +2017,7 @@ namespace te
 				[&]() { return export_size; });
 		}
 
-		static t_vector eval_compare(const expr_native* n,
-			const expr_portable<t_traits>*				n_portable,
-			const unsigned char*						expr_buffer,
-			const void* const							expr_context[])
+		static t_vector eval_compare(const expr_native* n, const expr_portable<t_traits>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[])
 		{
 			if (!n)
 				return t_traits::nan();
@@ -2095,68 +2025,70 @@ namespace te
 			assert(n->type == n_portable->type);
 
 			auto eval_arg = [&](int e) {
-				return eval_compare((const expr_native*)n->parameters[e],
-					(const expr_portable*)&expr_buffer[n_portable->parameters[e]],
-					expr_buffer,
-					expr_context);
+				return eval_compare((const expr_native*)n->parameters[e], (const expr_portable*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
 			};
 
 			return eval_details::eval_generic(
-				n->type,
-				[&]() { return n_portable->value; },
+				n->type, [&]() { return n_portable->value; },
 				[&]() {
 					assert(n->bound == expr_context[n_portable->bound]);
 					return t_traits::load_atom(*((const t_atom*)(expr_context[n_portable->bound])));
 				},
 				[&](int a) {
 					assert(n->function == expr_context[n_portable->function]);
-					return eval_details::eval_function<t_vector>(
-						a, expr_context[n_portable->function], t_traits::nan(), eval_arg);
+					return eval_details::eval_function<t_vector>(a, expr_context[n_portable->function], t_traits::nan(), eval_arg);
 				},
 				[&](int a) {
 					assert(n->function == expr_context[n_portable->function]);
 					assert(n->parameters[arity(n->type)] == expr_context[n_portable->parameters[arity(n->type)]]);
 
-					return eval_details::eval_closure<t_vector>(a,
-						expr_context[n_portable->function],
-						(void*)expr_context[n_portable->parameters[arity(n->type)]],
-						t_traits::nan(),
-						eval_arg);
+					return eval_details::eval_closure<t_vector>(
+						a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[arity(n->type)]], t_traits::nan(), eval_arg);
 				},
 				[&]() { return t_traits::nan(); });
 		}
 
 		struct compiled_program : ::te::compiled_program
 		{
-			expr_portable_expression_build_bindings m_bindings;
-			std::unique_ptr<unsigned char>			m_build_buffer;
-			size_t									m_build_buffer_size;
-			std::vector<size_t>						m_expression_offsets;
+			enum class statement_type
+			{
+				jump,
+				jump_if,
+				return_value,
+				assign,
+				call,
+			};
+
+			struct statement
+			{
+				statement_type type;
+				int			   arg_a;
+				int			   arg_b;
+			};
+
+			std::vector<statement>		   program_statements;
+			std::vector<std::string>	   binding_table;
+			std::vector<const char*>	   binding_table_cstr;
+			std::vector<const void*>	   address_table;
+			std::unique_ptr<unsigned char> program_expression_buffer;
+			size_t						   program_expression_buffer_size = 0;
 		};
 	};
 
 	namespace expr_details
 	{
 		template<typename T_TRAITS>
-		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
+		compiled_expr* compile_using_indexer(
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, const variable* variables, int var_count, int* error)
 		{
-			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
-
-			typename native<T_TRAITS>::expr_native* native_expr =
-				native<T_TRAITS>::compile_native(expression, variables, var_count, error);
+			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables, var_count, error);
 
 			if (native_expr)
 			{
 				auto expr = new typename portable<T_TRAITS>::compiled_expr;
 
 				size_t export_size = 0;
-				portable<T_TRAITS>::export_estimate(native_expr,
-					export_size,
-					variables,
-					var_count,
-					indexer.name_map,
-					indexer.index_map,
-					indexer.index_counter);
+				portable<T_TRAITS>::export_estimate(native_expr, export_size, variables, var_count, indexer.name_map, indexer.index_map, indexer.index_counter);
 
 				expr->m_bindings.index_to_address.resize(indexer.index_counter);
 				for (const auto& itor : indexer.index_map)
@@ -2179,11 +2111,7 @@ namespace te
 				expr->m_build_buffer_size = export_size;
 
 				size_t actual_export_size = 0;
-				portable<T_TRAITS>::export_write(native_expr,
-					actual_export_size,
-					variables,
-					var_count,
-					expr->m_build_buffer.get(),
+				portable<T_TRAITS>::export_write(native_expr, actual_export_size, variables, var_count, expr->m_build_buffer.get(),
 					[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
 						assert(v != nullptr);
 						auto itor = indexer.index_map.find(addr);
@@ -2202,6 +2130,13 @@ namespace te
 				return expr;
 			}
 			return nullptr;
+		}
+
+		template<typename T_TRAITS>
+		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
+		{
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
+			return compile_using_indexer<T_TRAITS>(indexer, expression, variables, var_count, error);
 		}
 
 		template<typename T_TRAITS>
@@ -2308,24 +2243,21 @@ namespace te
 				return trim_leading_space(trim_trailing_space(v));
 			}
 
-			static inline std::tuple<std::string_view, std::string_view> split_at_index(
-				std::string_view s, size_t index)
+			static inline std::tuple<std::string_view, std::string_view> split_at_index(std::string_view s, size_t index)
 			{
 				if (index < s.length())
 				{
-					return {trim_all_space(std::string_view {&s[0], index}),
-						trim_all_space(std::string_view {&s[index], s.length() - index})};
+					return {trim_all_space(std::string_view {&s[0], index}), trim_all_space(std::string_view {&s[index], s.length() - index})};
 				}
 				return {s, std::string_view {}};
 			}
 
-			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(
-				std::string_view s, size_t index)
+			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(std::string_view s, size_t index)
 			{
 				auto [l, r] = split_at_index(s, index);
 				if (r.length() > 1)
 				{
-					return {l, std::string_view {&r[1], r.length() - 1}};
+					return {trim_all_space(l), trim_all_space(std::string_view {&r[1], r.length() - 1})};
 				}
 				return {l, std::string_view {}};
 			}
@@ -2342,8 +2274,7 @@ namespace te
 				return {program, std::string_view {}};
 			}
 
-			static inline std::tuple<std::string_view, std::string_view> split_at_char_excl(
-				std::string_view program, char c)
+			static inline std::tuple<std::string_view, std::string_view> split_at_char_excl(std::string_view program, char c)
 			{
 				for (size_t i = 0; i < program.length(); ++i)
 				{
@@ -2357,150 +2288,422 @@ namespace te
 
 			////
 
-			enum class statement_type
-			{
-				label,		  // "label: example_label;"
-				jump,		  // "jump: example_label;"
-				jump_if,	  // "jump: example_label ? x * 0.5 > 1;"
-				return_value, // "return: x * 0.5;"
-				assign,		  // x : y * 0.1;
-				call,		  // func(x * 0.1);
-				empty,
-			};
-
 			static inline const auto keyword_return = std::string_view("return");
 			static inline const auto keyword_jump	= std::string_view("jump");
 			static inline const auto keyword_label	= std::string_view("label");
 
-			std::tuple<statement_type, std::string_view, std::string_view> parse_statement(std::string_view statement)
+			template<typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
+			static inline void parse_statement(std::string_view statement, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if,
+				T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
 			{
 				auto [operation, expression] = split_at_char_excl(statement, ':');
 
 				if (expression.length() == 0)
 				{
-					return {statement_type::call, operation, std::string_view {}};
+					add_call(operation);
 				}
 				else
 				{
 					if (operation == keyword_label)
 					{
-						return {statement_type::label, expression, std::string_view {}};
+						add_label(expression);
 					}
 					else if (operation == keyword_jump)
 					{
 						auto [jump_label, jump_condition] = split_at_char_excl(expression, '?');
-						return {statement_type::jump, jump_label, jump_condition};
+
+						if (jump_condition.length() > 0)
+						{
+							add_jump_if(jump_label, jump_condition);
+						}
+						else
+						{
+							add_jump(jump_label);
+						}
 					}
 					else if (operation == keyword_return)
 					{
-						return {statement_type::empty, std::string_view {}, expression};
+						add_return_value(expression);
 					}
 					else
 					{
-						return {statement_type::assign, operation, expression};
+						add_assign(operation, expression);
+					}
+				}
+			}
+
+			//        jump |     jump_if | return_value |              assign |       call
+			// label index | label index |   expression | dest variable index | expression
+			//       empty |  expression |        empty |          expression |      empty
+			// struct statement
+			//{
+			//	//enum class instruction
+			//	//{
+			//	//	jump,		  // "jump: example_label;"
+			//	//	jump_if,	  // "jump: example_label ? x * 0.5 > 1;"
+			//	//	return_value, // "return: x * 0.5;"
+			//	//	assign,		  // "x: y * 0.1;"
+			//	//	call,		  // "func(x * 0.1);"
+			//	//};
+			//	//
+			//	//instruction m_instruction;
+			//};
+		};
+
+		namespace pass_1
+		{
+			struct label_manager
+			{
+				using handle								  = int;
+				static inline constexpr int placeholder_index = -1;
+
+				std::vector<int>							 m_label_statement_indexes;
+				std::unordered_map<std::string_view, handle> m_label_handle_map;
+
+				handle add_label(std::string_view label, int statement_index)
+				{
+					auto itor = m_label_handle_map.find(label);
+					if (itor != m_label_handle_map.end())
+					{
+						handle label_handle = (*itor).second;
+
+						// Placeholder was filled, fill in the program counter
+						if (m_label_statement_indexes[label_handle] != placeholder_index)
+						{
+							// error, label repeated?
+						}
+						else
+						{
+							// The target of the jump label is the next statement of program
+							m_label_statement_indexes[label_handle] = statement_index;
+						}
+
+						return label_handle;
+					}
+					else
+					{
+						// The target of the jump label is the next statement of program
+						auto label_handle = (handle)m_label_statement_indexes.size();
+						m_label_handle_map.insert(std::make_pair(label, label_handle));
+						m_label_statement_indexes.push_back(statement_index);
+						return label_handle;
 					}
 				}
 
-				//	statement					 = trim_all_space(statement);
-				//	auto [operation, expression] = split_at_first_char(statement, ':');
-				//
-				//	if (expression.length() == 0)
-				//	{
-				//		return {statement_type::call, operation, std::string_view {}};
-				//	}
-				//	else
-				//	{
-				//	}
-				//
-				return {statement_type::empty, std::string_view {}, std::string_view {}};
+				handle find_label(std::string_view label)
+				{
+					auto itor = m_label_handle_map.find(label);
+					if (itor != m_label_handle_map.end())
+					{
+						// label exists, use its index
+						return (handle)(*itor).second;
+					}
+					else
+					{
+						// add a temp label, which will be replaced then when the actual label is encountered
+						auto new_handle = (handle)m_label_statement_indexes.size();
+						m_label_handle_map.insert(std::make_pair(label, new_handle));
+						m_label_statement_indexes.push_back(placeholder_index);
+						return new_handle;
+					}
+				}
+
+				int get_label_statement_index(handle label)
+				{
+					return m_label_statement_indexes[label];
+				}
+			};
+
+			struct variable_manager
+			{
+				int										  m_variable_count = 0;
+				std::unordered_map<std::string_view, int> m_variable_map;
+
+				int find_label(std::string_view name)
+				{
+					auto idx = m_variable_count++;
+					m_variable_map.insert(std::make_pair(name, idx));
+					return idx;
+				}
+			};
+
+			struct expression_manager
+			{
+				std::vector<std::string_view> m_expressions;
+
+				int add_expression(std::string_view src)
+				{
+					auto idx = (int)m_expressions.size();
+					m_expressions.push_back(src);
+					return idx;
+				}
+			};
+
+			struct jump_statement
+			{
+				label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
+
+				int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
+			};
+
+			struct jump_if_statement
+			{
+				label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
+				int					  m_expression_index;
+
+				int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
+				int m_expression_offset;
+			};
+
+			struct return_value_statement
+			{
+				int m_expression_index;
+
+				int m_expression_offset;
+			};
+
+			struct assign_statement
+			{
+				int m_variable_index;
+				int m_expression_index;
+
+				int m_expression_offset;
+			};
+
+			struct call_statement
+			{
+				int m_expression_index;
+
+				int m_expression_offset;
+			};
+
+			using any_statement = std::variant<jump_statement, jump_if_statement, return_value_statement, assign_statement, call_statement>;
+
+			template<typename T_TRAITS>
+			compiled_program* produce_statements(std::string_view program_remaining, const variable* variables, int var_count, int* error)
+			{
+				std::vector<any_statement> program_statements;
+				using program_impl		   = typename portable<T_TRAITS>::compiled_program;
+				auto			   program = new program_impl();
+				label_manager	   lm;
+				variable_manager   vm;
+				expression_manager em;
+
+				while (program_remaining.length() > 0)
+				{
+					auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
+
+					parser::parse_statement(
+						statement,
+
+						// label
+						[&](std::string_view label) { lm.add_label(label, (int)program_statements.size()); },
+
+						// jump
+						[&](std::string_view destination_label) {
+							any_statement s = jump_statement {lm.find_label(destination_label)};
+							program_statements.push_back(s);
+						},
+
+						// jump_if
+						[&](std::string_view destination_label, std::string_view condition) {
+							any_statement s = jump_if_statement {lm.find_label(destination_label), em.add_expression(condition)};
+							program_statements.push_back(s);
+						},
+
+						// return_value
+						[&](std::string_view expression) {
+							any_statement s = return_value_statement {em.add_expression(expression)};
+							program_statements.push_back(s);
+						},
+
+						// assign
+						[&](std::string_view destination, std::string_view expression) {
+							any_statement s = assign_statement {vm.find_label(destination), em.add_expression(expression)};
+							program_statements.push_back(s);
+						},
+
+						// call
+						[&](std::string_view expression) {
+							any_statement s = call_statement {em.add_expression(expression)};
+							program_statements.push_back(s);
+						});
+
+					program_remaining = remaining;
+				}
+
+				// Fixup jump indices
+				for (auto& s : program_statements)
+				{
+					if (std::holds_alternative<jump_statement>(s))
+					{
+						std::get<jump_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_statement>(s).m_target_handle);
+					}
+					else if (std::holds_alternative<jump_if_statement>(s))
+					{
+						std::get<jump_if_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_if_statement>(s).m_target_handle);
+					}
+				}
+
+				// Add referenced variables to the lookup dict
+				typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
+				for (auto itor : vm.m_variable_map)
+				{
+					auto name  = itor.first;
+					auto index = itor.second;
+
+					int final_index = -1;
+
+					for (int var_idx = 0; var_idx < var_count; ++var_idx)
+					{
+						const auto& var = variables[var_idx];
+
+						if (name == std::string_view(var.name))
+						{
+							final_index = indexer.add_referenced_variable(&var);
+							break;
+						}
+					}
+
+					if (final_index == -1)
+					{
+						*error = -1; // TODO: variable not found
+						return nullptr;
+					}
+
+					// Remap all indexes to the indexer value
+					for (auto s : program_statements)
+					{
+						if (std::holds_alternative<assign_statement>(s))
+						{
+							if (std::get<assign_statement>(s).m_variable_index == index)
+							{
+								std::get<assign_statement>(s).m_variable_index = final_index;
+							}
+						}
+					}
+				}
+
+				// Compile all the expressions, redirect the statement expression indexes to the compiled buffer offset
+				for (int expr_idx = 0; expr_idx < em.m_expressions.size(); ++expr_idx)
+				{
+					auto expr		   = em.m_expressions[expr_idx];
+					auto compiled_expr = expr_details::compile_using_indexer<T_TRAITS>(indexer, expr.data(), variables, var_count, error);
+
+					if (compiled_expr)
+					{
+						const int current_expr_offset = (int)program->program_expression_buffer_size;
+						auto	  compiled_size		  = (int)compiled_expr->get_data_size();
+						const int new_expr_offset	  = (int)program->program_expression_buffer_size + compiled_size;
+
+						auto new_expr_buffer = new unsigned char[new_expr_offset];
+						::memcpy(new_expr_buffer, program->program_expression_buffer.get(), program->program_expression_buffer_size);
+						::memcpy(new_expr_buffer + program->program_expression_buffer_size, compiled_expr->get_data(), compiled_size);
+
+						program->program_expression_buffer_size = new_expr_offset;
+
+						program->program_expression_buffer.reset(new_expr_buffer);
+
+						// Fixup any expression indexes
+						for (auto& s : program_statements)
+						{
+							if (std::holds_alternative<call_statement>(s))
+							{
+								if (std::get<call_statement>(s).m_expression_index == expr_idx)
+								{
+									std::get<call_statement>(s).m_expression_offset = current_expr_offset;
+								}
+							}
+
+							if (std::holds_alternative<assign_statement>(s))
+							{
+								if (std::get<assign_statement>(s).m_expression_index == expr_idx)
+								{
+									std::get<assign_statement>(s).m_expression_offset = current_expr_offset;
+								}
+							}
+
+							if (std::holds_alternative<return_value_statement>(s))
+							{
+								if (std::get<return_value_statement>(s).m_expression_index == expr_idx)
+								{
+									std::get<return_value_statement>(s).m_expression_offset = current_expr_offset;
+								}
+							}
+
+							if (std::holds_alternative<jump_if_statement>(s))
+							{
+								if (std::get<jump_if_statement>(s).m_expression_index == expr_idx)
+								{
+									std::get<jump_if_statement>(s).m_expression_offset = current_expr_offset;
+								}
+							}
+						}
+					}
+					else
+					{
+						*error = -1; // TODO: handle error
+						break;
+					}
+				}
+
+				for (auto s_in : program_statements)
+				{
+					typename program_impl::statement s_out;
+
+					if (std::holds_alternative<call_statement>(s_in))
+					{
+						s_out.type	= program_impl::statement_type::call;
+						s_out.arg_a = std::get<call_statement>(s_in).m_expression_offset;
+						s_out.arg_b = -1;
+					}
+					else if (std::holds_alternative<assign_statement>(s_in))
+					{
+						s_out.type	= program_impl::statement_type::assign;
+						s_out.arg_a = std::get<assign_statement>(s_in).m_variable_index;
+						s_out.arg_b = std::get<assign_statement>(s_in).m_expression_offset;
+					}
+					else if (std::holds_alternative<return_value_statement>(s_in))
+					{
+						s_out.type	= program_impl::statement_type::return_value;
+						s_out.arg_a = std::get<return_value_statement>(s_in).m_expression_offset;
+						s_out.arg_b = -1;
+					}
+					else if (std::holds_alternative<jump_if_statement>(s_in))
+					{
+						s_out.type	= program_impl::statement_type::jump_if;
+						s_out.arg_a = std::get<jump_if_statement>(s_in).m_target_index;
+						s_out.arg_b = std::get<jump_if_statement>(s_in).m_expression_offset;
+					}
+					else if (std::holds_alternative<jump_statement>(s_in))
+					{
+						s_out.type	= program_impl::statement_type::jump;
+						s_out.arg_a = std::get<jump_statement>(s_in).m_target_index;
+						s_out.arg_b = -1;
+					}
+
+					program->program_statements.push_back(s_out);
+				}
+
+				program->binding_table = indexer.get_binding_table();
+				for (const auto& n : program->binding_table)
+				{
+					program->binding_table_cstr.push_back(n.c_str());
+				}
+
+				program->address_table = indexer.get_address_table();
+
+				return program;
 			}
-		};
+		} // namespace pass_1
 
 		template<typename T_TRAITS>
 		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
 		{
-			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
-
-			auto program		   = new typename portable<T_TRAITS>::compiled_program();
 			auto program_src	   = parser::trim_all_space(std::string_view {text, strlen(text)});
 			auto program_remaining = program_src;
 
-			while (program_remaining.length() > 0)
-			{
-				auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
-
-				program_remaining = remaining;
-			}
-
-			// const char* expression_current = parser::skip_space(expression);
-			// const char* expression_next	   = parser::advance_expression(expression_current);
-
-			// typename native<T_TRAITS>::expr_native* native_expr =
-			//	native<T_TRAITS>::compile_native(expression, variables, var_count, error);
-			//
-			// if (native_expr)
-			//{
-			//	std::unique_ptr<unsigned char> expression_buffer;
-			//	size_t						   expression_buffer_size;
-			//
-			//	size_t export_size = 0;
-			//	portable<T_TRAITS>::export_estimate(native_expr,
-			//		export_size,
-			//		variables,
-			//		var_count,
-			//		indexer.name_map,
-			//		indexer.index_map,
-			//		indexer.index_counter);
-			//
-			//	// update bindings
-			//	program->m_bindings.index_to_address.resize(indexer.index_counter);
-			//	for (const auto& itor : indexer.index_map)
-			//	{
-			//		program->m_bindings.index_to_address[itor.second] = itor.first;
-			//	}
-			//
-			//	program->m_bindings.index_to_name.resize(indexer.index_counter);
-			//	program->m_bindings.index_to_name_c_str.resize(indexer.index_counter);
-			//	for (int i = 0; i < indexer.index_counter; ++i)
-			//	{
-			//		auto itor = indexer.name_map.find(program->m_bindings.index_to_address[i]);
-			//		assert(itor != indexer.name_map.end());
-			//		program->m_bindings.index_to_name[i]	   = itor->second;
-			//		program->m_bindings.index_to_name_c_str[i] = program->m_bindings.index_to_name[i].c_str();
-			//	}
-			//
-			//	////
-			//
-			//	expression_buffer.reset(new uint8_t[export_size]);
-			//	::memset(expression_buffer.get(), 0x0, export_size);
-			//	expression_buffer_size = export_size;
-			//
-			//	size_t actual_export_size = 0;
-			//	portable<T_TRAITS>::export_write(native_expr,
-			//		actual_export_size,
-			//		variables,
-			//		var_count,
-			//		expression_buffer.get(),
-			//		[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
-			//			assert(v != nullptr);
-			//			auto itor = indexer.index_map.find(addr);
-			//			assert(itor != indexer.index_map.end());
-			//			out->function = itor->second;
-			//
-			//			if (v->type >= TE_CLOSURE0 && v->type < TE_CLOSURE_MAX)
-			//			{
-			//				auto itor2 = indexer.index_map.find(v->context);
-			//				assert(itor2 != indexer.index_map.end());
-			//				out->parameters[eval_details::arity(v->type)] = itor2->second;
-			//			}
-			//		});
-			//
-			//	native<T_TRAITS>::free_native(native_expr);
-			//
-			//	program->m_
-			//}
-
-			return program;
+			return pass_1::produce_statements<T_TRAITS>(program_src, variables, var_count, error);
 		}
 
 		template<typename T_TRAITS>
@@ -2514,20 +2717,6 @@ namespace te
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
 			return false;
-		}
-
-		template<typename T_TRAITS>
-		size_t get_expression_offset_array_size(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return 0;
-		}
-
-		template<typename T_TRAITS>
-		const size_t* get_expression_offsets(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return nullptr;
 		}
 
 		template<typename T_TRAITS>
@@ -2613,16 +2802,6 @@ namespace te
 		return program_details::compile_statement<env_traits>(this, statement, error);
 	}
 
-	size_t compiled_program::get_expression_offset_array_size() const
-	{
-		return program_details::get_expression_offset_array_size<env_traits>(this);
-	}
-
-	const size_t* compiled_program::get_expression_offsets() const
-	{
-		return program_details::get_expression_offsets<env_traits>(this);
-	}
-
 	size_t compiled_program::get_binding_array_size() const
 	{
 		return program_details::get_binding_array_size<env_traits>(this);
@@ -2647,8 +2826,8 @@ namespace te
 	{
 		return program_details::get_data<env_traits>(this);
 	}
-}
-#	endif // #if (TE_COMPILER_ENABLED)
-#endif	   // #if TE_IMPLEMENT
+} // namespace te
+#endif // #if (TE_COMPILER_ENABLED)
+#endif // #if TE_IMPLEMENT
 
 #endif /*__TINYEXPR_H__*/

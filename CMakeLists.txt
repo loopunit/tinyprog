@@ -43,7 +43,7 @@ if(VCPKG_DEVELOP_EZ_DIR)
 else()
 	vcpkg_setup_ez(
 		REPO https://github.com/loopunit/vcpkg_ez.git
-		TAG 74d977a0e4cd4291b065f149e4d78ed626b31c56
+		TAG HEAD
 		DIR ${VCPKG_DEVELOP_ROOT_DIR}/vcpkg_ez
 	)
 endif()
