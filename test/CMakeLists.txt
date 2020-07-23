@@ -50,3 +50,13 @@ if (build_tinyexpr_example3)
 		tinyexprpp
 	)
 endif()
+
+if (build_tinyexpr_example)
+	vcpkg_executable(tinyexpr_example_program
+	SOURCES 
+		example_program.cpp
+	PRIVATE_DEPENDENCIES
+		tinyexprpp
+	)
+endif()
+
