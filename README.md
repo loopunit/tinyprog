@@ -5,11 +5,14 @@ TinyProg is minimalist shader-like scripting language, based on a C++ refactor o
 A simple program:
 
 ```
-x: sqrt(y * y + z * z);
-jump: is_negative ? x < 0;
-return: x;
-label: is_negative;
-return: -1 * x;
+x: 		random(-1, 1);
+jump: 	is_negative ? x < 0;
+jump: 	is_positive ? x > 0;
+return: 0;
+label: 	is_negative;
+return:	-1 * x;
+label: 	is_positive;
+return:	x;
 ```
 
 The variables for this program are bound thusly:
