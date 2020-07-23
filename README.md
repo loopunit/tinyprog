@@ -1,204 +1,37 @@
 # TinyExprpp
 
-TinyExprpp is a C++ refactor of Tinyexpr, and the documentation will gradually be refactored along with the code.
+TinyExprpp is minimalist shader-like scripting language, based on a C++ refactor of Tinyexpr, a very small recursive descent parser and evaluation engine for math expressions.
 
-Beyond the refactor, this adds support for:
-- Portable expressions that can be compiled, then loaded & run elsewhere, with a binding lookup table for functions and data.
-- Compile time data type selection. Double & float implemented.
-
-# TinyExpr - legacy documentation
-
-TinyExpr is a very small recursive descent parser and evaluation engine for
-math expressions. It's handy when you want to add the ability to evaluation
-math expressions at runtime without adding a bunch of cruft to you project.
-
-In addition to the standard math operators and precedence, TinyExpr also supports
-the standard C math functions and runtime binding of variables.
-
-## Features
-
-- **ANSI C with no dependencies**.
-- Single source file and header file.
-- Simple and fast.
-- Implements standard operators precedence.
-- Exposes standard C math functions (sin, sqrt, ln, etc.).
-- Can add custom functions and variables easily.
-- Can bind variables at eval-time.
-- Released under the zlib license - free for nearly any use.
-- Easy to use and integrate with your code
-- Thread-safe, provided that your *malloc* is.
-
-## Building
-
-TinyExpr is self-contained in two files: `tinyexpr.c` and `tinyexpr.h`. To use
-TinyExpr, simply add those two files to your project.
-
-## Short Example
-
-Here is a minimal example to evaluate an expression at runtime.
-
-```C
-    #include "tinyexpr.h"
-    printf("%f\n", te_interp("5*5", 0)); /* Prints 25. */
-```
-
-
-## Usage
-
-TinyExpr defines only four functions:
-
-```C
-    double te_interp(const char *expression, int *error);
-    te_expr *te_compile(const char *expression, const te_variable *variables, int var_count, int *error);
-    double te_eval(const te_expr *expr);
-    void te_free(te_expr *expr);
-```
-
-## te_interp
-```C
-    double te_interp(const char *expression, int *error);
-```
-
-`te_interp()` takes an expression and immediately returns the result of it. If there
-is a parse error, `te_interp()` returns NaN.
-
-If the `error` pointer argument is not 0, then `te_interp()` will set `*error` to the position
-of the parse error on failure, and set `*error` to 0 on success.
-
-**example usage:**
-
-```C
-    int error;
-
-    double a = te_interp("(5+5)", 0); /* Returns 10. */
-    double b = te_interp("(5+5)", &error); /* Returns 10, error is set to 0. */
-    double c = te_interp("(5+5", &error); /* Returns NaN, error is set to 4. */
-```
-
-## te_compile, te_eval, te_free
-```C
-    te_expr *te_compile(const char *expression, const te_variable *lookup, int lookup_len, int *error);
-    double te_eval(const te_expr *n);
-    void te_free(te_expr *n);
-```
-
-Give `te_compile()` an expression with unbound variables and a list of
-variable names and pointers. `te_compile()` will return a `te_expr*` which can
-be evaluated later using `te_eval()`. On failure, `te_compile()` will return 0
-and optionally set the passed in `*error` to the location of the parse error.
-
-You may also compile expressions without variables by passing `te_compile()`'s second
-and thrid arguments as 0.
-
-Give `te_eval()` a `te_expr*` from `te_compile()`. `te_eval()` will evaluate the expression
-using the current variable values.
-
-After you're finished, make sure to call `te_free()`.
-
-**example usage:**
-
-```C
-    double x, y;
-    /* Store variable names and pointers. */
-    te_variable vars[] = {{"x", &x}, {"y", &y}};
-
-    int err;
-    /* Compile the expression with variables. */
-    te_expr *expr = te_compile("sqrt(x^2+y^2)", vars, 2, &err);
-
-    if (expr) {
-        x = 3; y = 4;
-        const double h1 = te_eval(expr); /* Returns 5. */
-
-        x = 5; y = 12;
-        const double h2 = te_eval(expr); /* Returns 13. */
-
-        te_free(expr);
-    } else {
-        printf("Parse error at %d\n", err);
-    }
+A simple program:
 
 ```
-
-## Longer Example
-
-Here is a complete example that will evaluate an expression passed in from the command
-line. It also does error checking and binds the variables `x` and `y` to *3* and *4*, respectively.
-
-```C
-    #include "tinyexpr.h"
-    #include <stdio.h>
-
-    int main(int argc, char *argv[])
-    {
-        if (argc < 2) {
-            printf("Usage: example2 \"expression\"\n");
-            return 0;
-        }
-
-        const char *expression = argv[1];
-        printf("Evaluating:\n\t%s\n", expression);
-
-        /* This shows an example where the variables
-         * x and y are bound at eval-time. */
-        double x, y;
-        te_variable vars[] = {{"x", &x}, {"y", &y}};
-
-        /* This will compile the expression and check for errors. */
-        int err;
-        te_expr *n = te_compile(expression, vars, 2, &err);
-
-        if (n) {
-            /* The variables can be changed here, and eval can be called as many
-             * times as you like. This is fairly efficient because the parsing has
-             * already been done. */
-            x = 3; y = 4;
-            const double r = te_eval(n); printf("Result:\n\t%f\n", r);
-            te_free(n);
-        } else {
-            /* Show the user where the error is at. */
-            printf("\t%*s^\nError near here", err-1, "");
-        }
-
-        return 0;
-    }
+x: sqrt(y * y + z * z);
+jump: is_negative ? x < 0;
+return: x;
+label: is_negative;
+return: -1 * x;
 ```
 
+The variables for this program are bound thusly:
 
-This produces the output:
+```C
+double x, y, z;
+    te_variable vars[] = {{"x", &x}, {"y", &y}, {"z", &z}};
+```
 
-    $ example2 "sqrt(x^2+y2)"
-        Evaluating:
-                sqrt(x^2+y2)
-                          ^
-        Error near here
-
-
-    $ example2 "sqrt(x^2+y^2)"
-        Evaluating:
-                sqrt(x^2+y^2)
-        Result:
-                5.000000
-
-
-## Binding to Custom Functions
-
-TinyExpr can also call to custom functions implemented in C. Here is a short example:
+TinyExprpp can also call custom native functions. Here is a short example:
 
 ```C
 double my_sum(double a, double b) {
-    /* Example C function that adds two numbers together. */
     return a + b;
 }
 
 te_variable vars[] = {
-    {"mysum", my_sum, TE_FUNCTION2} /* TE_FUNCTION2 used because my_sum takes two arguments. */
+    {"mysum", my_sum, TE_FUNCTION2}
 };
-
-te_expr *n = te_compile("mysum(5, 6)", vars, 1, 0);
-
 ```
 
+# Useful legacy TinyExpr documentation
 
 ## How it works
 
