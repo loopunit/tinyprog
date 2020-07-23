@@ -899,6 +899,62 @@ namespace te
 			(const expr_portable<env_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
 	}
 
+	enum class statement_type : int
+	{
+		jump,
+		jump_if,
+		return_value,
+		assign,
+		call,
+	};
+
+	struct statement
+	{
+		statement_type type;
+		int			   arg_a;
+		int			   arg_b;
+	};
+
+	inline env_traits::t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
+	{
+		for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
+		{
+			auto& statement = statement_array[statement_index];
+			switch (statement.type)
+			{
+			case statement_type::jump:
+				statement_index = statement.arg_a;
+				break;
+			
+			case statement_type::jump_if:
+				if (0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context)) // TODO: traits function like nan for zero, or compare function?
+				{
+					statement_index = statement.arg_a;
+				}
+				break;
+			
+			case statement_type::return_value:
+				return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
+			
+			case statement_type::assign:
+				{
+					auto dest = (env_traits::t_vector*)expr_context[statement.arg_a];
+					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
+				}
+				break;
+			
+			case statement_type::call:
+				eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
+				break;
+			
+			default:
+				// fatal error
+				return env_traits::t_vector_builtins::nan();
+			}
+		}
+		return env_traits::t_vector_builtins::nan();
+	}
+
 #if (TE_COMPILER_ENABLED)
 	struct compiled_expr
 	{
@@ -933,22 +989,6 @@ namespace te
 		}
 		return ret;
 	}
-
-	enum class statement_type : int
-	{
-		jump,
-		jump_if,
-		return_value,
-		assign,
-		call,
-	};
-
-	struct statement
-	{
-		statement_type type;
-		int			   arg_a;
-		int			   arg_b;
-	};
 
 	struct compiled_program
 	{

@@ -13,7 +13,7 @@ int main(int argc, char* argv[])
 		"label: is_negative;"
 		"return: -1 * x;";
 
-	env_traits::t_atom x, y;
+	env_traits::t_atom x = 0.0f, y = 0.0f;
 	variable		   vars[] = {{"x", &x}, {"y", &y}};
 
 	int	 err  = 0;
@@ -26,6 +26,8 @@ int main(int argc, char* argv[])
 	auto data = prog->get_data();
 	auto num_statements = prog->get_statement_array_size();
 	auto statements = prog->get_statements();
+
+	auto result = eval_program(statements, (int)num_statements, data, binding_addrs);
 
 	delete prog;
 	return 0;
