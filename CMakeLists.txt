@@ -42,7 +42,7 @@ if(VCPKG_DEVELOP_EZ_DIR)
 	vcpkg_setup_ez(DIR ${VCPKG_DEVELOP_EZ_DIR})
 else()
 	vcpkg_setup_ez(
-		REPO https://github.com/loopunit/vcpkg_ez.git
+		REPO https://gitlab.ct.activision.com/shg_audio/vcpkg_ez.git
 		TAG HEAD
 		DIR ${VCPKG_DEVELOP_ROOT_DIR}/vcpkg_ez
 	)
