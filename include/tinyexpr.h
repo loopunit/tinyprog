@@ -934,18 +934,33 @@ namespace te
 		return ret;
 	}
 
+	enum class statement_type : int
+	{
+		jump,
+		jump_if,
+		return_value,
+		assign,
+		call,
+	};
+
+	struct statement
+	{
+		statement_type type;
+		int			   arg_a;
+		int			   arg_b;
+	};
+
 	struct compiled_program
 	{
 		virtual ~compiled_program() = default;
-
-		void bind_variables(const variable* variables, int var_count);
-		bool compile_statement(const char* statement, int* error);
 
 		size_t				 get_binding_array_size() const;
 		const void* const*	 get_binding_addresses() const;
 		const char* const*	 get_binding_names() const;
 		size_t				 get_data_size() const;
 		const unsigned char* get_data() const;
+		size_t				 get_statement_array_size() const;
+		const statement*	 get_statements() const;
 	};
 
 	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error);
@@ -2050,22 +2065,6 @@ namespace te
 
 		struct compiled_program : ::te::compiled_program
 		{
-			enum class statement_type
-			{
-				jump,
-				jump_if,
-				return_value,
-				assign,
-				call,
-			};
-
-			struct statement
-			{
-				statement_type type;
-				int			   arg_a;
-				int			   arg_b;
-			};
-
 			std::vector<statement>		   program_statements;
 			std::vector<std::string>	   binding_table;
 			std::vector<const char*>	   binding_table_cstr;
@@ -2350,352 +2349,132 @@ namespace te
 			//};
 		};
 
-		namespace pass_1
+		struct label_manager
 		{
-			struct label_manager
+			using handle								  = int;
+			static inline constexpr int placeholder_index = -1;
+
+			std::vector<int>							 m_label_statement_indexes;
+			std::unordered_map<std::string_view, handle> m_label_handle_map;
+
+			handle add_label(std::string_view label, int statement_index)
 			{
-				using handle								  = int;
-				static inline constexpr int placeholder_index = -1;
-
-				std::vector<int>							 m_label_statement_indexes;
-				std::unordered_map<std::string_view, handle> m_label_handle_map;
-
-				handle add_label(std::string_view label, int statement_index)
+				auto itor = m_label_handle_map.find(label);
+				if (itor != m_label_handle_map.end())
 				{
-					auto itor = m_label_handle_map.find(label);
-					if (itor != m_label_handle_map.end())
+					handle label_handle = (*itor).second;
+
+					// Placeholder was filled, fill in the program counter
+					if (m_label_statement_indexes[label_handle] != placeholder_index)
 					{
-						handle label_handle = (*itor).second;
-
-						// Placeholder was filled, fill in the program counter
-						if (m_label_statement_indexes[label_handle] != placeholder_index)
-						{
-							// error, label repeated?
-						}
-						else
-						{
-							// The target of the jump label is the next statement of program
-							m_label_statement_indexes[label_handle] = statement_index;
-						}
-
-						return label_handle;
+						// error, label repeated?
 					}
 					else
 					{
 						// The target of the jump label is the next statement of program
-						auto label_handle = (handle)m_label_statement_indexes.size();
-						m_label_handle_map.insert(std::make_pair(label, label_handle));
-						m_label_statement_indexes.push_back(statement_index);
-						return label_handle;
+						m_label_statement_indexes[label_handle] = statement_index;
 					}
-				}
 
-				handle find_label(std::string_view label)
+					return label_handle;
+				}
+				else
 				{
-					auto itor = m_label_handle_map.find(label);
-					if (itor != m_label_handle_map.end())
-					{
-						// label exists, use its index
-						return (handle)(*itor).second;
-					}
-					else
-					{
-						// add a temp label, which will be replaced then when the actual label is encountered
-						auto new_handle = (handle)m_label_statement_indexes.size();
-						m_label_handle_map.insert(std::make_pair(label, new_handle));
-						m_label_statement_indexes.push_back(placeholder_index);
-						return new_handle;
-					}
+					// The target of the jump label is the next statement of program
+					auto label_handle = (handle)m_label_statement_indexes.size();
+					m_label_handle_map.insert(std::make_pair(label, label_handle));
+					m_label_statement_indexes.push_back(statement_index);
+					return label_handle;
 				}
-
-				int get_label_statement_index(handle label)
-				{
-					return m_label_statement_indexes[label];
-				}
-			};
-
-			struct variable_manager
-			{
-				int										  m_variable_count = 0;
-				std::unordered_map<std::string_view, int> m_variable_map;
-
-				int find_label(std::string_view name)
-				{
-					auto idx = m_variable_count++;
-					m_variable_map.insert(std::make_pair(name, idx));
-					return idx;
-				}
-			};
-
-			struct expression_manager
-			{
-				std::vector<std::string_view> m_expressions;
-
-				int add_expression(std::string_view src)
-				{
-					auto idx = (int)m_expressions.size();
-					m_expressions.push_back(src);
-					return idx;
-				}
-			};
-
-			struct jump_statement
-			{
-				label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
-
-				int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
-			};
-
-			struct jump_if_statement
-			{
-				label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
-				int					  m_expression_index;
-
-				int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
-				int m_expression_offset;
-			};
-
-			struct return_value_statement
-			{
-				int m_expression_index;
-
-				int m_expression_offset;
-			};
-
-			struct assign_statement
-			{
-				int m_variable_index;
-				int m_expression_index;
-
-				int m_expression_offset;
-			};
-
-			struct call_statement
-			{
-				int m_expression_index;
-
-				int m_expression_offset;
-			};
-
-			using any_statement = std::variant<jump_statement, jump_if_statement, return_value_statement, assign_statement, call_statement>;
-
-			template<typename T_TRAITS>
-			compiled_program* produce_statements(std::string_view program_remaining, const variable* variables, int var_count, int* error)
-			{
-				std::vector<any_statement> program_statements;
-				using program_impl		   = typename portable<T_TRAITS>::compiled_program;
-				auto			   program = new program_impl();
-				label_manager	   lm;
-				variable_manager   vm;
-				expression_manager em;
-
-				while (program_remaining.length() > 0)
-				{
-					auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
-
-					parser::parse_statement(
-						statement,
-
-						// label
-						[&](std::string_view label) { lm.add_label(label, (int)program_statements.size()); },
-
-						// jump
-						[&](std::string_view destination_label) {
-							any_statement s = jump_statement {lm.find_label(destination_label)};
-							program_statements.push_back(s);
-						},
-
-						// jump_if
-						[&](std::string_view destination_label, std::string_view condition) {
-							any_statement s = jump_if_statement {lm.find_label(destination_label), em.add_expression(condition)};
-							program_statements.push_back(s);
-						},
-
-						// return_value
-						[&](std::string_view expression) {
-							any_statement s = return_value_statement {em.add_expression(expression)};
-							program_statements.push_back(s);
-						},
-
-						// assign
-						[&](std::string_view destination, std::string_view expression) {
-							any_statement s = assign_statement {vm.find_label(destination), em.add_expression(expression)};
-							program_statements.push_back(s);
-						},
-
-						// call
-						[&](std::string_view expression) {
-							any_statement s = call_statement {em.add_expression(expression)};
-							program_statements.push_back(s);
-						});
-
-					program_remaining = remaining;
-				}
-
-				// Fixup jump indices
-				for (auto& s : program_statements)
-				{
-					if (std::holds_alternative<jump_statement>(s))
-					{
-						std::get<jump_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_statement>(s).m_target_handle);
-					}
-					else if (std::holds_alternative<jump_if_statement>(s))
-					{
-						std::get<jump_if_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_if_statement>(s).m_target_handle);
-					}
-				}
-
-				// Add referenced variables to the lookup dict
-				typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
-				for (auto itor : vm.m_variable_map)
-				{
-					auto name  = itor.first;
-					auto index = itor.second;
-
-					int final_index = -1;
-
-					for (int var_idx = 0; var_idx < var_count; ++var_idx)
-					{
-						const auto& var = variables[var_idx];
-
-						if (name == std::string_view(var.name))
-						{
-							final_index = indexer.add_referenced_variable(&var);
-							break;
-						}
-					}
-
-					if (final_index == -1)
-					{
-						*error = -1; // TODO: variable not found
-						return nullptr;
-					}
-
-					// Remap all indexes to the indexer value
-					for (auto s : program_statements)
-					{
-						if (std::holds_alternative<assign_statement>(s))
-						{
-							if (std::get<assign_statement>(s).m_variable_index == index)
-							{
-								std::get<assign_statement>(s).m_variable_index = final_index;
-							}
-						}
-					}
-				}
-
-				// Compile all the expressions, redirect the statement expression indexes to the compiled buffer offset
-				for (int expr_idx = 0; expr_idx < em.m_expressions.size(); ++expr_idx)
-				{
-					auto expr		   = em.m_expressions[expr_idx];
-					auto compiled_expr = expr_details::compile_using_indexer<T_TRAITS>(indexer, expr.data(), variables, var_count, error);
-
-					if (compiled_expr)
-					{
-						const int current_expr_offset = (int)program->program_expression_buffer_size;
-						auto	  compiled_size		  = (int)compiled_expr->get_data_size();
-						const int new_expr_offset	  = (int)program->program_expression_buffer_size + compiled_size;
-
-						auto new_expr_buffer = new unsigned char[new_expr_offset];
-						::memcpy(new_expr_buffer, program->program_expression_buffer.get(), program->program_expression_buffer_size);
-						::memcpy(new_expr_buffer + program->program_expression_buffer_size, compiled_expr->get_data(), compiled_size);
-
-						program->program_expression_buffer_size = new_expr_offset;
-
-						program->program_expression_buffer.reset(new_expr_buffer);
-
-						// Fixup any expression indexes
-						for (auto& s : program_statements)
-						{
-							if (std::holds_alternative<call_statement>(s))
-							{
-								if (std::get<call_statement>(s).m_expression_index == expr_idx)
-								{
-									std::get<call_statement>(s).m_expression_offset = current_expr_offset;
-								}
-							}
-
-							if (std::holds_alternative<assign_statement>(s))
-							{
-								if (std::get<assign_statement>(s).m_expression_index == expr_idx)
-								{
-									std::get<assign_statement>(s).m_expression_offset = current_expr_offset;
-								}
-							}
-
-							if (std::holds_alternative<return_value_statement>(s))
-							{
-								if (std::get<return_value_statement>(s).m_expression_index == expr_idx)
-								{
-									std::get<return_value_statement>(s).m_expression_offset = current_expr_offset;
-								}
-							}
-
-							if (std::holds_alternative<jump_if_statement>(s))
-							{
-								if (std::get<jump_if_statement>(s).m_expression_index == expr_idx)
-								{
-									std::get<jump_if_statement>(s).m_expression_offset = current_expr_offset;
-								}
-							}
-						}
-					}
-					else
-					{
-						*error = -1; // TODO: handle error
-						break;
-					}
-				}
-
-				for (auto s_in : program_statements)
-				{
-					typename program_impl::statement s_out;
-
-					if (std::holds_alternative<call_statement>(s_in))
-					{
-						s_out.type	= program_impl::statement_type::call;
-						s_out.arg_a = std::get<call_statement>(s_in).m_expression_offset;
-						s_out.arg_b = -1;
-					}
-					else if (std::holds_alternative<assign_statement>(s_in))
-					{
-						s_out.type	= program_impl::statement_type::assign;
-						s_out.arg_a = std::get<assign_statement>(s_in).m_variable_index;
-						s_out.arg_b = std::get<assign_statement>(s_in).m_expression_offset;
-					}
-					else if (std::holds_alternative<return_value_statement>(s_in))
-					{
-						s_out.type	= program_impl::statement_type::return_value;
-						s_out.arg_a = std::get<return_value_statement>(s_in).m_expression_offset;
-						s_out.arg_b = -1;
-					}
-					else if (std::holds_alternative<jump_if_statement>(s_in))
-					{
-						s_out.type	= program_impl::statement_type::jump_if;
-						s_out.arg_a = std::get<jump_if_statement>(s_in).m_target_index;
-						s_out.arg_b = std::get<jump_if_statement>(s_in).m_expression_offset;
-					}
-					else if (std::holds_alternative<jump_statement>(s_in))
-					{
-						s_out.type	= program_impl::statement_type::jump;
-						s_out.arg_a = std::get<jump_statement>(s_in).m_target_index;
-						s_out.arg_b = -1;
-					}
-
-					program->program_statements.push_back(s_out);
-				}
-
-				program->binding_table = indexer.get_binding_table();
-				for (const auto& n : program->binding_table)
-				{
-					program->binding_table_cstr.push_back(n.c_str());
-				}
-
-				program->address_table = indexer.get_address_table();
-
-				return program;
 			}
-		} // namespace pass_1
+
+			handle find_label(std::string_view label)
+			{
+				auto itor = m_label_handle_map.find(label);
+				if (itor != m_label_handle_map.end())
+				{
+					// label exists, use its index
+					return (handle)(*itor).second;
+				}
+				else
+				{
+					// add a temp label, which will be replaced then when the actual label is encountered
+					auto new_handle = (handle)m_label_statement_indexes.size();
+					m_label_handle_map.insert(std::make_pair(label, new_handle));
+					m_label_statement_indexes.push_back(placeholder_index);
+					return new_handle;
+				}
+			}
+
+			int get_label_statement_index(handle label)
+			{
+				return m_label_statement_indexes[label];
+			}
+		};
+
+		struct variable_manager
+		{
+			int										  m_variable_count = 0;
+			std::unordered_map<std::string_view, int> m_variable_map;
+
+			int find_label(std::string_view name)
+			{
+				auto idx = m_variable_count++;
+				m_variable_map.insert(std::make_pair(name, idx));
+				return idx;
+			}
+		};
+
+		struct expression_manager
+		{
+			std::vector<std::string_view> m_expressions;
+
+			int add_expression(std::string_view src)
+			{
+				auto idx = (int)m_expressions.size();
+				m_expressions.push_back(src);
+				return idx;
+			}
+		};
+
+		struct jump_statement
+		{
+			label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
+
+			int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
+		};
+
+		struct jump_if_statement
+		{
+			label_manager::handle m_target_handle; // Pass 1: index isn't known isn't known until whole program is parsed
+			int					  m_expression_index;
+
+			int m_target_index; // Pass 2: set from handle to index (of statement immediately following the label)
+			int m_expression_offset;
+		};
+
+		struct return_value_statement
+		{
+			int m_expression_index;
+
+			int m_expression_offset;
+		};
+
+		struct assign_statement
+		{
+			int m_variable_index;
+			int m_expression_index;
+
+			int m_expression_offset;
+		};
+
+		struct call_statement
+		{
+			int m_expression_index;
+
+			int m_expression_offset;
+		};
+
+		using any_statement = std::variant<jump_statement, jump_if_statement, return_value_statement, assign_statement, call_statement>;
 
 		template<typename T_TRAITS>
 		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
@@ -2703,55 +2482,267 @@ namespace te
 			auto program_src	   = parser::trim_all_space(std::string_view {text, strlen(text)});
 			auto program_remaining = program_src;
 
-			return pass_1::produce_statements<T_TRAITS>(program_src, variables, var_count, error);
-		}
+			std::vector<any_statement> program_statements;
+			using program_impl		   = typename portable<T_TRAITS>::compiled_program;
+			auto			   program = new program_impl();
+			label_manager	   lm;
+			variable_manager   vm;
+			expression_manager em;
 
-		template<typename T_TRAITS>
-		void bind_variables(compiled_program* p, const variable* variables, int var_count)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-		}
+			while (program_remaining.length() > 0)
+			{
+				auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
 
-		template<typename T_TRAITS>
-		bool compile_statement(compiled_program* p, const char* statement, int* error)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return false;
+				parser::parse_statement(
+					statement,
+
+					// label
+					[&](std::string_view label) { lm.add_label(label, (int)program_statements.size()); },
+
+					// jump
+					[&](std::string_view destination_label) {
+						any_statement s = jump_statement {lm.find_label(destination_label)};
+						program_statements.push_back(s);
+					},
+
+					// jump_if
+					[&](std::string_view destination_label, std::string_view condition) {
+						any_statement s = jump_if_statement {lm.find_label(destination_label), em.add_expression(condition)};
+						program_statements.push_back(s);
+					},
+
+					// return_value
+					[&](std::string_view expression) {
+						any_statement s = return_value_statement {em.add_expression(expression)};
+						program_statements.push_back(s);
+					},
+
+					// assign
+					[&](std::string_view destination, std::string_view expression) {
+						any_statement s = assign_statement {vm.find_label(destination), em.add_expression(expression)};
+						program_statements.push_back(s);
+					},
+
+					// call
+					[&](std::string_view expression) {
+						any_statement s = call_statement {em.add_expression(expression)};
+						program_statements.push_back(s);
+					});
+
+				program_remaining = remaining;
+			}
+
+			// Fixup jump indices
+			for (auto& s : program_statements)
+			{
+				if (std::holds_alternative<jump_statement>(s))
+				{
+					std::get<jump_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_statement>(s).m_target_handle);
+				}
+				else if (std::holds_alternative<jump_if_statement>(s))
+				{
+					std::get<jump_if_statement>(s).m_target_index = lm.get_label_statement_index(std::get<jump_if_statement>(s).m_target_handle);
+				}
+			}
+
+			// Add referenced variables to the lookup dict
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
+			for (auto itor : vm.m_variable_map)
+			{
+				auto name  = itor.first;
+				auto index = itor.second;
+
+				int final_index = -1;
+
+				for (int var_idx = 0; var_idx < var_count; ++var_idx)
+				{
+					const auto& var = variables[var_idx];
+
+					if (name == std::string_view(var.name))
+					{
+						final_index = indexer.add_referenced_variable(&var);
+						break;
+					}
+				}
+
+				if (final_index == -1)
+				{
+					*error = -1; // TODO: variable not found
+					return nullptr;
+				}
+
+				// Remap all indexes to the indexer value
+				for (auto s : program_statements)
+				{
+					if (std::holds_alternative<assign_statement>(s))
+					{
+						if (std::get<assign_statement>(s).m_variable_index == index)
+						{
+							std::get<assign_statement>(s).m_variable_index = final_index;
+						}
+					}
+				}
+			}
+
+			// Compile all the expressions, redirect the statement expression indexes to the compiled buffer offset
+			for (int expr_idx = 0; expr_idx < em.m_expressions.size(); ++expr_idx)
+			{
+				auto expr		   = em.m_expressions[expr_idx];
+				auto compiled_expr = expr_details::compile_using_indexer<T_TRAITS>(indexer, expr.data(), variables, var_count, error);
+
+				if (compiled_expr)
+				{
+					const int current_expr_offset = (int)program->program_expression_buffer_size;
+					auto	  compiled_size		  = (int)compiled_expr->get_data_size();
+					const int new_expr_offset	  = (int)program->program_expression_buffer_size + compiled_size;
+
+					auto new_expr_buffer = new unsigned char[new_expr_offset];
+					::memcpy(new_expr_buffer, program->program_expression_buffer.get(), program->program_expression_buffer_size);
+					::memcpy(new_expr_buffer + program->program_expression_buffer_size, compiled_expr->get_data(), compiled_size);
+
+					program->program_expression_buffer_size = new_expr_offset;
+
+					program->program_expression_buffer.reset(new_expr_buffer);
+
+					// Fixup any expression indexes
+					for (auto& s : program_statements)
+					{
+						if (std::holds_alternative<call_statement>(s))
+						{
+							if (std::get<call_statement>(s).m_expression_index == expr_idx)
+							{
+								std::get<call_statement>(s).m_expression_offset = current_expr_offset;
+							}
+						}
+
+						if (std::holds_alternative<assign_statement>(s))
+						{
+							if (std::get<assign_statement>(s).m_expression_index == expr_idx)
+							{
+								std::get<assign_statement>(s).m_expression_offset = current_expr_offset;
+							}
+						}
+
+						if (std::holds_alternative<return_value_statement>(s))
+						{
+							if (std::get<return_value_statement>(s).m_expression_index == expr_idx)
+							{
+								std::get<return_value_statement>(s).m_expression_offset = current_expr_offset;
+							}
+						}
+
+						if (std::holds_alternative<jump_if_statement>(s))
+						{
+							if (std::get<jump_if_statement>(s).m_expression_index == expr_idx)
+							{
+								std::get<jump_if_statement>(s).m_expression_offset = current_expr_offset;
+							}
+						}
+					}
+				}
+				else
+				{
+					*error = -1; // TODO: handle error
+					break;
+				}
+			}
+
+			for (auto s_in : program_statements)
+			{
+				statement s_out;
+
+				if (std::holds_alternative<call_statement>(s_in))
+				{
+					s_out.type	= statement_type::call;
+					s_out.arg_a = std::get<call_statement>(s_in).m_expression_offset;
+					s_out.arg_b = -1;
+				}
+				else if (std::holds_alternative<assign_statement>(s_in))
+				{
+					s_out.type	= statement_type::assign;
+					s_out.arg_a = std::get<assign_statement>(s_in).m_variable_index;
+					s_out.arg_b = std::get<assign_statement>(s_in).m_expression_offset;
+				}
+				else if (std::holds_alternative<return_value_statement>(s_in))
+				{
+					s_out.type	= statement_type::return_value;
+					s_out.arg_a = std::get<return_value_statement>(s_in).m_expression_offset;
+					s_out.arg_b = -1;
+				}
+				else if (std::holds_alternative<jump_if_statement>(s_in))
+				{
+					s_out.type	= statement_type::jump_if;
+					s_out.arg_a = std::get<jump_if_statement>(s_in).m_target_index;
+					s_out.arg_b = std::get<jump_if_statement>(s_in).m_expression_offset;
+				}
+				else if (std::holds_alternative<jump_statement>(s_in))
+				{
+					s_out.type	= statement_type::jump;
+					s_out.arg_a = std::get<jump_statement>(s_in).m_target_index;
+					s_out.arg_b = -1;
+				}
+
+				program->program_statements.push_back(s_out);
+			}
+
+			program->binding_table = indexer.get_binding_table();
+			for (const auto& n : program->binding_table)
+			{
+				program->binding_table_cstr.push_back(n.c_str());
+			}
+
+			program->address_table = indexer.get_address_table();
+
+			return program;
 		}
 
 		template<typename T_TRAITS>
 		size_t get_binding_array_size(const compiled_program* p)
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return 0;
+			return p_impl->address_table.size();
 		}
 
 		template<typename T_TRAITS>
 		const void* const* get_binding_addresses(const compiled_program* p)
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return nullptr;
+			return &p_impl->address_table[0];
 		}
 
 		template<typename T_TRAITS>
 		const char* const* get_binding_names(const compiled_program* p)
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return nullptr;
+			return &p_impl->binding_table_cstr[0];
 		}
 
 		template<typename T_TRAITS>
 		size_t get_data_size(const compiled_program* p)
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return 0;
+			return p_impl->program_expression_buffer_size;
 		}
 
 		template<typename T_TRAITS>
 		const unsigned char* get_data(const compiled_program* p)
 		{
 			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return nullptr;
+			return p_impl->program_expression_buffer.get();
+		}
+
+		template<typename T_TRAITS>
+		size_t get_statement_array_size(const compiled_program* p)
+		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
+			return (int)p_impl->program_statements.size();
+		}
+
+		template<typename T_TRAITS>
+		const statement* get_statements(const compiled_program* p)
+		{
+			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
+			return &p_impl->program_statements[0];
 		}
 	} // namespace program_details
 
@@ -2792,16 +2783,6 @@ namespace te
 		return program_details::compile<env_traits>(program, variables, var_count, error);
 	}
 
-	void compiled_program::bind_variables(const variable* variables, int var_count)
-	{
-		return program_details::bind_variables<env_traits>(this, variables, var_count);
-	}
-
-	bool compiled_program::compile_statement(const char* statement, int* error)
-	{
-		return program_details::compile_statement<env_traits>(this, statement, error);
-	}
-
 	size_t compiled_program::get_binding_array_size() const
 	{
 		return program_details::get_binding_array_size<env_traits>(this);
@@ -2825,6 +2806,16 @@ namespace te
 	const unsigned char* compiled_program::get_data() const
 	{
 		return program_details::get_data<env_traits>(this);
+	}
+
+	size_t compiled_program::get_statement_array_size() const
+	{
+		return program_details::get_statement_array_size<env_traits>(this);
+	}
+
+	const statement* compiled_program::get_statements() const
+	{
+		return program_details::get_statements<env_traits>(this);
 	}
 } // namespace te
 #endif // #if (TE_COMPILER_ENABLED)
