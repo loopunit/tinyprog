@@ -18,17 +18,7 @@ int main(int argc, char* argv[])
 
 	int	 err  = 0;
 	auto prog = compile_program(p, vars, 2, &err);
-	
-	auto array_size = prog->get_binding_array_size();
-	auto binding_addrs = prog->get_binding_addresses();
-	auto binding_names = prog->get_binding_names();
-	auto data_size = prog->get_data_size();
-	auto data = prog->get_data();
-	auto num_statements = prog->get_statement_array_size();
-	auto statements = prog->get_statements();
-
-	auto result = eval_program(statements, (int)num_statements, data, binding_addrs);
-
+	auto result = eval_program(prog);
 	delete prog;
 	return 0;
 }

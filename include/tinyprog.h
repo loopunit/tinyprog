@@ -902,6 +902,11 @@ namespace te
 			return a;
 		}
 
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
 		static inline t_vector explicit_load_atom(double a) noexcept
 		{
 			return (t_vector)a;
@@ -1029,6 +1034,19 @@ namespace te
 	};
 
 	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error);
+
+	inline env_traits::t_vector eval_program(compiled_program* prog)
+	{
+		auto array_size = prog->get_binding_array_size();
+		auto binding_addrs = prog->get_binding_addresses();
+		auto binding_names = prog->get_binding_names();
+		auto data_size = prog->get_data_size();
+		auto data = prog->get_data();
+		auto num_statements = prog->get_statement_array_size();
+		auto statements = prog->get_statements();
+
+		return eval_program(statements, (int)num_statements, data, binding_addrs);
+	}
 #endif // #if (TE_COMPILER_ENABLED)
 } // namespace te
 
