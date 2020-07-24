@@ -33,9 +33,22 @@
 #include <limits>
 #include <cctype>
 
+#ifndef TP_TESTING
+#define TP_TESTING 0
+#endif // #ifndef TP_TESTING
+
+#if TP_TESTING
+#define TP_COMPILER_ENABLED 1
+#define TP_STANDARD_LIBRARY 1
+#endif // #if TP_TESTING
+
 #ifndef TP_COMPILER_ENABLED
 #define TP_COMPILER_ENABLED 0
-#endif // TP_COMPILER_ENABLED
+#endif // #ifndef TP_COMPILER_ENABLED
+
+#ifndef TP_STANDARD_LIBRARY
+#define TP_STANDARD_LIBRARY 0
+#endif // #ifndef TP_STANDARD_LIBRARY
 
 namespace tp
 {
@@ -74,674 +87,6 @@ namespace tp
 		const void* address;
 		int			type;
 		void*		context;
-	};
-
-	template<typename T_ATOM>
-	struct native_builtins_impl;
-
-	template<>
-	struct native_builtins_impl<double>
-	{
-		static double pi(void)
-		{
-			return 3.14159265358979323846;
-		}
-
-		static double e(void)
-		{
-			return 2.71828182845904523536;
-		}
-
-		static double fac(double a)
-		{ /* simplest version of fac */
-			if (a < 0.0)
-				return nan();
-			if (a > UINT_MAX)
-				return INFINITY;
-			unsigned int	  ua	 = (unsigned int)(a);
-			unsigned long int result = 1, i;
-			for (i = 1; i <= ua; i++)
-			{
-				if (i > ULONG_MAX / result)
-					return INFINITY;
-				result *= i;
-			}
-			return (double)result;
-		}
-
-		static double ncr(double n, double r)
-		{
-			if (n < 0.0 || r < 0.0 || n < r)
-				return nan();
-			if (n > UINT_MAX || r > UINT_MAX)
-				return INFINITY;
-			unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-			unsigned long int result = 1;
-			if (ur > un / 2)
-				ur = un - ur;
-			for (i = 1; i <= ur; i++)
-			{
-				if (result > ULONG_MAX / (un - ur + i))
-					return INFINITY;
-				result *= un - ur + i;
-				result /= i;
-			}
-			return result;
-		}
-
-		static double npr(double n, double r)
-		{
-			return ncr(n, r) * fac(r);
-		}
-
-		static double fabs(double n)
-		{
-			return ::fabs(n);
-		}
-
-		static double acos(double n)
-		{
-			return ::acos(n);
-		}
-
-		static double cosh(double n)
-		{
-			return ::cosh(n);
-		}
-
-		static double cos(double n)
-		{
-			return ::cos(n);
-		}
-
-		static double exp(double n)
-		{
-			return ::exp(n);
-		}
-
-		static double asin(double n)
-		{
-			return ::asin(n);
-		}
-
-		static double sinh(double n)
-		{
-			return ::sinh(n);
-		}
-
-		static double sin(double n)
-		{
-			return ::sin(n);
-		}
-
-		static double sqrt(double n)
-		{
-			return ::sqrt(n);
-		}
-
-		static double log(double n)
-		{
-			return ::log(n);
-		}
-
-		static double log10(double n)
-		{
-			return ::log10(n);
-		}
-
-		static double atan(double n)
-		{
-			return ::atan(n);
-		}
-
-		static double tanh(double n)
-		{
-			return ::tanh(n);
-		}
-
-		static double fmod(double n, double m)
-		{
-			return ::fmod(n, m);
-		}
-
-		static double tan(double n)
-		{
-			return ::tan(n);
-		}
-
-		static double atan2(double n, double m)
-		{
-			return ::atan2(n, m);
-		}
-
-		static double pow(double n, double m)
-		{
-			return ::pow(n, m);
-		}
-
-		static double floor(double d)
-		{
-			return ::floor(d);
-		}
-
-		static double ceil(double d)
-		{
-			return ::ceil(d);
-		}
-
-		static double add(double a, double b)
-		{
-			return a + b;
-		}
-
-		static double sub(double a, double b)
-		{
-			return a - b;
-		}
-
-		static double mul(double a, double b)
-		{
-			return a * b;
-		}
-
-		static double divide(double a, double b)
-		{
-			return a / b;
-		}
-
-		static double negate(double a)
-		{
-			return -a;
-		}
-
-		static double comma(double a, double b)
-		{
-			(void)a;
-			return b;
-		}
-
-		static double greater(double a, double b)
-		{
-			return a > b;
-		}
-
-		static double greater_eq(double a, double b)
-		{
-			return a >= b;
-		}
-
-		static double lower(double a, double b)
-		{
-			return a < b;
-		}
-
-		static double lower_eq(double a, double b)
-		{
-			return a <= b;
-		}
-
-		static double equal(double a, double b)
-		{
-			return a == b;
-		}
-
-		static double not_equal(double a, double b)
-		{
-			return a != b;
-		}
-
-		static double logical_and(double a, double b)
-		{
-			return a != 0.0 && b != 0.0;
-		}
-
-		static double logical_or(double a, double b)
-		{
-			return a != 0.0 || b != 0.0;
-		}
-
-		static double logical_not(double a)
-		{
-			return a == 0.0;
-		}
-
-		static double logical_notnot(double a)
-		{
-			return a != 0.0;
-		}
-
-		static double negate_logical_not(double a)
-		{
-			return -(a == 0.0);
-		}
-
-		static double negate_logical_notnot(double a)
-		{
-			return -(a != 0.0);
-		}
-
-		static double nul()
-		{
-			return 0.0f;
-		}
-
-		static double nan()
-		{
-			return std::numeric_limits<double>::quiet_NaN();
-		}
-	};
-
-	template<>
-	struct native_builtins_impl<float>
-	{
-		static float pi(void)
-		{
-			return 3.14159265358979323846f;
-		}
-
-		static float e(void)
-		{
-			return 2.71828182845904523536f;
-		}
-
-		static float fac(float a)
-		{ /* simplest version of fac */
-			if (a < 0.0f)
-				return nan();
-			if (a > UINT_MAX)
-				return INFINITY;
-			unsigned int	  ua	 = (unsigned int)(a);
-			unsigned long int result = 1, i;
-			for (i = 1; i <= ua; i++)
-			{
-				if (i > ULONG_MAX / result)
-					return INFINITY;
-				result *= i;
-			}
-			return (float)result;
-		}
-
-		static float ncr(float n, float r)
-		{
-			if (n < 0.0f || r < 0.0f || n < r)
-				return nan();
-			if (n > UINT_MAX || r > UINT_MAX)
-				return INFINITY;
-			unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
-			unsigned long int result = 1;
-			if (ur > un / 2)
-				ur = un - ur;
-			for (i = 1; i <= ur; i++)
-			{
-				if (result > ULONG_MAX / (un - ur + i))
-					return INFINITY;
-				result *= un - ur + i;
-				result /= i;
-			}
-			return (float)result;
-		}
-
-		static float npr(float n, float r)
-		{
-			return ncr(n, r) * fac(r);
-		}
-
-		static float fabs(float n)
-		{
-			return ::fabsf(n);
-		}
-
-		static float acos(float n)
-		{
-			return ::acosf(n);
-		}
-
-		static float cosh(float n)
-		{
-			return ::coshf(n);
-		}
-
-		static float cos(float n)
-		{
-			return ::cosf(n);
-		}
-
-		static float exp(float n)
-		{
-			return ::expf(n);
-		}
-
-		static float asin(float n)
-		{
-			return ::asinf(n);
-		}
-
-		static float sinh(float n)
-		{
-			return ::sinhf(n);
-		}
-
-		static float sin(float n)
-		{
-			return ::sinf(n);
-		}
-
-		static float sqrt(float n)
-		{
-			return ::sqrtf(n);
-		}
-
-		static float log(float n)
-		{
-			return ::logf(n);
-		}
-
-		static float log10(float n)
-		{
-			return ::log10f(n);
-		}
-
-		static float atan(float n)
-		{
-			return ::atanf(n);
-		}
-
-		static float tanh(float n)
-		{
-			return ::tanhf(n);
-		}
-
-		static float fmod(float n, float m)
-		{
-			return ::fmodf(n, m);
-		}
-
-		static float tan(float n)
-		{
-			return ::tanf(n);
-		}
-
-		static float atan2(float n, float m)
-		{
-			return ::atan2f(n, m);
-		}
-
-		static float pow(float n, float m)
-		{
-			return ::powf(n, m);
-		}
-
-		static float floor(float d)
-		{
-			return ::floorf(d);
-		}
-
-		static float ceil(float d)
-		{
-			return ::ceilf(d);
-		}
-
-		static float add(float a, float b)
-		{
-			return a + b;
-		}
-
-		static float sub(float a, float b)
-		{
-			return a - b;
-		}
-
-		static float mul(float a, float b)
-		{
-			return a * b;
-		}
-
-		static float divide(float a, float b)
-		{
-			return a / b;
-		}
-
-		static float negate(float a)
-		{
-			return -a;
-		}
-
-		static float comma(float a, float b)
-		{
-			(void)a;
-			return b;
-		}
-
-		static float greater(float a, float b)
-		{
-			return a > b;
-		}
-
-		static float greater_eq(float a, float b)
-		{
-			return a >= b;
-		}
-
-		static float lower(float a, float b)
-		{
-			return a < b;
-		}
-
-		static float lower_eq(float a, float b)
-		{
-			return a <= b;
-		}
-
-		static float equal(float a, float b)
-		{
-			return a == b;
-		}
-
-		static float not_equal(float a, float b)
-		{
-			return a != b;
-		}
-
-		static float logical_and(float a, float b)
-		{
-			return a != 0.0f && b != 0.0f;
-		}
-
-		static float logical_or(float a, float b)
-		{
-			return a != 0.0f || b != 0.0f;
-		}
-
-		static float logical_not(float a)
-		{
-			return a == 0.0f;
-		}
-
-		static float logical_notnot(float a)
-		{
-			return a != 0.0f;
-		}
-
-		static float negate_logical_not(float a)
-		{
-			return (float)-(a == 0.0f);
-		}
-
-		static float negate_logical_notnot(float a)
-		{
-			return (float)-(a != 0.0f);
-		}
-
-		static float nul()
-		{
-			return 0.0f;
-		}
-
-		static float nan()
-		{
-			return std::numeric_limits<float>::quiet_NaN();
-		}
-	};
-
-	template<typename T_ATOM>
-	struct native_builtins : native_builtins_impl<T_ATOM>
-	{
-		using t_impl = native_builtins_impl<T_ATOM>;
-
-		static inline constexpr variable functions[] = {/* must be in alphabetical order */
-														{"abs", t_impl::fabs, FUNCTION1 | FLAG_PURE, 0},
-														{"acos", t_impl::acos, FUNCTION1 | FLAG_PURE, 0},
-														{"asin", t_impl::asin, FUNCTION1 | FLAG_PURE, 0},
-														{"atan", t_impl::atan, FUNCTION1 | FLAG_PURE, 0},
-														{"atan2", t_impl::atan2, FUNCTION2 | FLAG_PURE, 0},
-														{"ceil", t_impl::ceil, FUNCTION1 | FLAG_PURE, 0},
-														{"cos", t_impl::cos, FUNCTION1 | FLAG_PURE, 0},
-														{"cosh", t_impl::cosh, FUNCTION1 | FLAG_PURE, 0},
-														{"e", t_impl::e, FUNCTION0 | FLAG_PURE, 0},
-														{"exp", t_impl::exp, FUNCTION1 | FLAG_PURE, 0},
-														{"fac", t_impl::fac, FUNCTION1 | FLAG_PURE, 0},
-														{"floor", t_impl::floor, FUNCTION1 | FLAG_PURE, 0},
-														{"ln", t_impl::log, FUNCTION1 | FLAG_PURE, 0},
-#ifdef TP_NAT_LOG
-														{"log", t_impl::log, FUNCTION1 | FLAG_PURE, 0},
-#else
-														{"log", t_impl::log10, FUNCTION1 | FLAG_PURE, 0},
-#endif
-														{"log10", t_impl::log10, FUNCTION1 | FLAG_PURE, 0},
-														{"ncr", t_impl::ncr, FUNCTION2 | FLAG_PURE, 0},
-														{"npr", t_impl::npr, FUNCTION2 | FLAG_PURE, 0},
-														{"pi", t_impl::pi, FUNCTION0 | FLAG_PURE, 0},
-														{"pow", t_impl::pow, FUNCTION2 | FLAG_PURE, 0},
-														{"sin", t_impl::sin, FUNCTION1 | FLAG_PURE, 0},
-														{"sinh", t_impl::sinh, FUNCTION1 | FLAG_PURE, 0},
-														{"sqrt", t_impl::sqrt, FUNCTION1 | FLAG_PURE, 0},
-														{"tan", t_impl::tan, FUNCTION1 | FLAG_PURE, 0},
-														{"tanh", t_impl::tanh, FUNCTION1 | FLAG_PURE, 0},
-														{0, 0, 0, 0}};
-
-		static inline constexpr variable operators[] = {/* must be in alphabetical order */
-														{"add", t_impl::add, FUNCTION2 | FLAG_PURE, 0},
-														{"comma", t_impl::comma, FUNCTION2 | FLAG_PURE, 0},
-														{"divide", t_impl::divide, FUNCTION2 | FLAG_PURE, 0},
-														{"equal", t_impl::equal, FUNCTION2 | FLAG_PURE, 0},
-														{"fmod", t_impl::fmod, FUNCTION2 | FLAG_PURE, 0},
-														{"greater", t_impl::greater, FUNCTION2 | FLAG_PURE, 0},
-														{"greater_eq", t_impl::greater_eq, FUNCTION2 | FLAG_PURE, 0},
-														{"logical_and", t_impl::logical_and, FUNCTION2 | FLAG_PURE, 0},
-														{"logical_not", t_impl::logical_not, FUNCTION1 | FLAG_PURE, 0},
-														{"logical_notnot", t_impl::logical_notnot, FUNCTION1 | FLAG_PURE, 0},
-														{"logical_or", t_impl::logical_or, FUNCTION2 | FLAG_PURE, 0},
-														{"lower", t_impl::lower, FUNCTION2 | FLAG_PURE, 0},
-														{"lower_eq", t_impl::lower_eq, FUNCTION2 | FLAG_PURE, 0},
-														{"mul", t_impl::mul, FUNCTION2 | FLAG_PURE, 0},
-														{"negate", t_impl::negate, FUNCTION1 | FLAG_PURE, 0},
-														{"negate_logical_not", t_impl::negate_logical_not, FUNCTION1 | FLAG_PURE, 0},
-														{"negate_logical_notnot", t_impl::negate_logical_notnot, FUNCTION1 | FLAG_PURE, 0},
-														{"not_equal", t_impl::not_equal, FUNCTION2 | FLAG_PURE, 0},
-														{"pow", t_impl::pow, FUNCTION2 | FLAG_PURE, 0},
-														{"sub", t_impl::sub, FUNCTION2 | FLAG_PURE, 0},
-														{0, 0, 0, 0}};
-
-		static inline int name_compare(const char* a, const char* b, size_t n)
-		{
-			while (n && *a && (*a == *b))
-			{
-				++a;
-				++b;
-				--n;
-			}
-			if (n == 0)
-			{
-				return 0;
-			}
-			else
-			{
-				return (*(unsigned char*)a - *(unsigned char*)b);
-			}
-		}
-
-		static inline const variable* find_builtin_function(const char* name, int len)
-		{
-			int imin = 0;
-			int imax = sizeof(functions) / sizeof(variable) - 2;
-
-			/*Binary search.*/
-			while (imax >= imin)
-			{
-				const int i = (imin + ((imax - imin) / 2));
-				int		  c = name_compare(name, functions[i].name, len);
-				if (!c)
-					c = '\0' - functions[i].name[len];
-				if (c == 0)
-				{
-					return functions + i;
-				}
-				else if (c > 0)
-				{
-					imin = i + 1;
-				}
-				else
-				{
-					imax = i - 1;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_builtin_operator(const char* name, int len)
-		{
-			int imin = 0;
-			int imax = sizeof(operators) / sizeof(variable) - 2;
-
-			/*Binary search.*/
-			while (imax >= imin)
-			{
-				const int i = (imin + ((imax - imin) / 2));
-				int		  c = name_compare(name, operators[i].name, len);
-
-				if (!c)
-					c = '\0' - operators[i].name[len];
-
-				if (c == 0)
-				{
-					return operators + i;
-				}
-				else if (c > 0)
-				{
-					imin = i + 1;
-				}
-				else
-				{
-					imax = i - 1;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_builtin(const char* name, int len)
-		{
-			auto res = find_builtin_function(name, len);
-			if (!res)
-			{
-				res = find_builtin_operator(name, len);
-			}
-			return res;
-		}
-
-		static inline const variable* find_builtin(const char* name)
-		{
-			return find_builtin(name, static_cast<int>(::strlen(name)));
-		}
-
-		static inline const void* find_builtin_address(const char* name)
-		{
-			auto b = find_builtin(name, static_cast<int>(::strlen(name)));
-			if (b)
-			{
-				return b->address;
-			}
-			return nullptr;
-		}
 	};
 
 	template<typename T_TRAITS>
@@ -867,10 +212,10 @@ namespace tp
 		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept ->
 			typename T_VECTOR
 		{
-			using t_atom	 = T_ATOM;
-			using t_vector	 = T_VECTOR;
-			using t_traits	 = T_TRAITS;
-			using t_builtins = typename T_TRAITS::t_vector_builtins;
+			using t_atom			= T_ATOM;
+			using t_vector			= T_VECTOR;
+			using t_traits			= T_TRAITS;
+			using t_vector_builtins = typename T_TRAITS::t_vector_builtins;
 
 			auto eval_arg = [&](int e) {
 				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>((const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
@@ -878,10 +223,12 @@ namespace tp
 
 			return eval_generic(
 				n_portable->type, [&]() { return t_traits::load_atom(n_portable->value); },
-				[&]() { return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_builtins::nan()); },
-				[&](int a) { return eval_function<t_vector>(a, expr_context[n_portable->function], t_builtins::nan(), eval_arg); },
-				[&](int a) { return eval_closure<t_vector>(a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[a]], t_builtins::nan(), eval_arg); },
-				[&]() { return t_builtins::nan(); });
+				[&]() { return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_vector_builtins::nan()); },
+				[&](int a) { return eval_function<t_vector>(a, expr_context[n_portable->function], t_vector_builtins::nan(), eval_arg); },
+				[&](int a) {
+					return eval_closure<t_vector>(a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[a]], t_vector_builtins::nan(), eval_arg);
+				},
+				[&]() { return t_vector_builtins::nan(); });
 		}
 	} // namespace eval_details
 
@@ -936,14 +283,115 @@ namespace tp
 
 namespace tp
 {
-	template<typename T_VECTOR>
-	struct compiler_builtins : native_builtins<T_VECTOR>
+	template<typename T_NATIVE>
+	struct compiler_builtins : T_NATIVE
 	{
-		using t_impl = native_builtins<T_VECTOR>;
+		using t_base = T_NATIVE;
+
+		static inline int name_compare(const char* a, const char* b, size_t n)
+		{
+			while (n && *a && (*a == *b))
+			{
+				++a;
+				++b;
+				--n;
+			}
+			if (n == 0)
+			{
+				return 0;
+			}
+			else
+			{
+				return (*(unsigned char*)a - *(unsigned char*)b);
+			}
+		}
+
+		static inline const variable* find_builtin_function(const char* name, int len)
+		{
+			int imin = 0;
+			int imax = sizeof(t_base::functions) / sizeof(variable) - 2;
+
+			/*Binary search.*/
+			while (imax >= imin)
+			{
+				const int i = (imin + ((imax - imin) / 2));
+				int		  c = name_compare(name, t_base::functions[i].name, len);
+				if (!c)
+					c = '\0' - t_base::functions[i].name[len];
+				if (c == 0)
+				{
+					return t_base::functions + i;
+				}
+				else if (c > 0)
+				{
+					imin = i + 1;
+				}
+				else
+				{
+					imax = i - 1;
+				}
+			}
+			return nullptr;
+		}
+
+		static inline const variable* find_builtin_operator(const char* name, int len)
+		{
+			int imin = 0;
+			int imax = sizeof(t_base::operators) / sizeof(variable) - 2;
+
+			/*Binary search.*/
+			while (imax >= imin)
+			{
+				const int i = (imin + ((imax - imin) / 2));
+				int		  c = name_compare(name, t_base::operators[i].name, len);
+
+				if (!c)
+					c = '\0' - t_base::operators[i].name[len];
+
+				if (c == 0)
+				{
+					return t_base::operators + i;
+				}
+				else if (c > 0)
+				{
+					imin = i + 1;
+				}
+				else
+				{
+					imax = i - 1;
+				}
+			}
+			return nullptr;
+		}
+
+		static inline const variable* find_builtin(const char* name, int len)
+		{
+			auto res = find_builtin_function(name, len);
+			if (!res)
+			{
+				res = find_builtin_operator(name, len);
+			}
+			return res;
+		}
+
+		static inline const variable* find_builtin(const char* name)
+		{
+			return find_builtin(name, static_cast<int>(::strlen(name)));
+		}
+
+		static inline const void* find_builtin_address(const char* name)
+		{
+			auto b = find_builtin(name, static_cast<int>(::strlen(name)));
+			if (b)
+			{
+				return b->address;
+			}
+			return nullptr;
+		}
 
 		static inline const variable* find_function_by_addr(const void* addr)
 		{
-			for (auto var = &t_impl::functions[0]; var->name != 0; ++var)
+			for (auto var = &t_base::functions[0]; var->name != 0; ++var)
 			{
 				if (var->address == addr)
 				{
@@ -955,7 +403,7 @@ namespace tp
 
 		static inline const variable* find_operator_by_addr(const void* addr)
 		{
-			for (auto var = &t_impl::operators[0]; var->name != 0; ++var)
+			for (auto var = &t_base::operators[0]; var->name != 0; ++var)
 			{
 				if (var->address == addr)
 				{
@@ -973,7 +421,7 @@ namespace tp
 				var = find_operator_by_addr(addr);
 				if (!var)
 				{
-					return t_impl::find_builtin("nul");
+					return find_builtin("nul");
 				}
 			}
 			return var;
@@ -983,10 +431,11 @@ namespace tp
 	template<typename T_TRAITS>
 	struct native
 	{
-		using t_traits	 = T_TRAITS;
-		using t_atom	 = typename T_TRAITS::t_atom;
-		using t_vector	 = typename T_TRAITS::t_vector;
-		using t_builtins = compiler_builtins<t_vector>;
+		using t_traits			= T_TRAITS;
+		using t_atom			= typename T_TRAITS::t_atom;
+		using t_vector			= typename T_TRAITS::t_vector;
+		using t_atom_builtins	= compiler_builtins<typename T_TRAITS::t_atom_builtins>;
+		using t_vector_builtins = compiler_builtins<typename T_TRAITS::t_vector_builtins>;
 
 		struct expr_native
 		{
@@ -1140,7 +589,7 @@ namespace tp
 
 						const variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
 						if (!var)
-							var = t_builtins::find_builtin(start, static_cast<int>(s->next - start));
+							var = t_vector_builtins::find_builtin(start, static_cast<int>(s->next - start));
 
 						if (!var)
 						{
@@ -1180,46 +629,46 @@ namespace tp
 						{
 						case '+':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("add");
+							s->function = t_vector_builtins::find_builtin_address("add");
 							break;
 						case '-':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("sub");
+							s->function = t_vector_builtins::find_builtin_address("sub");
 							break;
 						case '*':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("mul");
+							s->function = t_vector_builtins::find_builtin_address("mul");
 							break;
 						case '/':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("divide");
+							s->function = t_vector_builtins::find_builtin_address("divide");
 							break;
 						case '^':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("pow");
+							s->function = t_vector_builtins::find_builtin_address("pow");
 							break;
 						case '%':
 							s->type		= (int)TOK::INFIX;
-							s->function = t_builtins::find_builtin_address("fmod");
+							s->function = t_vector_builtins::find_builtin_address("fmod");
 							break;
 						case '!':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("not_equal");
+								s->function = t_vector_builtins::find_builtin_address("not_equal");
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("logical_not");
+								s->function = t_vector_builtins::find_builtin_address("logical_not");
 							}
 							break;
 						case '=':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("equal");
+								s->function = t_vector_builtins::find_builtin_address("equal");
 							}
 							else
 							{
@@ -1230,33 +679,33 @@ namespace tp
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("lower_eq");
+								s->function = t_vector_builtins::find_builtin_address("lower_eq");
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("lower");
+								s->function = t_vector_builtins::find_builtin_address("lower");
 							}
 							break;
 						case '>':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("greater_eq");
+								s->function = t_vector_builtins::find_builtin_address("greater_eq");
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("greater");
+								s->function = t_vector_builtins::find_builtin_address("greater");
 							}
 							break;
 						case '&':
 							if (s->next++[0] == '&')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("logical_and");
+								s->function = t_vector_builtins::find_builtin_address("logical_and");
 							}
 							else
 							{
@@ -1267,7 +716,7 @@ namespace tp
 							if (s->next++[0] == '|')
 							{
 								s->type		= (int)TOK::INFIX;
-								s->function = t_builtins::find_builtin_address("logical_or");
+								s->function = t_vector_builtins::find_builtin_address("logical_or");
 							}
 							else
 							{
@@ -1401,7 +850,7 @@ namespace tp
 			{
 				ret		   = new_expr(0, 0);
 				s->type	   = (int)TOK::ERROR;
-				ret->value = t_builtins::nan();
+				ret->value = t_vector_builtins::nan();
 			}
 
 			return ret;
@@ -1411,18 +860,18 @@ namespace tp
 		{
 			/* <power>     =    {("-" | "+" | "!")} <base> */
 			int sign = 1;
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
 			{
-				if (s->function == t_builtins::find_builtin_address("sub"))
+				if (s->function == t_vector_builtins::find_builtin_address("sub"))
 					sign = -sign;
 				next_token(s);
 			}
 
 			int logical = 0;
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub") ||
-												  s->function == t_builtins::find_builtin_address("logical_not")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub") ||
+												  s->function == t_vector_builtins::find_builtin_address("logical_not")))
 			{
-				if (s->function == t_builtins::find_builtin_address("logical_not"))
+				if (s->function == t_vector_builtins::find_builtin_address("logical_not"))
 				{
 					if (logical == 0)
 					{
@@ -1447,12 +896,12 @@ namespace tp
 				else if (logical == -1)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_builtins::find_builtin_address("logical_not");
+					ret->function = t_vector_builtins::find_builtin_address("logical_not");
 				}
 				else
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_builtins::find_builtin_address("logical_notnot");
+					ret->function = t_vector_builtins::find_builtin_address("logical_notnot");
 				}
 			}
 			else
@@ -1460,17 +909,17 @@ namespace tp
 				if (logical == 0)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_builtins::find_builtin_address("negate");
+					ret->function = t_vector_builtins::find_builtin_address("negate");
 				}
 				else if (logical == -1)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_builtins::find_builtin_address("negate_logical_not");
+					ret->function = t_vector_builtins::find_builtin_address("negate_logical_not");
 				}
 				else
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_builtins::find_builtin_address("negate_logical_notnot");
+					ret->function = t_vector_builtins::find_builtin_address("negate_logical_notnot");
 				}
 			}
 
@@ -1487,9 +936,9 @@ namespace tp
 			expr_native* insertion	   = 0;
 
 			if (ret->type == (FUNCTION1 | FLAG_PURE) &&
-				(ret->function == t_builtins::find_builtin_address("negate") || ret->function == t_builtins::find_builtin_address("logical_not") ||
-				 ret->function == t_builtins::find_builtin_address("logical_notnot") || ret->function == t_builtins::find_builtin_address("negate_logical_not") ||
-				 ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
+				(ret->function == t_vector_builtins::find_builtin_address("negate") || ret->function == t_vector_builtins::find_builtin_address("logical_not") ||
+				 ret->function == t_vector_builtins::find_builtin_address("logical_notnot") || ret->function == t_vector_builtins::find_builtin_address("negate_logical_not") ||
+				 ret->function == t_vector_builtins::find_builtin_address("negate_logical_notnot")))
 			{
 				left_function	= ret->function;
 				expr_native* se = ret->parameters[0];
@@ -1497,7 +946,7 @@ namespace tp
 				ret = se;
 			}
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = s->function;
 				next_token(s);
@@ -1532,7 +981,7 @@ namespace tp
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1549,8 +998,9 @@ namespace tp
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide") ||
-												  s->function == t_builtins::find_builtin_address("fmod")))
+			while (s->type == (int)TOK::INFIX &&
+				   (s->function == t_vector_builtins::find_builtin_address("mul") || s->function == t_vector_builtins::find_builtin_address("divide") ||
+					s->function == t_vector_builtins::find_builtin_address("fmod")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1566,7 +1016,7 @@ namespace tp
 			/* <expr>      =    <term> {("+" | "-") <term>} */
 			expr_native* ret = term(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1582,9 +1032,10 @@ namespace tp
 			/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 			expr_native* ret = sum_expr(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq") ||
-												  s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq") ||
-												  s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
+			while (s->type == (int)TOK::INFIX &&
+				   (s->function == t_vector_builtins::find_builtin_address("greater") || s->function == t_vector_builtins::find_builtin_address("greater_eq") ||
+					s->function == t_vector_builtins::find_builtin_address("lower") || s->function == t_vector_builtins::find_builtin_address("lower_eq") ||
+					s->function == t_vector_builtins::find_builtin_address("equal") || s->function == t_vector_builtins::find_builtin_address("not_equal")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1600,7 +1051,8 @@ namespace tp
 			/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 			expr_native* ret = test_expr(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("logical_and") || s->function == t_builtins::find_builtin_address("logical_or")))
+			while (s->type == (int)TOK::INFIX &&
+				   (s->function == t_vector_builtins::find_builtin_address("logical_and") || s->function == t_vector_builtins::find_builtin_address("logical_or")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1620,7 +1072,7 @@ namespace tp
 			{
 				next_token(s);
 				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, expr(s));
-				ret->function = t_builtins::find_builtin_address("comma");
+				ret->function = t_vector_builtins::find_builtin_address("comma");
 			}
 
 			return ret;
@@ -1629,7 +1081,7 @@ namespace tp
 		static t_vector eval_native(const expr_native* n)
 		{
 			if (!n)
-				return t_builtins::nan();
+				return t_vector_builtins::nan();
 
 			auto eval_arg = [&](int e) {
 				return eval_native((const expr_native*)n->parameters[e]);
@@ -1637,9 +1089,9 @@ namespace tp
 
 			return eval_details::eval_generic(
 				n->type, [&]() { return n->value; }, [&]() { return *n->bound; },
-				[&](int a) { return eval_details::eval_function<t_vector>(a, n->function, t_builtins::nan(), eval_arg); },
-				[&](int a) { return eval_details::eval_closure<t_vector>(a, n->function, (void*)n->parameters[a], t_builtins::nan(), eval_arg); },
-				[&]() { return t_builtins::nan(); });
+				[&](int a) { return eval_details::eval_function<t_vector>(a, n->function, t_vector_builtins::nan(), eval_arg); },
+				[&](int a) { return eval_details::eval_closure<t_vector>(a, n->function, (void*)n->parameters[a], t_vector_builtins::nan(), eval_arg); },
+				[&]() { return t_vector_builtins::nan(); });
 		}
 
 		static void optimize(expr_native* n)
@@ -1785,7 +1237,7 @@ namespace tp
 
 		static const variable* find_bind_or_any_by_addr(const void* addr, const variable* lookup, int lookup_len)
 		{
-			auto res = t_builtins::find_any_by_addr(addr);
+			auto res = t_vector_builtins::find_any_by_addr(addr);
 			if (!res)
 			{
 				res = find_bind_by_addr(addr, lookup, lookup_len);
@@ -2628,86 +2080,580 @@ namespace tp
 } // namespace tp
 #endif // #if (TP_COMPILER_ENABLED)
 
+#if TP_STANDARD_LIBRARY
+namespace tp_stdlib
+{
+	template<typename T_ATOM>
+	struct native_builtins_impl;
+
+	template<>
+	struct native_builtins_impl<double>
+	{
+		static double pi(void)
+		{
+			return 3.14159265358979323846;
+		}
+
+		static double e(void)
+		{
+			return 2.71828182845904523536;
+		}
+
+		static double fac(double a)
+		{ /* simplest version of fac */
+			if (a < 0.0)
+				return nan();
+			if (a > UINT_MAX)
+				return INFINITY;
+			unsigned int	  ua	 = (unsigned int)(a);
+			unsigned long int result = 1, i;
+			for (i = 1; i <= ua; i++)
+			{
+				if (i > ULONG_MAX / result)
+					return INFINITY;
+				result *= i;
+			}
+			return (double)result;
+		}
+
+		static double ncr(double n, double r)
+		{
+			if (n < 0.0 || r < 0.0 || n < r)
+				return nan();
+			if (n > UINT_MAX || r > UINT_MAX)
+				return INFINITY;
+			unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+			unsigned long int result = 1;
+			if (ur > un / 2)
+				ur = un - ur;
+			for (i = 1; i <= ur; i++)
+			{
+				if (result > ULONG_MAX / (un - ur + i))
+					return INFINITY;
+				result *= un - ur + i;
+				result /= i;
+			}
+			return result;
+		}
+
+		static double npr(double n, double r)
+		{
+			return ncr(n, r) * fac(r);
+		}
+
+		static double fabs(double n)
+		{
+			return ::fabs(n);
+		}
+
+		static double acos(double n)
+		{
+			return ::acos(n);
+		}
+
+		static double cosh(double n)
+		{
+			return ::cosh(n);
+		}
+
+		static double cos(double n)
+		{
+			return ::cos(n);
+		}
+
+		static double exp(double n)
+		{
+			return ::exp(n);
+		}
+
+		static double asin(double n)
+		{
+			return ::asin(n);
+		}
+
+		static double sinh(double n)
+		{
+			return ::sinh(n);
+		}
+
+		static double sin(double n)
+		{
+			return ::sin(n);
+		}
+
+		static double sqrt(double n)
+		{
+			return ::sqrt(n);
+		}
+
+		static double log(double n)
+		{
+			return ::log(n);
+		}
+
+		static double log10(double n)
+		{
+			return ::log10(n);
+		}
+
+		static double atan(double n)
+		{
+			return ::atan(n);
+		}
+
+		static double tanh(double n)
+		{
+			return ::tanh(n);
+		}
+
+		static double fmod(double n, double m)
+		{
+			return ::fmod(n, m);
+		}
+
+		static double tan(double n)
+		{
+			return ::tan(n);
+		}
+
+		static double atan2(double n, double m)
+		{
+			return ::atan2(n, m);
+		}
+
+		static double pow(double n, double m)
+		{
+			return ::pow(n, m);
+		}
+
+		static double floor(double d)
+		{
+			return ::floor(d);
+		}
+
+		static double ceil(double d)
+		{
+			return ::ceil(d);
+		}
+
+		static double add(double a, double b)
+		{
+			return a + b;
+		}
+
+		static double sub(double a, double b)
+		{
+			return a - b;
+		}
+
+		static double mul(double a, double b)
+		{
+			return a * b;
+		}
+
+		static double divide(double a, double b)
+		{
+			return a / b;
+		}
+
+		static double negate(double a)
+		{
+			return -a;
+		}
+
+		static double comma(double a, double b)
+		{
+			(void)a;
+			return b;
+		}
+
+		static double greater(double a, double b)
+		{
+			return a > b;
+		}
+
+		static double greater_eq(double a, double b)
+		{
+			return a >= b;
+		}
+
+		static double lower(double a, double b)
+		{
+			return a < b;
+		}
+
+		static double lower_eq(double a, double b)
+		{
+			return a <= b;
+		}
+
+		static double equal(double a, double b)
+		{
+			return a == b;
+		}
+
+		static double not_equal(double a, double b)
+		{
+			return a != b;
+		}
+
+		static double logical_and(double a, double b)
+		{
+			return a != 0.0 && b != 0.0;
+		}
+
+		static double logical_or(double a, double b)
+		{
+			return a != 0.0 || b != 0.0;
+		}
+
+		static double logical_not(double a)
+		{
+			return a == 0.0;
+		}
+
+		static double logical_notnot(double a)
+		{
+			return a != 0.0;
+		}
+
+		static double negate_logical_not(double a)
+		{
+			return -(a == 0.0);
+		}
+
+		static double negate_logical_notnot(double a)
+		{
+			return -(a != 0.0);
+		}
+
+		static double nul()
+		{
+			return 0.0f;
+		}
+
+		static double nan()
+		{
+			return std::numeric_limits<double>::quiet_NaN();
+		}
+	};
+
+	template<>
+	struct native_builtins_impl<float>
+	{
+		static float pi(void)
+		{
+			return 3.14159265358979323846f;
+		}
+
+		static float e(void)
+		{
+			return 2.71828182845904523536f;
+		}
+
+		static float fac(float a)
+		{ /* simplest version of fac */
+			if (a < 0.0f)
+				return nan();
+			if (a > UINT_MAX)
+				return INFINITY;
+			unsigned int	  ua	 = (unsigned int)(a);
+			unsigned long int result = 1, i;
+			for (i = 1; i <= ua; i++)
+			{
+				if (i > ULONG_MAX / result)
+					return INFINITY;
+				result *= i;
+			}
+			return (float)result;
+		}
+
+		static float ncr(float n, float r)
+		{
+			if (n < 0.0f || r < 0.0f || n < r)
+				return nan();
+			if (n > UINT_MAX || r > UINT_MAX)
+				return INFINITY;
+			unsigned long int un = (unsigned int)(n), ur = (unsigned int)(r), i;
+			unsigned long int result = 1;
+			if (ur > un / 2)
+				ur = un - ur;
+			for (i = 1; i <= ur; i++)
+			{
+				if (result > ULONG_MAX / (un - ur + i))
+					return INFINITY;
+				result *= un - ur + i;
+				result /= i;
+			}
+			return (float)result;
+		}
+
+		static float npr(float n, float r)
+		{
+			return ncr(n, r) * fac(r);
+		}
+
+		static float fabs(float n)
+		{
+			return ::fabsf(n);
+		}
+
+		static float acos(float n)
+		{
+			return ::acosf(n);
+		}
+
+		static float cosh(float n)
+		{
+			return ::coshf(n);
+		}
+
+		static float cos(float n)
+		{
+			return ::cosf(n);
+		}
+
+		static float exp(float n)
+		{
+			return ::expf(n);
+		}
+
+		static float asin(float n)
+		{
+			return ::asinf(n);
+		}
+
+		static float sinh(float n)
+		{
+			return ::sinhf(n);
+		}
+
+		static float sin(float n)
+		{
+			return ::sinf(n);
+		}
+
+		static float sqrt(float n)
+		{
+			return ::sqrtf(n);
+		}
+
+		static float log(float n)
+		{
+			return ::logf(n);
+		}
+
+		static float log10(float n)
+		{
+			return ::log10f(n);
+		}
+
+		static float atan(float n)
+		{
+			return ::atanf(n);
+		}
+
+		static float tanh(float n)
+		{
+			return ::tanhf(n);
+		}
+
+		static float fmod(float n, float m)
+		{
+			return ::fmodf(n, m);
+		}
+
+		static float tan(float n)
+		{
+			return ::tanf(n);
+		}
+
+		static float atan2(float n, float m)
+		{
+			return ::atan2f(n, m);
+		}
+
+		static float pow(float n, float m)
+		{
+			return ::powf(n, m);
+		}
+
+		static float floor(float d)
+		{
+			return ::floorf(d);
+		}
+
+		static float ceil(float d)
+		{
+			return ::ceilf(d);
+		}
+
+		static float add(float a, float b)
+		{
+			return a + b;
+		}
+
+		static float sub(float a, float b)
+		{
+			return a - b;
+		}
+
+		static float mul(float a, float b)
+		{
+			return a * b;
+		}
+
+		static float divide(float a, float b)
+		{
+			return a / b;
+		}
+
+		static float negate(float a)
+		{
+			return -a;
+		}
+
+		static float comma(float a, float b)
+		{
+			(void)a;
+			return b;
+		}
+
+		static float greater(float a, float b)
+		{
+			return a > b;
+		}
+
+		static float greater_eq(float a, float b)
+		{
+			return a >= b;
+		}
+
+		static float lower(float a, float b)
+		{
+			return a < b;
+		}
+
+		static float lower_eq(float a, float b)
+		{
+			return a <= b;
+		}
+
+		static float equal(float a, float b)
+		{
+			return a == b;
+		}
+
+		static float not_equal(float a, float b)
+		{
+			return a != b;
+		}
+
+		static float logical_and(float a, float b)
+		{
+			return a != 0.0f && b != 0.0f;
+		}
+
+		static float logical_or(float a, float b)
+		{
+			return a != 0.0f || b != 0.0f;
+		}
+
+		static float logical_not(float a)
+		{
+			return a == 0.0f;
+		}
+
+		static float logical_notnot(float a)
+		{
+			return a != 0.0f;
+		}
+
+		static float negate_logical_not(float a)
+		{
+			return (float)-(a == 0.0f);
+		}
+
+		static float negate_logical_notnot(float a)
+		{
+			return (float)-(a != 0.0f);
+		}
+
+		static float nul()
+		{
+			return 0.0f;
+		}
+
+		static float nan()
+		{
+			return std::numeric_limits<float>::quiet_NaN();
+		}
+	};
+
+	template<typename T_ATOM>
+	struct native_builtins : native_builtins_impl<T_ATOM>
+	{
+		using t_impl = native_builtins_impl<T_ATOM>;
+
+		static inline constexpr tp::variable functions[] = {/* must be in alphabetical order */
+															{"abs", t_impl::fabs, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"acos", t_impl::acos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"asin", t_impl::asin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"atan", t_impl::atan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"atan2", t_impl::atan2, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"ceil", t_impl::ceil, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"cos", t_impl::cos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"cosh", t_impl::cosh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"e", t_impl::e, tp::FUNCTION0 | tp::FLAG_PURE, 0},
+															{"exp", t_impl::exp, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"fac", t_impl::fac, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"floor", t_impl::floor, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"ln", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+#ifdef TP_NAT_LOG
+															{"log", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+#else
+															{"log", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+#endif
+															{"log10", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"ncr", t_impl::ncr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"npr", t_impl::npr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"pi", t_impl::pi, tp::FUNCTION0 | tp::FLAG_PURE, 0},
+															{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"sin", t_impl::sin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"sinh", t_impl::sinh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"sqrt", t_impl::sqrt, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"tan", t_impl::tan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"tanh", t_impl::tanh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{0, 0, 0, 0}};
+
+		static inline constexpr tp::variable operators[] = {/* must be in alphabetical order */
+															{"add", t_impl::add, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"comma", t_impl::comma, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"divide", t_impl::divide, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"equal", t_impl::equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"fmod", t_impl::fmod, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"greater", t_impl::greater, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"greater_eq", t_impl::greater_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"logical_and", t_impl::logical_and, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"logical_not", t_impl::logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"logical_notnot", t_impl::logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"logical_or", t_impl::logical_or, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"lower", t_impl::lower, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"lower_eq", t_impl::lower_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"mul", t_impl::mul, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"negate", t_impl::negate, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"negate_logical_not", t_impl::negate_logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"negate_logical_notnot", t_impl::negate_logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+															{"not_equal", t_impl::not_equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{"sub", t_impl::sub, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+															{0, 0, 0, 0}};
+	};
+} // namespace tp_stdlib
+#endif // #if TP_STANDARD_LIBRARY
+
 namespace tp
 {
-	struct env_traits_f32
-	{
-		using t_atom			= float;
-		using t_vector			= float;
-		using t_vector_int		= int;
-		using t_atom_builtins	= native_builtins<t_atom>;
-		using t_vector_builtins = native_builtins<t_vector>;
-
-		static inline t_vector load_atom(t_atom a) noexcept
-		{
-			return a;
-		}
-
-		static inline t_vector as_truth(t_vector a) noexcept
-		{
-			return (a != 0.0f) ? 1.0f : 0.0f;
-		}
-
-		static inline t_vector explicit_load_atom(double a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline t_vector explicit_load_atom(int a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline double explicit_store_double(t_vector a)
-		{
-			return (double)a;
-		}
-
-		static inline int explicit_store_int(t_vector a)
-		{
-			return (int)a;
-		}
-	};
-
-	struct env_traits_d64
-	{
-		using t_atom			= double;
-		using t_vector			= double;
-		using t_vector_int		= int;
-		using t_atom_builtins	= native_builtins<t_atom>;
-		using t_vector_builtins = native_builtins<t_vector>;
-
-		static inline t_vector load_atom(t_atom a) noexcept
-		{
-			return a;
-		}
-
-		static inline t_vector as_truth(t_vector a) noexcept
-		{
-			return (a != 0.0f) ? 1.0f : 0.0f;
-		}
-
-		static inline t_vector explicit_load_atom(double a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline t_vector explicit_load_atom(int a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline double explicit_store_double(t_vector a)
-		{
-			return (double)a;
-		}
-
-		static inline int explicit_store_int(t_vector a)
-		{
-			return (int)a;
-		}
-	};
-
 	template<typename T_TRAITS>
 	struct impl
 	{
@@ -2806,6 +2752,96 @@ namespace tp
 	};
 } // namespace tp
 
-using te = tp::impl<tp::env_traits_f32>;
+#if TP_STANDARD_LIBRARY
+namespace tp
+{
+	template<template<typename> typename T_NATIVE_BUILTINS>
+	struct env_traits_f32
+	{
+		using t_atom			= float;
+		using t_vector			= float;
+		using t_vector_int		= int;
+		using t_atom_builtins	= T_NATIVE_BUILTINS<t_atom>;
+		using t_vector_builtins = T_NATIVE_BUILTINS<t_vector>;
+
+		static inline t_vector load_atom(t_atom a) noexcept
+		{
+			return a;
+		}
+
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
+		static inline t_vector explicit_load_atom(double a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline t_vector explicit_load_atom(int a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline double explicit_store_double(t_vector a)
+		{
+			return (double)a;
+		}
+
+		static inline int explicit_store_int(t_vector a)
+		{
+			return (int)a;
+		}
+	};
+
+	template<template<typename> typename T_NATIVE_BUILTINS>
+	struct env_traits_d64
+	{
+		using t_atom			= double;
+		using t_vector			= double;
+		using t_vector_int		= int;
+		using t_atom_builtins	= T_NATIVE_BUILTINS<t_atom>;
+		using t_vector_builtins = T_NATIVE_BUILTINS<t_vector>;
+
+		static inline t_vector load_atom(t_atom a) noexcept
+		{
+			return a;
+		}
+
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
+		static inline t_vector explicit_load_atom(double a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline t_vector explicit_load_atom(int a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline double explicit_store_double(t_vector a)
+		{
+			return (double)a;
+		}
+
+		static inline int explicit_store_int(t_vector a)
+		{
+			return (int)a;
+		}
+	};
+} // namespace tp
+#endif // #if TP_STANDARD_LIBRARY
+
+#if TP_TESTING
+#if !TP_STANDARD_LIBRARY
+#error TP_STANDARD_LIBRARY should be defined for testing
+#endif // #if !TP_STANDARD_LIBRARY
+using te = tp::impl<tp::env_traits_f32<tp_stdlib::native_builtins>>;
+#endif // #if TP_TESTING
 
 #endif /*__TINYPROG_H__*/

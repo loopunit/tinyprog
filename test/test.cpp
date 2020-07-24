@@ -27,7 +27,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#define TP_COMPILER_ENABLED 1
+#define TP_TESTING 1
 #include "tinyprog.h"
 
 #include <stdio.h>

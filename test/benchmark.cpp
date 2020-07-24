@@ -31,7 +31,7 @@
 #include <time.h>
 #include <math.h>
 
-#define TP_COMPILER_ENABLED 1
+#define TP_TESTING 1
 #include "tinyprog.h"
 
 #define loops 10000

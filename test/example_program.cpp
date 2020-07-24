@@ -1,4 +1,4 @@
-#define TP_COMPILER_ENABLED 1
+#define TP_TESTING 1
 #include "tinyprog.h"
 #include <stdio.h>
 
