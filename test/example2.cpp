@@ -1,11 +1,9 @@
-#define TE_IMPLEMENT 1
+#define TP_COMPILER_ENABLED 1
 #include "tinyprog.h"
 #include <stdio.h>
 
 int main(int argc, char* argv[])
 {
-	using namespace te;
-
 	if (argc < 2)
 	{
 		printf("Usage: example2 \"expression\"\n");
@@ -17,12 +15,12 @@ int main(int argc, char* argv[])
 
 	/* This shows an example where the variables
 	 * x and y are bound at eval-time. */
-	env_traits::t_atom x, y;
-	variable		   vars[] = {{"x", &x}, {"y", &y}};
+	te::env_traits::t_atom x, y;
+	te::variable		   vars[] = {{"x", &x}, {"y", &y}};
 
 	/* This will compile the expression and check for errors. */
 	int	 err;
-	auto n = compile(expression, vars, 2, &err);
+	auto n = te::compile(expression, vars, 2, &err);
 
 	if (n)
 	{
@@ -31,7 +29,7 @@ int main(int argc, char* argv[])
 		 * already been done. */
 		x			   = 3;
 		y			   = 4;
-		const env_traits::t_atom r = eval(n);
+		const te::env_traits::t_atom r = te::eval(n);
 		printf("Result:\n\t%f\n", r);
 
 		delete n;

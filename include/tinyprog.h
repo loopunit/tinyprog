@@ -33,43 +33,39 @@
 #include <limits>
 #include <cctype>
 
-#ifndef TE_COMPILER_ENABLED
-#define TE_COMPILER_ENABLED 1
-#endif // TE_COMPILER_ENABLED
+#ifndef TP_COMPILER_ENABLED
+#define TP_COMPILER_ENABLED 0
+#endif // TP_COMPILER_ENABLED
 
-#ifndef TE_IMPLEMENT
-#define TE_IMPLEMENT 0
-#endif // TE_COMPILER_ENABLED
-
-namespace te
+namespace tp
 {
 	enum
 	{
-		TE_VARIABLE = 0,
+		VARIABLE = 0,
 
-		TE_CONSTANT = 1,
+		CONSTANT = 1,
 
-		TE_FUNCTION0 = 8,
-		TE_FUNCTION1,
-		TE_FUNCTION2,
-		TE_FUNCTION3,
-		TE_FUNCTION4,
-		TE_FUNCTION5,
-		TE_FUNCTION6,
-		TE_FUNCTION7,
-		TE_FUNCTION_MAX,
+		FUNCTION0 = 8,
+		FUNCTION1,
+		FUNCTION2,
+		FUNCTION3,
+		FUNCTION4,
+		FUNCTION5,
+		FUNCTION6,
+		FUNCTION7,
+		FUNCTION_MAX,
 
-		TE_CLOSURE0 = 16,
-		TE_CLOSURE1,
-		TE_CLOSURE2,
-		TE_CLOSURE3,
-		TE_CLOSURE4,
-		TE_CLOSURE5,
-		TE_CLOSURE6,
-		TE_CLOSURE7,
-		TE_CLOSURE_MAX,
+		CLOSURE0 = 16,
+		CLOSURE1,
+		CLOSURE2,
+		CLOSURE3,
+		CLOSURE4,
+		CLOSURE5,
+		CLOSURE6,
+		CLOSURE7,
+		CLOSURE_MAX,
 
-		TE_FLAG_PURE = 32
+		FLAG_PURE = 32
 	};
 
 	struct variable
@@ -329,9 +325,9 @@ namespace te
 			return 0.0f;
 		}
 
-		static float nan()
+		static double nan()
 		{
-			return std::numeric_limits<float>::quiet_NaN();
+			return std::numeric_limits<double>::quiet_NaN();
 		}
 	};
 
@@ -593,57 +589,57 @@ namespace te
 		using t_impl = native_builtins_impl<T_ATOM>;
 
 		static inline constexpr variable functions[] = {/* must be in alphabetical order */
-														{"abs", t_impl::fabs, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"acos", t_impl::acos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"asin", t_impl::asin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"atan", t_impl::atan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"atan2", t_impl::atan2, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"ceil", t_impl::ceil, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"cos", t_impl::cos, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"cosh", t_impl::cosh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"e", t_impl::e, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-														{"exp", t_impl::exp, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"fac", t_impl::fac, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"floor", t_impl::floor, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"ln", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-#ifdef TE_NAT_LOG
-														{"log", t_impl::log, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"abs", t_impl::fabs, FUNCTION1 | FLAG_PURE, 0},
+														{"acos", t_impl::acos, FUNCTION1 | FLAG_PURE, 0},
+														{"asin", t_impl::asin, FUNCTION1 | FLAG_PURE, 0},
+														{"atan", t_impl::atan, FUNCTION1 | FLAG_PURE, 0},
+														{"atan2", t_impl::atan2, FUNCTION2 | FLAG_PURE, 0},
+														{"ceil", t_impl::ceil, FUNCTION1 | FLAG_PURE, 0},
+														{"cos", t_impl::cos, FUNCTION1 | FLAG_PURE, 0},
+														{"cosh", t_impl::cosh, FUNCTION1 | FLAG_PURE, 0},
+														{"e", t_impl::e, FUNCTION0 | FLAG_PURE, 0},
+														{"exp", t_impl::exp, FUNCTION1 | FLAG_PURE, 0},
+														{"fac", t_impl::fac, FUNCTION1 | FLAG_PURE, 0},
+														{"floor", t_impl::floor, FUNCTION1 | FLAG_PURE, 0},
+														{"ln", t_impl::log, FUNCTION1 | FLAG_PURE, 0},
+#ifdef TP_NAT_LOG
+														{"log", t_impl::log, FUNCTION1 | FLAG_PURE, 0},
 #else
-														{"log", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"log", t_impl::log10, FUNCTION1 | FLAG_PURE, 0},
 #endif
-														{"log10", t_impl::log10, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"ncr", t_impl::ncr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"npr", t_impl::npr, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"pi", t_impl::pi, TE_FUNCTION0 | TE_FLAG_PURE, 0},
-														{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"sin", t_impl::sin, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"sinh", t_impl::sinh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"sqrt", t_impl::sqrt, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"tan", t_impl::tan, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"tanh", t_impl::tanh, TE_FUNCTION1 | TE_FLAG_PURE, 0},
+														{"log10", t_impl::log10, FUNCTION1 | FLAG_PURE, 0},
+														{"ncr", t_impl::ncr, FUNCTION2 | FLAG_PURE, 0},
+														{"npr", t_impl::npr, FUNCTION2 | FLAG_PURE, 0},
+														{"pi", t_impl::pi, FUNCTION0 | FLAG_PURE, 0},
+														{"pow", t_impl::pow, FUNCTION2 | FLAG_PURE, 0},
+														{"sin", t_impl::sin, FUNCTION1 | FLAG_PURE, 0},
+														{"sinh", t_impl::sinh, FUNCTION1 | FLAG_PURE, 0},
+														{"sqrt", t_impl::sqrt, FUNCTION1 | FLAG_PURE, 0},
+														{"tan", t_impl::tan, FUNCTION1 | FLAG_PURE, 0},
+														{"tanh", t_impl::tanh, FUNCTION1 | FLAG_PURE, 0},
 														{0, 0, 0, 0}};
 
 		static inline constexpr variable operators[] = {/* must be in alphabetical order */
-														{"add", t_impl::add, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"comma", t_impl::comma, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"divide", t_impl::divide, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"equal", t_impl::equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"fmod", t_impl::fmod, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"greater", t_impl::greater, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"greater_eq", t_impl::greater_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"logical_and", t_impl::logical_and, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"logical_not", t_impl::logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"logical_notnot", t_impl::logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"logical_or", t_impl::logical_or, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"lower", t_impl::lower, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"lower_eq", t_impl::lower_eq, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"mul", t_impl::mul, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"negate", t_impl::negate, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"negate_logical_not", t_impl::negate_logical_not, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"negate_logical_notnot", t_impl::negate_logical_notnot, TE_FUNCTION1 | TE_FLAG_PURE, 0},
-														{"not_equal", t_impl::not_equal, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"pow", t_impl::pow, TE_FUNCTION2 | TE_FLAG_PURE, 0},
-														{"sub", t_impl::sub, TE_FUNCTION2 | TE_FLAG_PURE, 0},
+														{"add", t_impl::add, FUNCTION2 | FLAG_PURE, 0},
+														{"comma", t_impl::comma, FUNCTION2 | FLAG_PURE, 0},
+														{"divide", t_impl::divide, FUNCTION2 | FLAG_PURE, 0},
+														{"equal", t_impl::equal, FUNCTION2 | FLAG_PURE, 0},
+														{"fmod", t_impl::fmod, FUNCTION2 | FLAG_PURE, 0},
+														{"greater", t_impl::greater, FUNCTION2 | FLAG_PURE, 0},
+														{"greater_eq", t_impl::greater_eq, FUNCTION2 | FLAG_PURE, 0},
+														{"logical_and", t_impl::logical_and, FUNCTION2 | FLAG_PURE, 0},
+														{"logical_not", t_impl::logical_not, FUNCTION1 | FLAG_PURE, 0},
+														{"logical_notnot", t_impl::logical_notnot, FUNCTION1 | FLAG_PURE, 0},
+														{"logical_or", t_impl::logical_or, FUNCTION2 | FLAG_PURE, 0},
+														{"lower", t_impl::lower, FUNCTION2 | FLAG_PURE, 0},
+														{"lower_eq", t_impl::lower_eq, FUNCTION2 | FLAG_PURE, 0},
+														{"mul", t_impl::mul, FUNCTION2 | FLAG_PURE, 0},
+														{"negate", t_impl::negate, FUNCTION1 | FLAG_PURE, 0},
+														{"negate_logical_not", t_impl::negate_logical_not, FUNCTION1 | FLAG_PURE, 0},
+														{"negate_logical_notnot", t_impl::negate_logical_notnot, FUNCTION1 | FLAG_PURE, 0},
+														{"not_equal", t_impl::not_equal, FUNCTION2 | FLAG_PURE, 0},
+														{"pow", t_impl::pow, FUNCTION2 | FLAG_PURE, 0},
+														{"sub", t_impl::sub, FUNCTION2 | FLAG_PURE, 0},
 														{0, 0, 0, 0}};
 
 		static inline int name_compare(const char* a, const char* b, size_t n)
@@ -775,7 +771,7 @@ namespace te
 		template<typename T>
 		inline T arity(const T t) noexcept
 		{
-			return (((t) & (TE_FUNCTION0 | TE_CLOSURE0)) ? ((t)&0x00000007) : 0);
+			return (((t) & (FUNCTION0 | CLOSURE0)) ? ((t)&0x00000007) : 0);
 		}
 
 		template<typename T_HANDLE_CONSTANT, typename T_HANDLE_VARIABLE, typename T_HANDLE_FUNCTION, typename T_HANDLE_CLOSURE, typename T_HANDLE_ERROR>
@@ -784,25 +780,25 @@ namespace te
 			T_HANDLE_ERROR handle_error)
 		{
 			const auto t = type_mask(type);
-			if (t == TE_CONSTANT)
+			if (t == CONSTANT)
 			{
 				return handle_constant();
 			}
-			else if (t == TE_VARIABLE)
+			else if (t == VARIABLE)
 			{
 				return handle_variable();
 			}
-			else if (t >= TE_FUNCTION0)
+			else if (t >= FUNCTION0)
 			{
-				if (t < TE_FUNCTION_MAX)
+				if (t < FUNCTION_MAX)
 				{
-					return handle_function(t - TE_FUNCTION0);
+					return handle_function(t - FUNCTION0);
 				}
-				if (t >= TE_CLOSURE0)
+				if (t >= CLOSURE0)
 				{
-					if (t < TE_CLOSURE_MAX)
+					if (t < CLOSURE_MAX)
 					{
-						return handle_closure(t - TE_CLOSURE0);
+						return handle_closure(t - CLOSURE0);
 					}
 				}
 			}
@@ -813,57 +809,57 @@ namespace te
 		template<typename T_VECTOR, typename T_RET, typename T_EVAL_ARG>
 		auto eval_function(int a, const void* fn, T_RET error_val, T_EVAL_ARG eval_arg) -> T_RET
 		{
-#define TE_FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
+#define FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
 			switch (a)
 			{
 			case 0:
-				return TE_FUN(void)();
+				return FUN(void)();
 			case 1:
-				return TE_FUN(T_VECTOR)(eval_arg(0));
+				return FUN(T_VECTOR)(eval_arg(0));
 			case 2:
-				return TE_FUN(T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1));
+				return FUN(T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1));
 			case 3:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2));
+				return FUN(T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2));
 			case 4:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+				return FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
 			case 5:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+				return FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
 			case 6:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
+				return FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
 			case 7:
-				return TE_FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+				return FUN(T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
 					eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
 			}
-#undef TE_FUN
+#undef FUN
 			return error_val;
 		}
 
 		template<typename T_VECTOR, typename T_RET, typename T_EVAL_ARG>
 		auto eval_closure(int a, const void* fn, const void* arity_params, T_RET error_val, T_EVAL_ARG eval_arg) -> T_RET
 		{
-#define TE_FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
+#define FUN(...) ((T_RET(*)(__VA_ARGS__))fn)
 			switch (a)
 			{
 			case 0:
-				return TE_FUN(const void*)(arity_params);
+				return FUN(const void*)(arity_params);
 			case 1:
-				return TE_FUN(const void*, T_VECTOR)(arity_params, eval_arg(0));
+				return FUN(const void*, T_VECTOR)(arity_params, eval_arg(0));
 			case 2:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1));
+				return FUN(const void*, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1));
 			case 3:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
+				return FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2));
 			case 4:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
+				return FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3));
 			case 5:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
+				return FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4));
 			case 6:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+				return FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
 					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5));
 			case 7:
-				return TE_FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
+				return FUN(const void*, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR, T_VECTOR)(
 					arity_params, eval_arg(0), eval_arg(1), eval_arg(2), eval_arg(3), eval_arg(4), eval_arg(5), eval_arg(6));
 			}
-#undef TE_FUN
+#undef FUN
 			return error_val;
 		}
 
@@ -889,51 +885,6 @@ namespace te
 		}
 	} // namespace eval_details
 
-	struct env_traits
-	{
-		using t_atom			= float;
-		using t_vector			= float;
-		using t_vector_int		= int;
-		using t_atom_builtins	= native_builtins<t_atom>;
-		using t_vector_builtins = native_builtins<t_vector>;
-
-		static inline t_vector load_atom(t_atom a) noexcept
-		{
-			return a;
-		}
-
-		static inline t_vector as_truth(t_vector a) noexcept
-		{
-			return (a != 0.0f) ? 1.0f : 0.0f;
-		}
-
-		static inline t_vector explicit_load_atom(double a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline t_vector explicit_load_atom(int a) noexcept
-		{
-			return (t_vector)a;
-		}
-
-		static inline double explicit_store_double(t_vector a)
-		{
-			return (double)a;
-		}
-
-		static inline int explicit_store_int(t_vector a)
-		{
-			return (int)a;
-		}
-	};
-
-	inline env_traits::t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
-	{
-		return eval_details::eval_portable_impl<env_traits, env_traits::t_atom, env_traits::t_vector>(
-			(const expr_portable<env_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
-	}
-
 	enum class statement_type : int
 	{
 		jump,
@@ -949,117 +900,41 @@ namespace te
 		int			   arg_b;
 	};
 
-	inline env_traits::t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
-	{
-		for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
-		{
-			auto& statement = statement_array[statement_index];
-			switch (statement.type)
-			{
-			case statement_type::jump:
-				if (statement.arg_b == -1 || (0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
-				{
-					statement_index = statement.arg_a;
-				}
-				break;
-
-			case statement_type::return_value:
-				return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-
-			case statement_type::assign:
-			{
-				auto dest = (env_traits::t_vector*)expr_context[statement.arg_a];
-				*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
-			}
-			break;
-
-			case statement_type::call:
-				eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-				break;
-
-			default:
-				// fatal error
-				return env_traits::t_vector_builtins::nan();
-			}
-		}
-		return env_traits::t_vector_builtins::nan();
-	}
-
-#if (TE_COMPILER_ENABLED)
+#if (TP_COMPILER_ENABLED)
 	struct compiled_expr
 	{
 		virtual ~compiled_expr() = default;
 
-		size_t				 get_binding_array_size() const;
-		const void* const*	 get_binding_addresses() const;
-		const char* const*	 get_binding_names() const;
-		size_t				 get_data_size() const;
-		const unsigned char* get_data() const;
+		virtual size_t				 get_binding_array_size() const = 0;
+		virtual const void* const*	 get_binding_addresses() const	= 0;
+		virtual const char* const*	 get_binding_names() const		= 0;
+		virtual size_t				 get_data_size() const			= 0;
+		virtual const unsigned char* get_data() const				= 0;
 	};
-
-	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error);
-
-	inline env_traits::t_vector eval(const compiled_expr* n)
-	{
-		return eval(n->get_data(), n->get_binding_addresses());
-	}
-
-	inline env_traits::t_vector interp(const char* expression, int* error)
-	{
-		compiled_expr*		 n = compile(expression, 0, 0, error);
-		env_traits::t_vector ret;
-		if (n)
-		{
-			ret = eval(n);
-			delete n;
-		}
-		else
-		{
-			ret = env_traits::t_vector_builtins::nan();
-		}
-		return ret;
-	}
 
 	struct compiled_program
 	{
 		virtual ~compiled_program() = default;
 
-		size_t				 get_binding_array_size() const;
-		const void* const*	 get_binding_addresses() const;
-		const char* const*	 get_binding_names() const;
-		size_t				 get_data_size() const;
-		const unsigned char* get_data() const;
-		size_t				 get_statement_array_size() const;
-		const statement*	 get_statements() const;
+		virtual size_t				 get_binding_array_size() const	  = 0;
+		virtual const void* const*	 get_binding_addresses() const	  = 0;
+		virtual const char* const*	 get_binding_names() const		  = 0;
+		virtual size_t				 get_data_size() const			  = 0;
+		virtual const unsigned char* get_data() const				  = 0;
+		virtual size_t				 get_statement_array_size() const = 0;
+		virtual const statement*	 get_statements() const			  = 0;
 	};
+#endif // #if (TP_COMPILER_ENABLED)
+} // namespace tp
 
-	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error);
-
-	inline env_traits::t_vector eval_program(compiled_program* prog)
-	{
-		auto array_size = prog->get_binding_array_size();
-		auto binding_addrs = prog->get_binding_addresses();
-		auto binding_names = prog->get_binding_names();
-		auto data_size = prog->get_data_size();
-		auto data = prog->get_data();
-		auto num_statements = prog->get_statement_array_size();
-		auto statements = prog->get_statements();
-
-		return eval_program(statements, (int)num_statements, data, binding_addrs);
-	}
-#endif // #if (TE_COMPILER_ENABLED)
-} // namespace te
-
-#if TE_IMPLEMENT
+#if (TP_COMPILER_ENABLED)
 #include <unordered_map>
 #include <vector>
 #include <variant>
 #include <memory>
 #include <cassert>
 
-#if (TE_COMPILER_ENABLED)
-
-namespace te
+namespace tp
 {
 	template<typename T_VECTOR>
 	struct compiler_builtins : native_builtins<T_VECTOR>
@@ -1127,17 +1002,17 @@ namespace te
 
 		typedef t_vector (*te_fun2)(t_vector, t_vector);
 
-		enum
+		enum class TOK : int
 		{
-			TOK_NULL = TE_CLOSURE_MAX,
-			TOK_ERROR,
-			TOK_END,
-			TOK_SEP,
-			TOK_OPEN,
-			TOK_CLOSE,
-			TOK_NUMBER,
-			TOK_VARIABLE,
-			TOK_INFIX
+			NUL = CLOSURE_MAX,
+			ERROR,
+			END,
+			SEP,
+			OPEN,
+			CLOSE,
+			NUMBER,
+			VARIABLE,
+			INFIX
 		};
 
 		struct state
@@ -1159,17 +1034,17 @@ namespace te
 
 		static inline bool is_pure(int t) noexcept
 		{
-			return (((t)&TE_FLAG_PURE) != 0);
+			return (((t)&FLAG_PURE) != 0);
 		}
 
 		static inline bool is_function(int t) noexcept
 		{
-			return (((t)&TE_FUNCTION0) != 0);
+			return (((t)&FUNCTION0) != 0);
 		}
 
 		static inline bool is_closure(int t) noexcept
 		{
-			return (((t)&TE_CLOSURE0) != 0);
+			return (((t)&CLOSURE0) != 0);
 		}
 
 #define NEW_EXPR(type, ...)                                                                                                                                                        \
@@ -1237,13 +1112,13 @@ namespace te
 
 		static void next_token(state* s)
 		{
-			s->type = TOK_NULL;
+			s->type = (int)TOK::NUL;
 
 			do
 			{
 				if (!*s->next || *s->next == ';')
 				{
-					s->type = TOK_END;
+					s->type = (int)TOK::END;
 					return;
 				}
 
@@ -1251,7 +1126,7 @@ namespace te
 				if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.')
 				{
 					s->value = (t_atom)strtod(s->next, (char**)&s->next);
-					s->type	 = TOK_NUMBER;
+					s->type	 = (int)TOK::NUMBER;
 				}
 				else
 				{
@@ -1269,26 +1144,26 @@ namespace te
 
 						if (!var)
 						{
-							s->type = TOK_ERROR;
+							s->type = (int)TOK::ERROR;
 						}
 						else
 						{
 							const auto t = eval_details::type_mask(var->type);
-							if (t == TE_VARIABLE)
+							if (t == VARIABLE)
 							{
-								s->type	 = TOK_VARIABLE;
+								s->type	 = (int)TOK::VARIABLE;
 								s->bound = (const t_atom*)var->address;
 							}
-							else if (t >= TE_FUNCTION0)
+							else if (t >= FUNCTION0)
 							{
-								if (t < TE_FUNCTION_MAX)
+								if (t < FUNCTION_MAX)
 								{
 									s->type		= var->type;
 									s->function = var->address;
 								}
-								else if (t >= TE_CLOSURE0)
+								else if (t >= CLOSURE0)
 								{
-									if (t < TE_CLOSURE_MAX)
+									if (t < CLOSURE_MAX)
 									{
 										s->context	= var->context;
 										s->type		= var->type;
@@ -1304,109 +1179,109 @@ namespace te
 						switch (s->next++[0])
 						{
 						case '+':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("add");
 							break;
 						case '-':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("sub");
 							break;
 						case '*':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("mul");
 							break;
 						case '/':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("divide");
 							break;
 						case '^':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("pow");
 							break;
 						case '%':
-							s->type		= TOK_INFIX;
+							s->type		= (int)TOK::INFIX;
 							s->function = t_builtins::find_builtin_address("fmod");
 							break;
 						case '!':
 							if (s->next++[0] == '=')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("not_equal");
 							}
 							else
 							{
 								s->next--;
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("logical_not");
 							}
 							break;
 						case '=':
 							if (s->next++[0] == '=')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("equal");
 							}
 							else
 							{
-								s->type = TOK_ERROR;
+								s->type = (int)TOK::ERROR;
 							}
 							break;
 						case '<':
 							if (s->next++[0] == '=')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("lower_eq");
 							}
 							else
 							{
 								s->next--;
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("lower");
 							}
 							break;
 						case '>':
 							if (s->next++[0] == '=')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("greater_eq");
 							}
 							else
 							{
 								s->next--;
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("greater");
 							}
 							break;
 						case '&':
 							if (s->next++[0] == '&')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("logical_and");
 							}
 							else
 							{
-								s->type = TOK_ERROR;
+								s->type = (int)TOK::ERROR;
 							}
 							break;
 						case '|':
 							if (s->next++[0] == '|')
 							{
-								s->type		= TOK_INFIX;
+								s->type		= (int)TOK::INFIX;
 								s->function = t_builtins::find_builtin_address("logical_or");
 							}
 							else
 							{
-								s->type = TOK_ERROR;
+								s->type = (int)TOK::ERROR;
 							}
 							break;
 						case '(':
-							s->type = TOK_OPEN;
+							s->type = (int)TOK::OPEN;
 							break;
 						case ')':
-							s->type = TOK_CLOSE;
+							s->type = (int)TOK::CLOSE;
 							break;
 						case ',':
-							s->type = TOK_SEP;
+							s->type = (int)TOK::SEP;
 							break;
 						case ' ':
 						case '\t':
@@ -1414,12 +1289,12 @@ namespace te
 						case '\r':
 							break;
 						default:
-							s->type = TOK_ERROR;
+							s->type = (int)TOK::ERROR;
 							break;
 						}
 					}
 				}
-			} while (s->type == TOK_NULL);
+			} while (s->type == (int)TOK::NUL);
 		}
 
 		static expr_native* base(state* s)
@@ -1430,19 +1305,19 @@ namespace te
 
 			const auto t = eval_details::type_mask(s->type);
 
-			if (t == TOK_NUMBER)
+			if (t == (int)TOK::NUMBER)
 			{
-				ret		   = new_expr(TE_CONSTANT, 0);
+				ret		   = new_expr(CONSTANT, 0);
 				ret->value = s->value;
 				next_token(s);
 			}
-			else if (t == TOK_VARIABLE)
+			else if (t == (int)TOK::VARIABLE)
 			{
-				ret		   = new_expr(TE_VARIABLE, 0);
+				ret		   = new_expr(VARIABLE, 0);
 				ret->bound = s->bound;
 				next_token(s);
 			}
-			else if ((t >= TE_FUNCTION0 && t < TE_FUNCTION_MAX) || (t >= TE_CLOSURE0 && t < TE_CLOSURE_MAX))
+			else if ((t >= FUNCTION0 && t < FUNCTION_MAX) || (t >= CLOSURE0 && t < CLOSURE_MAX))
 			{
 				const auto arity = eval_details::arity(s->type);
 				if (arity == 0)
@@ -1452,12 +1327,12 @@ namespace te
 					if (is_closure(s->type))
 						ret->parameters[0] = s->context;
 					next_token(s);
-					if (s->type == TOK_OPEN)
+					if (s->type == (int)TOK::OPEN)
 					{
 						next_token(s);
-						if (s->type != TOK_CLOSE)
+						if (s->type != (int)TOK::CLOSE)
 						{
-							s->type = TOK_ERROR;
+							s->type = (int)TOK::ERROR;
 						}
 						else
 						{
@@ -1482,9 +1357,9 @@ namespace te
 						ret->parameters[arity] = s->context;
 					next_token(s);
 
-					if (s->type != TOK_OPEN)
+					if (s->type != (int)TOK::OPEN)
 					{
-						s->type = TOK_ERROR;
+						s->type = (int)TOK::ERROR;
 					}
 					else
 					{
@@ -1493,14 +1368,14 @@ namespace te
 						{
 							next_token(s);
 							ret->parameters[i] = expr(s);
-							if (s->type != TOK_SEP)
+							if (s->type != (int)TOK::SEP)
 							{
 								break;
 							}
 						}
-						if (s->type != TOK_CLOSE || i != arity - 1)
+						if (s->type != (int)TOK::CLOSE || i != arity - 1)
 						{
-							s->type = TOK_ERROR;
+							s->type = (int)TOK::ERROR;
 						}
 						else
 						{
@@ -1509,13 +1384,13 @@ namespace te
 					}
 				}
 			}
-			else if (t == TOK_OPEN)
+			else if (t == (int)TOK::OPEN)
 			{
 				next_token(s);
 				ret = list(s);
-				if (s->type != TOK_CLOSE)
+				if (s->type != (int)TOK::CLOSE)
 				{
-					s->type = TOK_ERROR;
+					s->type = (int)TOK::ERROR;
 				}
 				else
 				{
@@ -1525,7 +1400,7 @@ namespace te
 			else
 			{
 				ret		   = new_expr(0, 0);
-				s->type	   = TOK_ERROR;
+				s->type	   = (int)TOK::ERROR;
 				ret->value = t_builtins::nan();
 			}
 
@@ -1536,7 +1411,7 @@ namespace te
 		{
 			/* <power>     =    {("-" | "+" | "!")} <base> */
 			int sign = 1;
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
 			{
 				if (s->function == t_builtins::find_builtin_address("sub"))
 					sign = -sign;
@@ -1544,8 +1419,8 @@ namespace te
 			}
 
 			int logical = 0;
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub") ||
-											s->function == t_builtins::find_builtin_address("logical_not")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub") ||
+												  s->function == t_builtins::find_builtin_address("logical_not")))
 			{
 				if (s->function == t_builtins::find_builtin_address("logical_not"))
 				{
@@ -1571,12 +1446,12 @@ namespace te
 				}
 				else if (logical == -1)
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
 					ret->function = t_builtins::find_builtin_address("logical_not");
 				}
 				else
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
 					ret->function = t_builtins::find_builtin_address("logical_notnot");
 				}
 			}
@@ -1584,17 +1459,17 @@ namespace te
 			{
 				if (logical == 0)
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
 					ret->function = t_builtins::find_builtin_address("negate");
 				}
 				else if (logical == -1)
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
 					ret->function = t_builtins::find_builtin_address("negate_logical_not");
 				}
 				else
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, base(s));
+					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
 					ret->function = t_builtins::find_builtin_address("negate_logical_notnot");
 				}
 			}
@@ -1602,16 +1477,16 @@ namespace te
 			return ret;
 		}
 
-#ifdef TE_POW_FROM_RIGHT
+#ifdef TP_POW_FROM_RIGHT
 		static expr_native* factor(state* s)
 		{
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			const void*	 left_function = NULL;
+			const void*	 left_function = NUL;
 			expr_native* insertion	   = 0;
 
-			if (ret->type == (TE_FUNCTION1 | TE_FLAG_PURE) &&
+			if (ret->type == (FUNCTION1 | FLAG_PURE) &&
 				(ret->function == t_builtins::find_builtin_address("negate") || ret->function == t_builtins::find_builtin_address("logical_not") ||
 				 ret->function == t_builtins::find_builtin_address("logical_notnot") || ret->function == t_builtins::find_builtin_address("negate_logical_not") ||
 				 ret->function == t_builtins::find_builtin_address("negate_logical_notnot")))
@@ -1622,7 +1497,7 @@ namespace te
 				ret = se;
 			}
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = s->function;
 				next_token(s);
@@ -1630,14 +1505,14 @@ namespace te
 				if (insertion)
 				{
 					/* Make exponentiation go right-to-left. */
-					expr_native* insert		 = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, insertion->parameters[1], power(s));
+					expr_native* insert		 = NEW_EXPR(FUNCTION2 | FLAG_PURE, insertion->parameters[1], power(s));
 					insert->function		 = t;
 					insertion->parameters[1] = insert;
 					insertion				 = insert;
 				}
 				else
 				{
-					ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+					ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, power(s));
 					ret->function = t;
 					insertion	  = ret;
 				}
@@ -1645,7 +1520,7 @@ namespace te
 
 			if (left_function)
 			{
-				ret			  = NEW_EXPR(TE_FUNCTION1 | TE_FLAG_PURE, ret);
+				ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, ret);
 				ret->function = left_function;
 			}
 
@@ -1657,11 +1532,11 @@ namespace te
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, power(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, power(s));
 				ret->function = t;
 			}
 
@@ -1674,12 +1549,12 @@ namespace te
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide") ||
-											s->function == t_builtins::find_builtin_address("fmod")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("mul") || s->function == t_builtins::find_builtin_address("divide") ||
+												  s->function == t_builtins::find_builtin_address("fmod")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, factor(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, factor(s));
 				ret->function = t;
 			}
 
@@ -1691,11 +1566,11 @@ namespace te
 			/* <expr>      =    <term> {("+" | "-") <term>} */
 			expr_native* ret = term(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("add") || s->function == t_builtins::find_builtin_address("sub")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, term(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, term(s));
 				ret->function = t;
 			}
 
@@ -1707,13 +1582,13 @@ namespace te
 			/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 			expr_native* ret = sum_expr(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq") ||
-											s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq") ||
-											s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("greater") || s->function == t_builtins::find_builtin_address("greater_eq") ||
+												  s->function == t_builtins::find_builtin_address("lower") || s->function == t_builtins::find_builtin_address("lower_eq") ||
+												  s->function == t_builtins::find_builtin_address("equal") || s->function == t_builtins::find_builtin_address("not_equal")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, sum_expr(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, sum_expr(s));
 				ret->function = t;
 			}
 
@@ -1725,11 +1600,11 @@ namespace te
 			/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 			expr_native* ret = test_expr(s);
 
-			while (s->type == TOK_INFIX && (s->function == t_builtins::find_builtin_address("logical_and") || s->function == t_builtins::find_builtin_address("logical_or")))
+			while (s->type == (int)TOK::INFIX && (s->function == t_builtins::find_builtin_address("logical_and") || s->function == t_builtins::find_builtin_address("logical_or")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, test_expr(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, test_expr(s));
 				ret->function = t;
 			}
 
@@ -1741,10 +1616,10 @@ namespace te
 			/* <list>      =    <expr> {"," <expr>} */
 			expr_native* ret = expr(s);
 
-			while (s->type == TOK_SEP)
+			while (s->type == (int)TOK::SEP)
 			{
 				next_token(s);
-				ret			  = NEW_EXPR(TE_FUNCTION2 | TE_FLAG_PURE, ret, expr(s));
+				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, expr(s));
 				ret->function = t_builtins::find_builtin_address("comma");
 			}
 
@@ -1770,9 +1645,9 @@ namespace te
 		static void optimize(expr_native* n)
 		{
 			/* Evaluates as much as possible. */
-			if (n->type == TE_CONSTANT)
+			if (n->type == CONSTANT)
 				return;
-			if (n->type == TE_VARIABLE)
+			if (n->type == VARIABLE)
 				return;
 
 			/* Only optimize out functions flagged as pure. */
@@ -1784,7 +1659,7 @@ namespace te
 				for (i = 0; i < arity; ++i)
 				{
 					optimize((expr_native*)n->parameters[i]);
-					if (((expr_native*)(n->parameters[i]))->type != TE_CONSTANT)
+					if (((expr_native*)(n->parameters[i]))->type != CONSTANT)
 					{
 						known = 0;
 					}
@@ -1793,7 +1668,7 @@ namespace te
 				{
 					const t_vector value = eval_native(n);
 					free_parameters(n);
-					n->type	 = TE_CONSTANT;
+					n->type	 = CONSTANT;
 					n->value = value;
 				}
 			}
@@ -1809,7 +1684,7 @@ namespace te
 			next_token(&s);
 			expr_native* root = list(&s);
 
-			if (s.type != TOK_END)
+			if (s.type != (int)TOK::END)
 			{
 				free_native(root);
 				if (error)
@@ -1853,15 +1728,15 @@ namespace te
 
 			const auto t = type_mask(n->type);
 
-			if (t == TE_CONSTANT)
+			if (t == CONSTANT)
 			{
 				printf("%f\n", n->value);
 			}
-			else if (t == TE_VARIABLE)
+			else if (t == VARIABLE)
 			{
 				printf("bound %p\n", n->bound);
 			}
-			else if ((t >= TE_FUNCTION0 && t < TE_FUNCTION_MAX) || (t >= TE_CLOSURE0 && t < TE_CLOSURE_MAX))
+			else if ((t >= FUNCTION0 && t < FUNCTION_MAX) || (t >= CLOSURE0 && t < CLOSURE_MAX))
 			{
 				arity = arity(n->type);
 				printf("f%d", arity);
@@ -1983,11 +1858,36 @@ namespace te
 			std::vector<const char*> index_to_name_c_str;
 		};
 
-		struct compiled_expr : ::te::compiled_expr
+		struct compiled_expr : ::tp::compiled_expr
 		{
 			expr_portable_expression_build_bindings m_bindings;
 			std::unique_ptr<unsigned char>			m_build_buffer;
 			size_t									m_build_buffer_size;
+
+			virtual size_t get_binding_array_size() const
+			{
+				return m_bindings.index_to_address.size();
+			}
+
+			virtual const void* const* get_binding_addresses() const
+			{
+				return (m_bindings.index_to_address.size() > 0) ? &(*m_bindings.index_to_address.cbegin()) : nullptr;
+			}
+
+			virtual const char* const* get_binding_names() const
+			{
+				return &(*m_bindings.index_to_name_c_str.cbegin());
+			}
+
+			virtual size_t get_data_size() const
+			{
+				return m_build_buffer_size;
+			}
+
+			virtual const unsigned char* get_data() const
+			{
+				return m_build_buffer.get();
+			}
 		};
 
 		static size_t
@@ -2012,7 +1912,7 @@ namespace te
 						index_map.insert(std::make_pair(var->address, index_counter++));
 					}
 
-					if (var->type >= TE_CLOSURE0 && var->type < TE_CLOSURE_MAX)
+					if (var->type >= CLOSURE0 && var->type < CLOSURE_MAX)
 					{
 						auto itor = name_map.find(var->context);
 						if (itor == name_map.end())
@@ -2143,7 +2043,7 @@ namespace te
 				[&]() { return t_traits::nan(); });
 		}
 
-		struct compiled_program : ::te::compiled_program
+		struct portable_compiled_program : compiled_program
 		{
 			std::vector<statement>		   program_statements;
 			std::vector<std::string>	   binding_table;
@@ -2151,6 +2051,41 @@ namespace te
 			std::vector<const void*>	   address_table;
 			std::unique_ptr<unsigned char> program_expression_buffer;
 			size_t						   program_expression_buffer_size = 0;
+
+			virtual size_t get_binding_array_size() const
+			{
+				return address_table.size();
+			}
+
+			virtual const void* const* get_binding_addresses() const
+			{
+				return &address_table[0];
+			}
+
+			virtual const char* const* get_binding_names() const
+			{
+				return &binding_table_cstr[0];
+			}
+
+			virtual size_t get_data_size() const
+			{
+				return program_expression_buffer_size;
+			}
+
+			virtual const unsigned char* get_data() const
+			{
+				return program_expression_buffer.get();
+			}
+
+			virtual size_t get_statement_array_size() const
+			{
+				return (int)program_statements.size();
+			}
+
+			virtual const statement* get_statements() const
+			{
+				return &program_statements[0];
+			}
 		};
 	};
 
@@ -2198,7 +2133,7 @@ namespace te
 						assert(itor != indexer.index_map.end());
 						out->function = itor->second;
 
-						if (v->type >= TE_CLOSURE0 && v->type < TE_CLOSURE_MAX)
+						if (v->type >= CLOSURE0 && v->type < CLOSURE_MAX)
 						{
 							auto itor2 = indexer.index_map.find(v->context);
 							assert(itor2 != indexer.index_map.end());
@@ -2219,60 +2154,6 @@ namespace te
 			return compile_using_indexer<T_TRAITS>(indexer, expression, variables, var_count, error);
 		}
 
-		template<typename T_TRAITS>
-		size_t get_binding_array_size(const compiled_expr* n)
-		{
-			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
-			if (n_impl)
-			{
-				return n_impl->m_bindings.index_to_address.size();
-			}
-			return 0;
-		}
-
-		template<typename T_TRAITS>
-		const void* const* get_binding_addresses(const compiled_expr* n)
-		{
-			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
-			if (n_impl && (n_impl->m_bindings.index_to_address.size() > 0))
-			{
-				return &(*n_impl->m_bindings.index_to_address.cbegin());
-			}
-			return nullptr;
-		}
-
-		template<typename T_TRAITS>
-		const char* const* get_binding_names(const compiled_expr* n)
-		{
-			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
-			if (n_impl)
-			{
-				return &(*n_impl->m_bindings.index_to_name_c_str.cbegin());
-			}
-			return nullptr;
-		}
-
-		template<typename T_TRAITS>
-		size_t get_data_size(const compiled_expr* n)
-		{
-			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
-			if (n_impl)
-			{
-				return n_impl->m_build_buffer_size;
-			}
-			return 0;
-		}
-
-		template<typename T_TRAITS>
-		const unsigned char* get_data(const compiled_expr* n)
-		{
-			auto n_impl = (const portable<T_TRAITS>::compiled_expr*)n;
-			if (n_impl)
-			{
-				return n_impl->m_build_buffer.get();
-			}
-			return nullptr;
-		}
 	} // namespace expr_details
 
 	namespace program_details
@@ -2535,13 +2416,13 @@ namespace te
 		using any_statement = std::variant<jump_statement, return_value_statement, assign_statement, call_statement>;
 
 		template<typename T_TRAITS>
-		compiled_program* compile(const char* text, const variable* variables, int var_count, int* error)
+		auto compile(const char* text, const variable* variables, int var_count, int* error) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
 			auto program_src	   = parser::trim_all_space(std::string_view{text, strlen(text)});
 			auto program_remaining = program_src;
 
 			std::vector<any_statement> program_statements;
-			using program_impl		   = typename portable<T_TRAITS>::compiled_program;
+			using program_impl		   = typename portable<T_TRAITS>::portable_compiled_program;
 			auto			   program = new program_impl();
 			label_manager	   lm;
 			variable_manager   vm;
@@ -2743,130 +2624,188 @@ namespace te
 
 			return program;
 		}
-
-		template<typename T_TRAITS>
-		size_t get_binding_array_size(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return p_impl->address_table.size();
-		}
-
-		template<typename T_TRAITS>
-		const void* const* get_binding_addresses(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return &p_impl->address_table[0];
-		}
-
-		template<typename T_TRAITS>
-		const char* const* get_binding_names(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return &p_impl->binding_table_cstr[0];
-		}
-
-		template<typename T_TRAITS>
-		size_t get_data_size(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return p_impl->program_expression_buffer_size;
-		}
-
-		template<typename T_TRAITS>
-		const unsigned char* get_data(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return p_impl->program_expression_buffer.get();
-		}
-
-		template<typename T_TRAITS>
-		size_t get_statement_array_size(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return (int)p_impl->program_statements.size();
-		}
-
-		template<typename T_TRAITS>
-		const statement* get_statements(const compiled_program* p)
-		{
-			auto p_impl = (const portable<T_TRAITS>::compiled_program*)p;
-			return &p_impl->program_statements[0];
-		}
 	} // namespace program_details
+} // namespace tp
+#endif // #if (TP_COMPILER_ENABLED)
 
-	compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
+namespace tp
+{
+	struct env_traits_f32
 	{
-		return expr_details::compile<env_traits>(expression, variables, var_count, error);
-	}
+		using t_atom			= float;
+		using t_vector			= float;
+		using t_vector_int		= int;
+		using t_atom_builtins	= native_builtins<t_atom>;
+		using t_vector_builtins = native_builtins<t_vector>;
 
-	size_t compiled_expr::get_binding_array_size() const
+		static inline t_vector load_atom(t_atom a) noexcept
+		{
+			return a;
+		}
+
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
+		static inline t_vector explicit_load_atom(double a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline t_vector explicit_load_atom(int a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline double explicit_store_double(t_vector a)
+		{
+			return (double)a;
+		}
+
+		static inline int explicit_store_int(t_vector a)
+		{
+			return (int)a;
+		}
+	};
+
+	struct env_traits_d64
 	{
-		return expr_details::get_binding_array_size<env_traits>(this);
-	}
+		using t_atom			= double;
+		using t_vector			= double;
+		using t_vector_int		= int;
+		using t_atom_builtins	= native_builtins<t_atom>;
+		using t_vector_builtins = native_builtins<t_vector>;
 
-	const void* const* compiled_expr::get_binding_addresses() const
+		static inline t_vector load_atom(t_atom a) noexcept
+		{
+			return a;
+		}
+
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
+		static inline t_vector explicit_load_atom(double a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline t_vector explicit_load_atom(int a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline double explicit_store_double(t_vector a)
+		{
+			return (double)a;
+		}
+
+		static inline int explicit_store_int(t_vector a)
+		{
+			return (int)a;
+		}
+	};
+
+	template<typename T_TRAITS>
+	struct impl
 	{
-		return expr_details::get_binding_addresses<env_traits>(this);
-	}
+		using env_traits = T_TRAITS;
+		using variable	 = ::tp::variable;
+		using t_atom	 = typename env_traits::t_atom;
+		using t_vector	 = typename env_traits::t_vector;
 
-	const char* const* compiled_expr::get_binding_names() const
-	{
-		return expr_details::get_binding_names<env_traits>(this);
-	}
+		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
+		{
+			return eval_details::eval_portable_impl<env_traits, t_atom, t_vector>((const expr_portable<env_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
+		}
 
-	size_t compiled_expr::get_data_size() const
-	{
-		return expr_details::get_data_size<env_traits>(this);
-	}
+		static inline t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
+		{
+			for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
+			{
+				auto& statement = statement_array[statement_index];
+				switch (statement.type)
+				{
+				case statement_type::jump:
+					if (statement.arg_b == -1 ||
+						(0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
+					{
+						statement_index = statement.arg_a;
+					}
+					break;
 
-	const unsigned char* compiled_expr::get_data() const
-	{
-		return expr_details::get_data<env_traits>(this);
-	}
+				case statement_type::return_value:
+					return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
 
-	////
+				case statement_type::assign:
+				{
+					auto dest = (t_vector*)expr_context[statement.arg_a];
+					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
+				}
+				break;
 
-	compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
-	{
-		return program_details::compile<env_traits>(program, variables, var_count, error);
-	}
+				case statement_type::call:
+					eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
+					break;
 
-	size_t compiled_program::get_binding_array_size() const
-	{
-		return program_details::get_binding_array_size<env_traits>(this);
-	}
+				default:
+					// fatal error
+					return env_traits::t_vector_builtins::nan();
+				}
+			}
+			return env_traits::t_vector_builtins::nan();
+		}
 
-	const void* const* compiled_program::get_binding_addresses() const
-	{
-		return program_details::get_binding_addresses<env_traits>(this);
-	}
+#if (TP_COMPILER_ENABLED)
+		static compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
+		{
+			return expr_details::compile<env_traits>(expression, variables, var_count, error);
+		}
 
-	const char* const* compiled_program::get_binding_names() const
-	{
-		return program_details::get_binding_names<env_traits>(this);
-	}
+		static compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
+		{
+			return (compiled_program*)program_details::compile<env_traits>(program, variables, var_count, error);
+		}
 
-	size_t compiled_program::get_data_size() const
-	{
-		return program_details::get_data_size<env_traits>(this);
-	}
+		static inline t_vector eval(const compiled_expr* n)
+		{
+			return eval(n->get_data(), n->get_binding_addresses());
+		}
 
-	const unsigned char* compiled_program::get_data() const
-	{
-		return program_details::get_data<env_traits>(this);
-	}
+		static inline t_vector interp(const char* expression, int* error)
+		{
+			compiled_expr* n = compile(expression, 0, 0, error);
+			t_vector	   ret;
+			if (n)
+			{
+				ret = eval(n);
+				delete n;
+			}
+			else
+			{
+				ret = env_traits::t_vector_builtins::nan();
+			}
+			return ret;
+		}
 
-	size_t compiled_program::get_statement_array_size() const
-	{
-		return program_details::get_statement_array_size<env_traits>(this);
-	}
+		static inline t_vector eval_program(compiled_program* prog)
+		{
+			auto array_size		= prog->get_binding_array_size();
+			auto binding_addrs	= prog->get_binding_addresses();
+			auto binding_names	= prog->get_binding_names();
+			auto data_size		= prog->get_data_size();
+			auto data			= prog->get_data();
+			auto num_statements = prog->get_statement_array_size();
+			auto statements		= prog->get_statements();
 
-	const statement* compiled_program::get_statements() const
-	{
-		return program_details::get_statements<env_traits>(this);
-	}
-} // namespace te
-#endif // #if (TE_COMPILER_ENABLED)
-#endif // #if TE_IMPLEMENT
+			return eval_program(statements, (int)num_statements, data, binding_addrs);
+		}
+#endif // #if (TP_COMPILER_ENABLED)
+	};
+} // namespace tp
+
+using te = tp::impl<tp::env_traits_f32>;
 
 #endif /*__TINYPROG_H__*/

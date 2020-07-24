@@ -31,7 +31,7 @@
 #include <time.h>
 #include <math.h>
 
-#define TE_IMPLEMENT 1
+#define TP_COMPILER_ENABLED 1
 #include "tinyprog.h"
 
 #define loops 10000
@@ -40,14 +40,12 @@ typedef te::env_traits::t_atom (*function1)(te::env_traits::t_atom);
 
 void bench(const char* expr, function1 func)
 {
-	using namespace te;
-
 	int				i, j;
-	volatile env_traits::t_atom d;
-	env_traits::t_atom			tmp;
+	volatile te::env_traits::t_atom d;
+	te::env_traits::t_atom			tmp;
 	clock_t			start;
 
-	variable lk = {"a", &tmp};
+	te::variable lk = {"a", &tmp};
 
 	printf("Expression: %s\n", expr);
 
@@ -57,7 +55,7 @@ void bench(const char* expr, function1 func)
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = (env_traits::t_atom)i;
+			tmp = (te::env_traits::t_atom)i;
 			d += func(tmp);
 		}
 	const int nelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
@@ -70,14 +68,14 @@ void bench(const char* expr, function1 func)
 		printf("\tinf\n");
 
 	printf("interp ");
-	auto n	= compile(expr, &lk, 1, 0);
+	auto n	= te::compile(expr, &lk, 1, 0);
 	start	= clock();
 	d		= 0;
 	for (j = 0; j < loops; ++j)
 		for (i = 0; i < loops; ++i)
 		{
-			tmp = (env_traits::t_atom)i;
-			d += eval(n);
+			tmp = (te::env_traits::t_atom)i;
+			d += te::eval(n);
 		}
 	const int eelapsed = (clock() - start) * 1000 / CLOCKS_PER_SEC;
 	delete n;
@@ -89,7 +87,7 @@ void bench(const char* expr, function1 func)
 	else
 		printf("\tinf\n");
 
-	printf("%.2f%% longer\n", (((env_traits::t_atom)eelapsed / nelapsed) - 1.0) * 100.0);
+	printf("%.2f%% longer\n", (((te::env_traits::t_atom)eelapsed / nelapsed) - 1.0) * 100.0);
 
 	printf("\n");
 }

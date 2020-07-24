@@ -109,21 +109,21 @@ static int lfails = 0;
 /* Assert two integers are equal. */
 #define lequal(a, b) do {\
     ++ltests;\
-    if ((a) != env_traits::explicit_store_int(b))                                                                   \
+    if ((a) != te::env_traits::explicit_store_int(b))                                                                   \
 		{\
         ++lfails;\
-        printf("%s:%d (%d != %d)\n", __FILE__, __LINE__, (a), env_traits::explicit_store_int(b));\
+        printf("%s:%d (%d != %d)\n", __FILE__, __LINE__, (a), te::env_traits::explicit_store_int(b));\
     }} while (0)
 
 
 /* Assert two floats are equal (Within LTEST_FLOAT_TOLERANCE). */
 #define lfequal(a, b) do {\
     ++ltests;\
-    const env_traits::t_atom __LF_COMPARE =                                                                        \
-			(env_traits::t_atom)fabs((env_traits::t_atom)(a) - (env_traits::t_atom)(b));\
+    const te::env_traits::t_atom __LF_COMPARE =                                                                        \
+			(te::env_traits::t_atom)fabs((te::env_traits::t_atom)(a) - (te::env_traits::t_atom)(b));\
     if (__LF_COMPARE > LTEST_FLOAT_TOLERANCE || (__LF_COMPARE != __LF_COMPARE)) {\
         ++lfails;\
-        printf("%s:%d (%f != %f)\n", __FILE__, __LINE__, (env_traits::t_atom)(a), (env_traits::t_atom)(b));\
+        printf("%s:%d (%f != %f)\n", __FILE__, __LINE__, (te::env_traits::t_atom)(a), (te::env_traits::t_atom)(b));\
     }} while (0)
 
 

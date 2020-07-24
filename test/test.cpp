@@ -27,7 +27,7 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
-#define TE_IMPLEMENT 1
+#define TP_COMPILER_ENABLED 1
 #include "tinyprog.h"
 
 #include <stdio.h>
@@ -47,111 +47,109 @@ typedef struct
 
 void test_results()
 {
-	using namespace te;
-
 	test_case cases[] = {
-		{"1", env_traits::explicit_load_atom(1)},
-		{"1 ", env_traits::explicit_load_atom(1)},
-		{"(1)", env_traits::explicit_load_atom(1)},
+		{"1", te::env_traits::explicit_load_atom(1)},
+		{"1 ", te::env_traits::explicit_load_atom(1)},
+		{"(1)", te::env_traits::explicit_load_atom(1)},
 
-		{"pi", env_traits::explicit_load_atom(3.14159)},
-		{"atan(1)*4 - pi", env_traits::explicit_load_atom(0)},
-		{"e", env_traits::explicit_load_atom(2.71828)},
+		{"pi", te::env_traits::explicit_load_atom(3.14159)},
+		{"atan(1)*4 - pi", te::env_traits::explicit_load_atom(0)},
+		{"e", te::env_traits::explicit_load_atom(2.71828)},
 
-		{"2+1", env_traits::explicit_load_atom(2 + 1)},
-		{"(((2+(1))))", env_traits::explicit_load_atom(2 + 1)},
-		{"3+2", env_traits::explicit_load_atom(3 + 2)},
+		{"2+1", te::env_traits::explicit_load_atom(2 + 1)},
+		{"(((2+(1))))", te::env_traits::explicit_load_atom(2 + 1)},
+		{"3+2", te::env_traits::explicit_load_atom(3 + 2)},
 
-		{"3+2+4", env_traits::explicit_load_atom(3 + 2 + 4)},
-		{"(3+2)+4", env_traits::explicit_load_atom(3 + 2 + 4)},
-		{"3+(2+4)", env_traits::explicit_load_atom(3 + 2 + 4)},
-		{"(3+2+4)", env_traits::explicit_load_atom(3 + 2 + 4)},
+		{"3+2+4", te::env_traits::explicit_load_atom(3 + 2 + 4)},
+		{"(3+2)+4", te::env_traits::explicit_load_atom(3 + 2 + 4)},
+		{"3+(2+4)", te::env_traits::explicit_load_atom(3 + 2 + 4)},
+		{"(3+2+4)", te::env_traits::explicit_load_atom(3 + 2 + 4)},
 
-		{"3*2*4", env_traits::explicit_load_atom(3 * 2 * 4)},
-		{"(3*2)*4", env_traits::explicit_load_atom(3 * 2 * 4)},
-		{"3*(2*4)", env_traits::explicit_load_atom(3 * 2 * 4)},
-		{"(3*2*4)", env_traits::explicit_load_atom(3 * 2 * 4)},
+		{"3*2*4", te::env_traits::explicit_load_atom(3 * 2 * 4)},
+		{"(3*2)*4", te::env_traits::explicit_load_atom(3 * 2 * 4)},
+		{"3*(2*4)", te::env_traits::explicit_load_atom(3 * 2 * 4)},
+		{"(3*2*4)", te::env_traits::explicit_load_atom(3 * 2 * 4)},
 
-		{"3-2-4", env_traits::explicit_load_atom(3 - 2 - 4)},
-		{"(3-2)-4", env_traits::explicit_load_atom((3 - 2) - 4)},
-		{"3-(2-4)", env_traits::explicit_load_atom(3 - (2 - 4))},
-		{"(3-2-4)", env_traits::explicit_load_atom(3 - 2 - 4)},
+		{"3-2-4", te::env_traits::explicit_load_atom(3 - 2 - 4)},
+		{"(3-2)-4", te::env_traits::explicit_load_atom((3 - 2) - 4)},
+		{"3-(2-4)", te::env_traits::explicit_load_atom(3 - (2 - 4))},
+		{"(3-2-4)", te::env_traits::explicit_load_atom(3 - 2 - 4)},
 
-		{"3/2/4", env_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
-		{"(3/2)/4", env_traits::explicit_load_atom((3.0 / 2.0) / 4.0)},
-		{"3/(2/4)", env_traits::explicit_load_atom(3.0 / (2.0 / 4.0))},
-		{"(3/2/4)", env_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
+		{"3/2/4", te::env_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
+		{"(3/2)/4", te::env_traits::explicit_load_atom((3.0 / 2.0) / 4.0)},
+		{"3/(2/4)", te::env_traits::explicit_load_atom(3.0 / (2.0 / 4.0))},
+		{"(3/2/4)", te::env_traits::explicit_load_atom(3.0 / 2.0 / 4.0)},
 
-		{"(3*2/4)", env_traits::explicit_load_atom(3.0 * 2.0 / 4.0)},
-		{"(3/2*4)", env_traits::explicit_load_atom(3.0 / 2.0 * 4.0)},
-		{"3*(2/4)", env_traits::explicit_load_atom(3.0 * (2.0 / 4.0))},
+		{"(3*2/4)", te::env_traits::explicit_load_atom(3.0 * 2.0 / 4.0)},
+		{"(3/2*4)", te::env_traits::explicit_load_atom(3.0 / 2.0 * 4.0)},
+		{"3*(2/4)", te::env_traits::explicit_load_atom(3.0 * (2.0 / 4.0))},
 
-		{"asin sin .5", env_traits::explicit_load_atom(0.5)},
-		{"sin asin .5", env_traits::explicit_load_atom(0.5)},
-		{"ln exp .5", env_traits::explicit_load_atom(0.5)},
-		{"exp ln .5", env_traits::explicit_load_atom(0.5)},
+		{"asin sin .5", te::env_traits::explicit_load_atom(0.5)},
+		{"sin asin .5", te::env_traits::explicit_load_atom(0.5)},
+		{"ln exp .5", te::env_traits::explicit_load_atom(0.5)},
+		{"exp ln .5", te::env_traits::explicit_load_atom(0.5)},
 
-		{"asin sin-.5", env_traits::explicit_load_atom(-0.5)},
-		{"asin sin-0.5", env_traits::explicit_load_atom(-0.5)},
-		{"asin sin -0.5", env_traits::explicit_load_atom(-0.5)},
-		{"asin (sin -0.5)", env_traits::explicit_load_atom(-0.5)},
-		{"asin (sin (-0.5))", env_traits::explicit_load_atom(-0.5)},
-		{"asin sin (-0.5)", env_traits::explicit_load_atom(-0.5)},
-		{"(asin sin (-0.5))", env_traits::explicit_load_atom(-0.5)},
+		{"asin sin-.5", te::env_traits::explicit_load_atom(-0.5)},
+		{"asin sin-0.5", te::env_traits::explicit_load_atom(-0.5)},
+		{"asin sin -0.5", te::env_traits::explicit_load_atom(-0.5)},
+		{"asin (sin -0.5)", te::env_traits::explicit_load_atom(-0.5)},
+		{"asin (sin (-0.5))", te::env_traits::explicit_load_atom(-0.5)},
+		{"asin sin (-0.5)", te::env_traits::explicit_load_atom(-0.5)},
+		{"(asin sin (-0.5))", te::env_traits::explicit_load_atom(-0.5)},
 
-		{"log10 1000", env_traits::explicit_load_atom(3)},
-		{"log10 1e3", env_traits::explicit_load_atom(3)},
-		{"log10 1000", env_traits::explicit_load_atom(3)},
-		{"log10 1e3", env_traits::explicit_load_atom(3)},
-		{"log10(1000)", env_traits::explicit_load_atom(3)},
-		{"log10(1e3)", env_traits::explicit_load_atom(3)},
-		{"log10 1.0e3", env_traits::explicit_load_atom(3)},
-		{"10^5*5e-5", env_traits::explicit_load_atom(5)},
+		{"log10 1000", te::env_traits::explicit_load_atom(3)},
+		{"log10 1e3", te::env_traits::explicit_load_atom(3)},
+		{"log10 1000", te::env_traits::explicit_load_atom(3)},
+		{"log10 1e3", te::env_traits::explicit_load_atom(3)},
+		{"log10(1000)", te::env_traits::explicit_load_atom(3)},
+		{"log10(1e3)", te::env_traits::explicit_load_atom(3)},
+		{"log10 1.0e3", te::env_traits::explicit_load_atom(3)},
+		{"10^5*5e-5", te::env_traits::explicit_load_atom(5)},
 
 #ifdef TE_NAT_LOG
-		{"log 1000", env_traits::explicit_load_atom(6.9078)},
-		{"log e", env_traits::explicit_load_atom(1)},
-		{"log (e^10)", env_traits::explicit_load_atom(10)},
+		{"log 1000", te::env_traits::explicit_load_atom(6.9078)},
+		{"log e", te::env_traits::explicit_load_atom(1)},
+		{"log (e^10)", te::env_traits::explicit_load_atom(10)},
 #else
-		{"log 1000", env_traits::explicit_load_atom(3)},
+		{"log 1000", te::env_traits::explicit_load_atom(3)},
 #endif
 
-		{"ln (e^10)", env_traits::explicit_load_atom(10)},
-		{"100^.5+1", env_traits::explicit_load_atom(11)},
-		{"100 ^.5+1", env_traits::explicit_load_atom(11)},
-		{"100^+.5+1", env_traits::explicit_load_atom(11)},
-		{"100^--.5+1", env_traits::explicit_load_atom(11)},
-		{"100^---+-++---++-+-+-.5+1", env_traits::explicit_load_atom(11)},
+		{"ln (e^10)", te::env_traits::explicit_load_atom(10)},
+		{"100^.5+1", te::env_traits::explicit_load_atom(11)},
+		{"100 ^.5+1", te::env_traits::explicit_load_atom(11)},
+		{"100^+.5+1", te::env_traits::explicit_load_atom(11)},
+		{"100^--.5+1", te::env_traits::explicit_load_atom(11)},
+		{"100^---+-++---++-+-+-.5+1", te::env_traits::explicit_load_atom(11)},
 
-		{"100^-.5+1", env_traits::explicit_load_atom(1.1)},
-		{"100^---.5+1", env_traits::explicit_load_atom(1.1)},
-		{"100^+---.5+1", env_traits::explicit_load_atom(1.1)},
-		{"1e2^+---.5e0+1e0", env_traits::explicit_load_atom(1.1)},
-		{"--(1e2^(+(-(-(-.5e0))))+1e0)", env_traits::explicit_load_atom(1.1)},
+		{"100^-.5+1", te::env_traits::explicit_load_atom(1.1)},
+		{"100^---.5+1", te::env_traits::explicit_load_atom(1.1)},
+		{"100^+---.5+1", te::env_traits::explicit_load_atom(1.1)},
+		{"1e2^+---.5e0+1e0", te::env_traits::explicit_load_atom(1.1)},
+		{"--(1e2^(+(-(-(-.5e0))))+1e0)", te::env_traits::explicit_load_atom(1.1)},
 
-		{"sqrt 100 + 7", env_traits::explicit_load_atom(17)},
-		{"sqrt 100 * 7", env_traits::explicit_load_atom(70)},
-		{"sqrt (100 * 100)", env_traits::explicit_load_atom(100)},
+		{"sqrt 100 + 7", te::env_traits::explicit_load_atom(17)},
+		{"sqrt 100 * 7", te::env_traits::explicit_load_atom(70)},
+		{"sqrt (100 * 100)", te::env_traits::explicit_load_atom(100)},
 
-		{"1,2", env_traits::explicit_load_atom(2)},
-		{"1,2+1", env_traits::explicit_load_atom(3)},
-		{"1+1,2+2,2+1", env_traits::explicit_load_atom(3)},
-		{"1,2,3", env_traits::explicit_load_atom(3)},
-		{"(1,2),3", env_traits::explicit_load_atom(3)},
-		{"1,(2,3)", env_traits::explicit_load_atom(3)},
-		{"-(1,(2,3))", env_traits::explicit_load_atom(-3)},
+		{"1,2", te::env_traits::explicit_load_atom(2)},
+		{"1,2+1", te::env_traits::explicit_load_atom(3)},
+		{"1+1,2+2,2+1", te::env_traits::explicit_load_atom(3)},
+		{"1,2,3", te::env_traits::explicit_load_atom(3)},
+		{"(1,2),3", te::env_traits::explicit_load_atom(3)},
+		{"1,(2,3)", te::env_traits::explicit_load_atom(3)},
+		{"-(1,(2,3))", te::env_traits::explicit_load_atom(-3)},
 
-		{"2^2", env_traits::explicit_load_atom(4)},
-		{"pow(2,2)", env_traits::explicit_load_atom(4)},
+		{"2^2", te::env_traits::explicit_load_atom(4)},
+		{"pow(2,2)", te::env_traits::explicit_load_atom(4)},
 
-		{"atan2(1,1)", env_traits::explicit_load_atom(0.7854)},
-		{"atan2(1,2)", env_traits::explicit_load_atom(0.4636)},
-		{"atan2(2,1)", env_traits::explicit_load_atom(1.1071)},
-		{"atan2(3,4)", env_traits::explicit_load_atom(0.6435)},
-		{"atan2(3+3,4*2)", env_traits::explicit_load_atom(0.6435)},
-		{"atan2(3+3,(4*2))", env_traits::explicit_load_atom(0.6435)},
-		{"atan2((3+3),4*2)", env_traits::explicit_load_atom(0.6435)},
-		{"atan2((3+3),(4*2))", env_traits::explicit_load_atom(0.6435)},
+		{"atan2(1,1)", te::env_traits::explicit_load_atom(0.7854)},
+		{"atan2(1,2)", te::env_traits::explicit_load_atom(0.4636)},
+		{"atan2(2,1)", te::env_traits::explicit_load_atom(1.1071)},
+		{"atan2(3,4)", te::env_traits::explicit_load_atom(0.6435)},
+		{"atan2(3+3,4*2)", te::env_traits::explicit_load_atom(0.6435)},
+		{"atan2(3+3,(4*2))", te::env_traits::explicit_load_atom(0.6435)},
+		{"atan2((3+3),4*2)", te::env_traits::explicit_load_atom(0.6435)},
+		{"atan2((3+3),(4*2))", te::env_traits::explicit_load_atom(0.6435)},
 
 	};
 
@@ -159,10 +157,10 @@ void test_results()
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int						   err;
-		const env_traits::t_vector ev = interp(expr, &err);
+		const te::env_traits::t_vector ev = te::interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -175,22 +173,20 @@ void test_results()
 
 void test_syntax()
 {
-	using namespace te;
-
 	test_case errors[] = {
-		{"", env_traits::explicit_load_atom(1)},
-		{"1+", env_traits::explicit_load_atom(2)},
-		{"1)", env_traits::explicit_load_atom(2)},
-		{"(1", env_traits::explicit_load_atom(2)},
-		{"1**1", env_traits::explicit_load_atom(3)},
-		{"1*2(+4", env_traits::explicit_load_atom(4)},
-		{"1*2(1+4", env_traits::explicit_load_atom(4)},
-		{"a+5", env_traits::explicit_load_atom(1)},
-		{"A+5", env_traits::explicit_load_atom(1)},
-		{"Aa+5", env_traits::explicit_load_atom(1)},
-		{"1^^5", env_traits::explicit_load_atom(3)},
-		{"1**5", env_traits::explicit_load_atom(3)},
-		{"sin(cos5", env_traits::explicit_load_atom(8)},
+		{"", te::env_traits::explicit_load_atom(1)},
+		{"1+", te::env_traits::explicit_load_atom(2)},
+		{"1)", te::env_traits::explicit_load_atom(2)},
+		{"(1", te::env_traits::explicit_load_atom(2)},
+		{"1**1", te::env_traits::explicit_load_atom(3)},
+		{"1*2(+4", te::env_traits::explicit_load_atom(4)},
+		{"1*2(1+4", te::env_traits::explicit_load_atom(4)},
+		{"a+5", te::env_traits::explicit_load_atom(1)},
+		{"A+5", te::env_traits::explicit_load_atom(1)},
+		{"Aa+5", te::env_traits::explicit_load_atom(1)},
+		{"1^^5", te::env_traits::explicit_load_atom(3)},
+		{"1**5", te::env_traits::explicit_load_atom(3)},
+		{"sin(cos5", te::env_traits::explicit_load_atom(8)},
 	};
 
 	int i;
@@ -200,11 +196,11 @@ void test_syntax()
 		const auto	e	 = errors[i].answer;
 
 		int						   err;
-		const env_traits::t_vector r = interp(expr, &err);
+		const te::env_traits::t_vector r = te::interp(expr, &err);
 		lequal(err, e);
 		lok(r != r);
 
-		auto n = compile(expr, 0, 0, &err);
+		auto n = te::compile(expr, 0, 0, &err);
 		lequal(err, e);
 		lok(!n);
 
@@ -213,15 +209,13 @@ void test_syntax()
 			printf("FAILED: %s\n", expr);
 		}
 
-		const env_traits::t_vector k = interp(expr, 0);
+		const te::env_traits::t_vector k = te::interp(expr, 0);
 		lok(k != k);
 	}
 }
 
 void test_nans()
 {
-	using namespace te;
-
 	const char* nans[] = {
 		"0/0",
 		"1%0",
@@ -242,14 +236,14 @@ void test_nans()
 		const char* expr = nans[i];
 
 		int						   err;
-		const env_traits::t_vector r = interp(expr, &err);
+		const te::env_traits::t_vector r = te::interp(expr, &err);
 		lequal(err, 0);
 		lok(r != r);
 
-		auto n = compile(expr, 0, 0, &err);
+		auto n = te::compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const env_traits::t_vector c = eval(n);
+		const te::env_traits::t_vector c = te::eval(n);
 		lok(c != c);
 		delete n;
 	}
@@ -257,8 +251,6 @@ void test_nans()
 
 void test_infs()
 {
-	using namespace te;
-
 	const char* infs[] = {
 		"1/0",
 		"log(0)",
@@ -278,14 +270,14 @@ void test_infs()
 		const char* expr = infs[i];
 
 		int						   err;
-		const env_traits::t_vector r = interp(expr, &err);
+		const te::env_traits::t_vector r = te::interp(expr, &err);
 		lequal(err, 0);
 		lok(r == r + 1);
 
-		auto n = compile(expr, 0, 0, &err);
+		auto n = te::compile(expr, 0, 0, &err);
 		lok(n);
 		lequal(err, 0);
-		const env_traits::t_vector c = eval(n);
+		const te::env_traits::t_vector c = te::eval(n);
 		lok(c == c + 1);
 		delete n;
 	}
@@ -293,26 +285,24 @@ void test_infs()
 
 void test_variables()
 {
-	using namespace te;
-
-	env_traits::t_vector x, y, test;
-	variable			 lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
+	te::env_traits::t_vector x, y, test;
+	te::variable			 lookup[] = {{"x", &x}, {"y", &y}, {"te_st", &test}};
 
 	int err;
 
-	auto expr1 = compile("cos x + sin y", lookup, 2, &err);
+	auto expr1 = te::compile("cos x + sin y", lookup, 2, &err);
 	lok(expr1);
 	lok(!err);
 
-	auto expr2 = compile("x+x+x-y", lookup, 2, &err);
+	auto expr2 = te::compile("x+x+x-y", lookup, 2, &err);
 	lok(expr2);
 	lok(!err);
 
-	auto expr3 = compile("x*y^3", lookup, 2, &err);
+	auto expr3 = te::compile("x*y^3", lookup, 2, &err);
 	lok(expr3);
 	lok(!err);
 
-	auto expr4 = compile("te_st+5", lookup, 3, &err);
+	auto expr4 = te::compile("te_st+5", lookup, 3, &err);
 	lok(expr4);
 	lok(!err);
 
@@ -320,19 +310,19 @@ void test_variables()
 	{
 		for (x = 0; x < 5; ++x)
 		{
-			env_traits::t_vector ev;
+			te::env_traits::t_vector ev;
 
-			ev = eval(expr1);
+			ev = te::eval(expr1);
 			lfequal(ev, cos(x) + sin(y));
 
-			ev = eval(expr2);
+			ev = te::eval(expr2);
 			lfequal(ev, x + x + x - y);
 
-			ev = eval(expr3);
+			ev = te::eval(expr3);
 			lfequal(ev, x * y * y * y);
 
 			test = x;
-			ev	 = eval(expr4);
+			ev	 = te::eval(expr4);
 			lfequal(ev, x + 5);
 		}
 	}
@@ -342,19 +332,19 @@ void test_variables()
 	delete expr3;
 	delete expr4;
 
-	auto expr5 = compile("xx*y^3", lookup, 2, &err);
+	auto expr5 = te::compile("xx*y^3", lookup, 2, &err);
 	lok(!expr5);
 	lok(err);
 
-	auto expr6 = compile("tes", lookup, 3, &err);
+	auto expr6 = te::compile("tes", lookup, 3, &err);
 	lok(!expr6);
 	lok(err);
 
-	auto expr7 = compile("sinn x", lookup, 2, &err);
+	auto expr7 = te::compile("sinn x", lookup, 2, &err);
 	lok(!expr7);
 	lok(err);
 
-	auto expr8 = compile("si x", lookup, 2, &err);
+	auto expr8 = te::compile("si x", lookup, 2, &err);
 	lok(!expr8);
 	lok(err);
 }
@@ -364,46 +354,44 @@ void test_variables()
 	{                                                                                                                  \
 		if ((b) != (b))                                                                                                \
 			break;                                                                                                     \
-		auto expr = compile((a), lookup, 2, &err);                                                                     \
-		lfequal(eval(expr), (b));                                                                                      \
+		auto expr = te::compile((a), lookup, 2, &err);                                                                     \
+		lfequal(te::eval(expr), (b));                                                                                      \
 		lok(!err);                                                                                                     \
 		delete expr;                                                                                                 \
 	} while (0)
 
 void test_functions()
 {
-	using namespace te;
-
-	env_traits::t_atom x, y;
-	variable		   lookup[] = {{"x", &x}, {"y", &y}};
+	te::env_traits::t_atom x, y;
+	te::variable		   lookup[] = {{"x", &x}, {"y", &y}};
 
 	int err;
 
-	for (x = env_traits::t_atom(-5); x < env_traits::t_atom(5); x += env_traits::t_atom(.2))
+	for (x = te::env_traits::t_atom(-5); x < te::env_traits::t_atom(5); x += te::env_traits::t_atom(.2))
 	{
-		cross_check("abs x", env_traits::explicit_load_atom(fabs(x)));
-		cross_check("acos x", env_traits::explicit_load_atom(acos(x)));
-		cross_check("asin x", env_traits::explicit_load_atom(asin(x)));
-		cross_check("atan x", env_traits::explicit_load_atom(atan(x)));
-		cross_check("ceil x", env_traits::explicit_load_atom(ceil(x)));
-		cross_check("cos x", env_traits::explicit_load_atom(cos(x)));
-		cross_check("cosh x", env_traits::explicit_load_atom(cosh(x)));
-		cross_check("exp x", env_traits::explicit_load_atom(exp(x)));
-		cross_check("floor x", env_traits::explicit_load_atom(floor(x)));
-		cross_check("ln x", env_traits::explicit_load_atom(log(x)));
-		cross_check("log10 x", env_traits::explicit_load_atom(log10(x)));
-		cross_check("sin x", env_traits::explicit_load_atom(sin(x)));
-		cross_check("sinh x", env_traits::explicit_load_atom(sinh(x)));
-		cross_check("sqrt x", env_traits::explicit_load_atom(sqrt(x)));
-		cross_check("tan x", env_traits::explicit_load_atom(tan(x)));
-		cross_check("tanh x", env_traits::explicit_load_atom(tanh(x)));
+		cross_check("abs x", te::env_traits::explicit_load_atom(fabs(x)));
+		cross_check("acos x", te::env_traits::explicit_load_atom(acos(x)));
+		cross_check("asin x", te::env_traits::explicit_load_atom(asin(x)));
+		cross_check("atan x", te::env_traits::explicit_load_atom(atan(x)));
+		cross_check("ceil x", te::env_traits::explicit_load_atom(ceil(x)));
+		cross_check("cos x", te::env_traits::explicit_load_atom(cos(x)));
+		cross_check("cosh x", te::env_traits::explicit_load_atom(cosh(x)));
+		cross_check("exp x", te::env_traits::explicit_load_atom(exp(x)));
+		cross_check("floor x", te::env_traits::explicit_load_atom(floor(x)));
+		cross_check("ln x", te::env_traits::explicit_load_atom(log(x)));
+		cross_check("log10 x", te::env_traits::explicit_load_atom(log10(x)));
+		cross_check("sin x", te::env_traits::explicit_load_atom(sin(x)));
+		cross_check("sinh x", te::env_traits::explicit_load_atom(sinh(x)));
+		cross_check("sqrt x", te::env_traits::explicit_load_atom(sqrt(x)));
+		cross_check("tan x", te::env_traits::explicit_load_atom(tan(x)));
+		cross_check("tanh x", te::env_traits::explicit_load_atom(tanh(x)));
 
-		for (y = env_traits::t_atom(-2); y < env_traits::t_atom(2); y += env_traits::t_atom(.2))
+		for (y = te::env_traits::t_atom(-2); y < te::env_traits::t_atom(2); y += te::env_traits::t_atom(.2))
 		{
 			if (fabs(x) < 0.01)
 				break;
-			cross_check("atan2(x,y)", env_traits::explicit_load_atom(atan2(x, y)));
-			cross_check("pow(x,y)", env_traits::explicit_load_atom(pow(x, y)));
+			cross_check("atan2(x,y)", te::env_traits::explicit_load_atom(atan2(x, y)));
+			cross_check("pow(x,y)", te::env_traits::explicit_load_atom(pow(x, y)));
 		}
 	}
 }
@@ -459,20 +447,18 @@ te::env_traits::t_vector sum7(te::env_traits::t_vector a,
 
 void test_dynamic()
 {
-	using namespace te;
-
-	env_traits::t_vector x, f;
-	variable			 lookup[] = {
+	te::env_traits::t_vector x, f;
+	te::variable			 lookup[] = {
 		{"x", &x},
 		{"f", &f},
-		{"sum0", sum0, TE_FUNCTION0},
-		{"sum1", sum1, TE_FUNCTION1},
-		{"sum2", sum2, TE_FUNCTION2},
-		{"sum3", sum3, TE_FUNCTION3},
-		{"sum4", sum4, TE_FUNCTION4},
-		{"sum5", sum5, TE_FUNCTION5},
-		{"sum6", sum6, TE_FUNCTION6},
-		{"sum7", sum7, TE_FUNCTION7},
+		{"sum0", sum0, tp::FUNCTION0},
+		{"sum1", sum1, tp::FUNCTION1},
+		{"sum2", sum2, tp::FUNCTION2},
+		{"sum3", sum3, tp::FUNCTION3},
+		{"sum4", sum4, tp::FUNCTION4},
+		{"sum5", sum5, tp::FUNCTION5},
+		{"sum6", sum6, tp::FUNCTION6},
+		{"sum7", sum7, tp::FUNCTION7},
 	};
 
 	test_case cases[] = {
@@ -507,12 +493,12 @@ void test_dynamic()
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
-		auto ex = compile(expr, lookup, sizeof(lookup) / sizeof(variable), &err);
+		auto ex = te::compile(expr, lookup, sizeof(lookup) / sizeof(te::variable), &err);
 		lok(ex);
-		lfequal(eval(ex), answer);
+		lfequal(te::eval(ex), answer);
 		delete ex;
 	}
 }
@@ -544,16 +530,14 @@ te::env_traits::t_vector cell(void* context, te::env_traits::t_vector a)
 
 void test_closure()
 {
-	using namespace te;
+	te::env_traits::t_vector extra;
+	te::env_traits::t_vector c[] = {5, 6, 7, 8, 9};
 
-	env_traits::t_vector extra;
-	env_traits::t_vector c[] = {5, 6, 7, 8, 9};
-
-	variable lookup[] = {
-		{"c0", clo0, TE_CLOSURE0, &extra},
-		{"c1", clo1, TE_CLOSURE1, &extra},
-		{"c2", clo2, TE_CLOSURE2, &extra},
-		{"cell", cell, TE_CLOSURE1, c},
+	te::variable lookup[] = {
+		{"c0", clo0, tp::CLOSURE0, &extra},
+		{"c1", clo1, tp::CLOSURE1, &extra},
+		{"c2", clo2, tp::CLOSURE2, &extra},
+		{"cell", cell, tp::CLOSURE1, c},
 	};
 
 	test_case cases[] = {
@@ -566,17 +550,17 @@ void test_closure()
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
-		auto ex = compile(expr, lookup, sizeof(lookup) / sizeof(variable), &err);
+		auto ex = te::compile(expr, lookup, sizeof(lookup) / sizeof(te::variable), &err);
 		lok(ex);
 
 		extra = 0;
-		lfequal(eval(ex), answer + extra);
+		lfequal(te::eval(ex), answer + extra);
 
 		extra = 10;
-		lfequal(eval(ex), answer + extra);
+		lfequal(te::eval(ex), answer + extra);
 
 		delete ex;
 	}
@@ -591,41 +575,39 @@ void test_closure()
 	for (i = 0; i < sizeof(cases2) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases2[i].expr;
-		const env_traits::t_vector answer = cases2[i].answer;
+		const te::env_traits::t_vector answer = cases2[i].answer;
 
 		int	 err;
-		auto ex = compile(expr, lookup, sizeof(lookup) / sizeof(variable), &err);
+		auto ex = te::compile(expr, lookup, sizeof(lookup) / sizeof(te::variable), &err);
 		lok(ex);
-		lfequal(eval(ex), answer);
+		lfequal(te::eval(ex), answer);
 		delete ex;
 	}
 }
 
 void test_optimize()
 {
-	using namespace te;
-
 	test_case cases[] = {
-		{"5+5", env_traits::explicit_load_atom(10)},
-		{"pow(2,2)", env_traits::explicit_load_atom(4)},
-		{"sqrt 100", env_traits::explicit_load_atom(10)},
-		{"pi * 2", env_traits::explicit_load_atom(6.2832)},
+		{"5+5", te::env_traits::explicit_load_atom(10)},
+		{"pow(2,2)", te::env_traits::explicit_load_atom(4)},
+		{"sqrt 100", te::env_traits::explicit_load_atom(10)},
+		{"pi * 2", te::env_traits::explicit_load_atom(6.2832)},
 	};
 
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int	 err;
-		auto ex = compile(expr, 0, 0, &err);
+		auto ex = te::compile(expr, 0, 0, &err);
 		lok(ex);
 
 		/* The answer should be know without
 		 * even running eval. */
 		// lfequal(ex->value, answer); // TODO
-		lfequal(eval(ex), answer);
+		lfequal(te::eval(ex), answer);
 
 		delete ex;
 	}
@@ -633,8 +615,6 @@ void test_optimize()
 
 void test_pow()
 {
-	using namespace te;
-
 #ifdef TE_POW_FROM_RIGHT
 	test_equ cases[] = {{"2^3^4", "2^(3^4)"},
 		{"-2^2", "-(2^2)"},
@@ -657,9 +637,9 @@ void test_pow()
 		{"-a^-b", "(-a)^(-b)"}};
 #endif
 
-	env_traits::t_vector a = 2, b = 3;
+	te::env_traits::t_vector a = 2, b = 3;
 
-	variable lookup[] = {{"a", &a}, {"b", &b}};
+	te::variable lookup[] = {{"a", &a}, {"b", &b}};
 
 	int i;
 	for (i = 0; i < sizeof(cases) / sizeof(test_equ); ++i)
@@ -667,14 +647,14 @@ void test_pow()
 		const char* expr1 = cases[i].expr1;
 		const char* expr2 = cases[i].expr2;
 
-		auto ex1 = compile(expr1, lookup, sizeof(lookup) / sizeof(variable), 0);
-		auto ex2 = compile(expr2, lookup, sizeof(lookup) / sizeof(variable), 0);
+		auto ex1 = te::compile(expr1, lookup, sizeof(lookup) / sizeof(te::variable), 0);
+		auto ex2 = te::compile(expr2, lookup, sizeof(lookup) / sizeof(te::variable), 0);
 
 		lok(ex1);
 		lok(ex2);
 
-		env_traits::t_vector r1 = eval(ex1);
-		env_traits::t_vector r2 = eval(ex2);
+		te::env_traits::t_vector r1 = te::eval(ex1);
+		te::env_traits::t_vector r2 = te::eval(ex2);
 
 		fflush(stdout);
 		lfequal(r1, r2);
@@ -686,8 +666,6 @@ void test_pow()
 
 void test_combinatorics()
 {
-	using namespace te;
-
 	test_case cases[] = {
 		{"fac(0)", 1},
 		{"fac(0.2)", 1},
@@ -717,10 +695,10 @@ void test_combinatorics()
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int						   err;
-		const env_traits::t_vector ev = interp(expr, &err);
+		const te::env_traits::t_vector ev = te::interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
@@ -733,8 +711,6 @@ void test_combinatorics()
 
 void test_logic()
 {
-	using namespace te;
-
 	test_case cases[] = {
 		{"1 && 1", 1},
 		{"1 && 0", 0},
@@ -814,10 +790,10 @@ void test_logic()
 	for (i = 0; i < sizeof(cases) / sizeof(test_case); ++i)
 	{
 		const char*				   expr	  = cases[i].expr;
-		const env_traits::t_vector answer = cases[i].answer;
+		const te::env_traits::t_vector answer = cases[i].answer;
 
 		int						   err;
-		const env_traits::t_vector ev = interp(expr, &err);
+		const te::env_traits::t_vector ev = te::interp(expr, &err);
 		lok(!err);
 		lfequal(ev, answer);
 
