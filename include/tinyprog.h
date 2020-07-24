@@ -2080,6 +2080,106 @@ namespace tp
 } // namespace tp
 #endif // #if (TP_COMPILER_ENABLED)
 
+namespace tp
+{
+	template<typename T_TRAITS>
+	struct impl
+	{
+		using env_traits = T_TRAITS;
+		using variable	 = ::tp::variable;
+		using t_atom	 = typename env_traits::t_atom;
+		using t_vector	 = typename env_traits::t_vector;
+
+		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
+		{
+			return eval_details::eval_portable_impl<env_traits, t_atom, t_vector>((const expr_portable<env_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
+		}
+
+		static inline t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
+		{
+			for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
+			{
+				auto& statement = statement_array[statement_index];
+				switch (statement.type)
+				{
+				case statement_type::jump:
+					if (statement.arg_b == -1 ||
+						(0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
+					{
+						statement_index = statement.arg_a;
+					}
+					break;
+
+				case statement_type::return_value:
+					return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
+
+				case statement_type::assign:
+				{
+					auto dest = (t_vector*)expr_context[statement.arg_a];
+					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
+				}
+				break;
+
+				case statement_type::call:
+					eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
+					break;
+
+				default:
+					// fatal error
+					return env_traits::t_vector_builtins::nan();
+				}
+			}
+			return env_traits::t_vector_builtins::nan();
+		}
+
+#if (TP_COMPILER_ENABLED)
+		static compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
+		{
+			return expr_details::compile<env_traits>(expression, variables, var_count, error);
+		}
+
+		static compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
+		{
+			return (compiled_program*)program_details::compile<env_traits>(program, variables, var_count, error);
+		}
+
+		static inline t_vector eval(const compiled_expr* n)
+		{
+			return eval(n->get_data(), n->get_binding_addresses());
+		}
+
+		static inline t_vector interp(const char* expression, int* error)
+		{
+			compiled_expr* n = compile(expression, 0, 0, error);
+			t_vector	   ret;
+			if (n)
+			{
+				ret = eval(n);
+				delete n;
+			}
+			else
+			{
+				ret = env_traits::t_vector_builtins::nan();
+			}
+			return ret;
+		}
+
+		static inline t_vector eval_program(compiled_program* prog)
+		{
+			auto array_size		= prog->get_binding_array_size();
+			auto binding_addrs	= prog->get_binding_addresses();
+			auto binding_names	= prog->get_binding_names();
+			auto data_size		= prog->get_data_size();
+			auto data			= prog->get_data();
+			auto num_statements = prog->get_statement_array_size();
+			auto statements		= prog->get_statements();
+
+			return eval_program(statements, (int)num_statements, data, binding_addrs);
+		}
+#endif // #if (TP_COMPILER_ENABLED)
+	};
+} // namespace tp
+
 #if TP_STANDARD_LIBRARY
 namespace tp_stdlib
 {
@@ -2650,110 +2750,8 @@ namespace tp_stdlib
 															{0, 0, 0, 0}};
 	};
 } // namespace tp_stdlib
-#endif // #if TP_STANDARD_LIBRARY
 
-namespace tp
-{
-	template<typename T_TRAITS>
-	struct impl
-	{
-		using env_traits = T_TRAITS;
-		using variable	 = ::tp::variable;
-		using t_atom	 = typename env_traits::t_atom;
-		using t_vector	 = typename env_traits::t_vector;
-
-		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
-		{
-			return eval_details::eval_portable_impl<env_traits, t_atom, t_vector>((const expr_portable<env_traits>*)expr_buffer, (const unsigned char*)expr_buffer, expr_context);
-		}
-
-		static inline t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
-		{
-			for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
-			{
-				auto& statement = statement_array[statement_index];
-				switch (statement.type)
-				{
-				case statement_type::jump:
-					if (statement.arg_b == -1 ||
-						(0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
-					{
-						statement_index = statement.arg_a;
-					}
-					break;
-
-				case statement_type::return_value:
-					return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-
-				case statement_type::assign:
-				{
-					auto dest = (t_vector*)expr_context[statement.arg_a];
-					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
-				}
-				break;
-
-				case statement_type::call:
-					eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-					break;
-
-				default:
-					// fatal error
-					return env_traits::t_vector_builtins::nan();
-				}
-			}
-			return env_traits::t_vector_builtins::nan();
-		}
-
-#if (TP_COMPILER_ENABLED)
-		static compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
-		{
-			return expr_details::compile<env_traits>(expression, variables, var_count, error);
-		}
-
-		static compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
-		{
-			return (compiled_program*)program_details::compile<env_traits>(program, variables, var_count, error);
-		}
-
-		static inline t_vector eval(const compiled_expr* n)
-		{
-			return eval(n->get_data(), n->get_binding_addresses());
-		}
-
-		static inline t_vector interp(const char* expression, int* error)
-		{
-			compiled_expr* n = compile(expression, 0, 0, error);
-			t_vector	   ret;
-			if (n)
-			{
-				ret = eval(n);
-				delete n;
-			}
-			else
-			{
-				ret = env_traits::t_vector_builtins::nan();
-			}
-			return ret;
-		}
-
-		static inline t_vector eval_program(compiled_program* prog)
-		{
-			auto array_size		= prog->get_binding_array_size();
-			auto binding_addrs	= prog->get_binding_addresses();
-			auto binding_names	= prog->get_binding_names();
-			auto data_size		= prog->get_data_size();
-			auto data			= prog->get_data();
-			auto num_statements = prog->get_statement_array_size();
-			auto statements		= prog->get_statements();
-
-			return eval_program(statements, (int)num_statements, data, binding_addrs);
-		}
-#endif // #if (TP_COMPILER_ENABLED)
-	};
-} // namespace tp
-
-#if TP_STANDARD_LIBRARY
-namespace tp
+namespace tp_stdlib
 {
 	template<template<typename> typename T_NATIVE_BUILTINS>
 	struct env_traits_f32
@@ -2834,14 +2832,14 @@ namespace tp
 			return (int)a;
 		}
 	};
-} // namespace tp
+} // namespace tp_stdlib
 #endif // #if TP_STANDARD_LIBRARY
 
 #if TP_TESTING
 #if !TP_STANDARD_LIBRARY
 #error TP_STANDARD_LIBRARY should be defined for testing
 #endif // #if !TP_STANDARD_LIBRARY
-using te = tp::impl<tp::env_traits_f32<tp_stdlib::native_builtins>>;
+using te = tp::impl<tp_stdlib::env_traits_f32<tp_stdlib::native_builtins>>;
 #endif // #if TP_TESTING
 
 #endif /*__TINYPROG_H__*/
