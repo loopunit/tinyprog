@@ -508,13 +508,16 @@ namespace tp
 			const int	 psize = sizeof(void*) * arity;
 			const int	 size  = (sizeof(expr_native) - sizeof(void*)) + psize + (is_closure(type) ? sizeof(void*) : 0);
 			expr_native* ret   = (expr_native*)malloc(size);
-			memset(ret, 0, size);
-			if (arity && parameters)
+			if (ret)
 			{
-				memcpy(ret->parameters, parameters, psize);
+				memset(ret, 0, size);
+				if (arity && parameters)
+				{
+					memcpy(ret->parameters, parameters, psize);
+				}
+				ret->type  = type;
+				ret->bound = 0;
 			}
-			ret->type  = type;
-			ret->bound = 0;
 			return ret;
 		}
 
@@ -1366,8 +1369,8 @@ namespace tp
 
 					if (var->type >= CLOSURE0 && var->type < CLOSURE_MAX)
 					{
-						auto itor = name_map.find(var->context);
-						if (itor == name_map.end())
+						auto context_itor = name_map.find(var->context);
+						if (context_itor == name_map.end())
 						{
 							name_map.emplace(std::make_pair(var->context, std::string(var->name) + "_closure"));
 							index_map.insert(std::make_pair(var->context, index_counter++));
@@ -1618,7 +1621,7 @@ namespace tp
 				{
 					for (size_t i = 0; i < v.length(); ++i)
 					{
-						if (!::isspace(v[i]))
+						if (!::isspace((unsigned char)v[i]))
 						{
 							return std::string_view(&v[i], v.length() - i);
 						}
@@ -1635,13 +1638,13 @@ namespace tp
 				{
 					for (size_t i = v.length(); i > 0; --i)
 					{
-						if (!::isspace(v[i - 1]))
+						if (!::isspace((unsigned char)v[i - 1]))
 						{
 							return std::string_view(&v[0], i);
 						}
 					}
 
-					if (!::isspace(v[0]))
+					if (!::isspace((unsigned char)v[0]))
 					{
 						std::string_view(&v[0], 1);
 					}
