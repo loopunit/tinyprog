@@ -451,17 +451,17 @@ namespace tp
 
 		typedef t_vector (*te_fun2)(t_vector, t_vector);
 
-		enum class TOK : int
+		enum
 		{
-			NUL = CLOSURE_MAX,
-			ERROR,
-			END,
-			SEP,
-			OPEN,
-			CLOSE,
-			NUMBER,
-			VARIABLE,
-			INFIX
+			TOK_NUL = CLOSURE_MAX,
+			TOK_ERROR,
+			TOK_END,
+			TOK_SEP,
+			TOK_OPEN,
+			TOK_CLOSE,
+			TOK_NUMBER,
+			TOK_VARIABLE,
+			TOK_INFIX
 		};
 
 		struct state
@@ -561,13 +561,13 @@ namespace tp
 
 		static void next_token(state* s)
 		{
-			s->type = (int)TOK::NUL;
+			s->type = (int)TOK_NUL;
 
 			do
 			{
 				if (!*s->next || *s->next == ';')
 				{
-					s->type = (int)TOK::END;
+					s->type = (int)TOK_END;
 					return;
 				}
 
@@ -575,7 +575,7 @@ namespace tp
 				if ((s->next[0] >= '0' && s->next[0] <= '9') || s->next[0] == '.')
 				{
 					s->value = (t_atom)strtod(s->next, (char**)&s->next);
-					s->type	 = (int)TOK::NUMBER;
+					s->type	 = (int)TOK_NUMBER;
 				}
 				else
 				{
@@ -593,14 +593,14 @@ namespace tp
 
 						if (!var)
 						{
-							s->type = (int)TOK::ERROR;
+							s->type = (int)TOK_ERROR;
 						}
 						else
 						{
 							const auto t = eval_details::type_mask(var->type);
 							if (t == VARIABLE)
 							{
-								s->type	 = (int)TOK::VARIABLE;
+								s->type	 = (int)TOK_VARIABLE;
 								s->bound = (const t_atom*)var->address;
 							}
 							else if (t >= FUNCTION0)
@@ -628,109 +628,109 @@ namespace tp
 						switch (s->next++[0])
 						{
 						case '+':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("add");
 							break;
 						case '-':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("sub");
 							break;
 						case '*':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("mul");
 							break;
 						case '/':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("divide");
 							break;
 						case '^':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("pow");
 							break;
 						case '%':
-							s->type		= (int)TOK::INFIX;
+							s->type		= (int)TOK_INFIX;
 							s->function = t_vector_builtins::find_builtin_address("fmod");
 							break;
 						case '!':
 							if (s->next++[0] == '=')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("not_equal");
 							}
 							else
 							{
 								s->next--;
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("logical_not");
 							}
 							break;
 						case '=':
 							if (s->next++[0] == '=')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("equal");
 							}
 							else
 							{
-								s->type = (int)TOK::ERROR;
+								s->type = (int)TOK_ERROR;
 							}
 							break;
 						case '<':
 							if (s->next++[0] == '=')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("lower_eq");
 							}
 							else
 							{
 								s->next--;
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("lower");
 							}
 							break;
 						case '>':
 							if (s->next++[0] == '=')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("greater_eq");
 							}
 							else
 							{
 								s->next--;
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("greater");
 							}
 							break;
 						case '&':
 							if (s->next++[0] == '&')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("logical_and");
 							}
 							else
 							{
-								s->type = (int)TOK::ERROR;
+								s->type = (int)TOK_ERROR;
 							}
 							break;
 						case '|':
 							if (s->next++[0] == '|')
 							{
-								s->type		= (int)TOK::INFIX;
+								s->type		= (int)TOK_INFIX;
 								s->function = t_vector_builtins::find_builtin_address("logical_or");
 							}
 							else
 							{
-								s->type = (int)TOK::ERROR;
+								s->type = (int)TOK_ERROR;
 							}
 							break;
 						case '(':
-							s->type = (int)TOK::OPEN;
+							s->type = (int)TOK_OPEN;
 							break;
 						case ')':
-							s->type = (int)TOK::CLOSE;
+							s->type = (int)TOK_CLOSE;
 							break;
 						case ',':
-							s->type = (int)TOK::SEP;
+							s->type = (int)TOK_SEP;
 							break;
 						case ' ':
 						case '\t':
@@ -738,12 +738,12 @@ namespace tp
 						case '\r':
 							break;
 						default:
-							s->type = (int)TOK::ERROR;
+							s->type = (int)TOK_ERROR;
 							break;
 						}
 					}
 				}
-			} while (s->type == (int)TOK::NUL);
+			} while (s->type == (int)TOK_NUL);
 		}
 
 		static expr_native* base(state* s)
@@ -754,13 +754,13 @@ namespace tp
 
 			const auto t = eval_details::type_mask(s->type);
 
-			if (t == (int)TOK::NUMBER)
+			if (t == (int)TOK_NUMBER)
 			{
 				ret		   = new_expr(CONSTANT, 0);
 				ret->value = s->value;
 				next_token(s);
 			}
-			else if (t == (int)TOK::VARIABLE)
+			else if (t == (int)TOK_VARIABLE)
 			{
 				ret		   = new_expr(VARIABLE, 0);
 				ret->bound = s->bound;
@@ -776,12 +776,12 @@ namespace tp
 					if (is_closure(s->type))
 						ret->parameters[0] = s->context;
 					next_token(s);
-					if (s->type == (int)TOK::OPEN)
+					if (s->type == (int)TOK_OPEN)
 					{
 						next_token(s);
-						if (s->type != (int)TOK::CLOSE)
+						if (s->type != (int)TOK_CLOSE)
 						{
-							s->type = (int)TOK::ERROR;
+							s->type = (int)TOK_ERROR;
 						}
 						else
 						{
@@ -806,9 +806,9 @@ namespace tp
 						ret->parameters[arity] = s->context;
 					next_token(s);
 
-					if (s->type != (int)TOK::OPEN)
+					if (s->type != (int)TOK_OPEN)
 					{
-						s->type = (int)TOK::ERROR;
+						s->type = (int)TOK_ERROR;
 					}
 					else
 					{
@@ -817,14 +817,14 @@ namespace tp
 						{
 							next_token(s);
 							ret->parameters[i] = expr(s);
-							if (s->type != (int)TOK::SEP)
+							if (s->type != (int)TOK_SEP)
 							{
 								break;
 							}
 						}
-						if (s->type != (int)TOK::CLOSE || i != arity - 1)
+						if (s->type != (int)TOK_CLOSE || i != arity - 1)
 						{
-							s->type = (int)TOK::ERROR;
+							s->type = (int)TOK_ERROR;
 						}
 						else
 						{
@@ -833,13 +833,13 @@ namespace tp
 					}
 				}
 			}
-			else if (t == (int)TOK::OPEN)
+			else if (t == (int)TOK_OPEN)
 			{
 				next_token(s);
 				ret = list(s);
-				if (s->type != (int)TOK::CLOSE)
+				if (s->type != (int)TOK_CLOSE)
 				{
-					s->type = (int)TOK::ERROR;
+					s->type = (int)TOK_ERROR;
 				}
 				else
 				{
@@ -849,7 +849,7 @@ namespace tp
 			else
 			{
 				ret		   = new_expr(0, 0);
-				s->type	   = (int)TOK::ERROR;
+				s->type	   = (int)TOK_ERROR;
 				ret->value = t_vector_builtins::nan();
 			}
 
@@ -860,7 +860,7 @@ namespace tp
 		{
 			/* <power>     =    {("-" | "+" | "!")} <base> */
 			int sign = 1;
-			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
 			{
 				if (s->function == t_vector_builtins::find_builtin_address("sub"))
 					sign = -sign;
@@ -868,7 +868,7 @@ namespace tp
 			}
 
 			int logical = 0;
-			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub") ||
+			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub") ||
 												  s->function == t_vector_builtins::find_builtin_address("logical_not")))
 			{
 				if (s->function == t_vector_builtins::find_builtin_address("logical_not"))
@@ -946,7 +946,7 @@ namespace tp
 				ret = se;
 			}
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = s->function;
 				next_token(s);
@@ -981,7 +981,7 @@ namespace tp
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -998,7 +998,7 @@ namespace tp
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == (int)TOK::INFIX &&
+			while (s->type == (int)TOK_INFIX &&
 				   (s->function == t_vector_builtins::find_builtin_address("mul") || s->function == t_vector_builtins::find_builtin_address("divide") ||
 					s->function == t_vector_builtins::find_builtin_address("fmod")))
 			{
@@ -1016,7 +1016,7 @@ namespace tp
 			/* <expr>      =    <term> {("+" | "-") <term>} */
 			expr_native* ret = term(s);
 
-			while (s->type == (int)TOK::INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1032,7 +1032,7 @@ namespace tp
 			/* <expr>      =    <sum_expr> {(">" | ">=" | "<" | "<=" | "==" | "!=") <sum_expr>} */
 			expr_native* ret = sum_expr(s);
 
-			while (s->type == (int)TOK::INFIX &&
+			while (s->type == (int)TOK_INFIX &&
 				   (s->function == t_vector_builtins::find_builtin_address("greater") || s->function == t_vector_builtins::find_builtin_address("greater_eq") ||
 					s->function == t_vector_builtins::find_builtin_address("lower") || s->function == t_vector_builtins::find_builtin_address("lower_eq") ||
 					s->function == t_vector_builtins::find_builtin_address("equal") || s->function == t_vector_builtins::find_builtin_address("not_equal")))
@@ -1051,7 +1051,7 @@ namespace tp
 			/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 			expr_native* ret = test_expr(s);
 
-			while (s->type == (int)TOK::INFIX &&
+			while (s->type == (int)TOK_INFIX &&
 				   (s->function == t_vector_builtins::find_builtin_address("logical_and") || s->function == t_vector_builtins::find_builtin_address("logical_or")))
 			{
 				te_fun2 t = (te_fun2)s->function;
@@ -1068,7 +1068,7 @@ namespace tp
 			/* <list>      =    <expr> {"," <expr>} */
 			expr_native* ret = expr(s);
 
-			while (s->type == (int)TOK::SEP)
+			while (s->type == (int)TOK_SEP)
 			{
 				next_token(s);
 				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, expr(s));
@@ -1136,7 +1136,7 @@ namespace tp
 			next_token(&s);
 			expr_native* root = list(&s);
 
-			if (s.type != (int)TOK::END)
+			if (s.type != (int)TOK_END)
 			{
 				free_native(root);
 				if (error)
