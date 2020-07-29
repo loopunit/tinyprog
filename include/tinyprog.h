@@ -1387,11 +1387,13 @@ namespace tp
 				[&]() {
 					auto res = handle_addr(native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
 					assert(res);
+					((void)res);
 					return export_size;
 				},
 				[&](int a) {
 					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 					assert(res);
+					((void)res);
 					export_size += sizeof(n->parameters[0]) * a;
 
 					for (int i = 0; i < a; ++i)
@@ -1403,6 +1405,7 @@ namespace tp
 				[&](int a) {
 					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
 					assert(res);
+					((void)res);
 					export_size += sizeof(n->parameters[0]) * a;
 
 					for (int i = 0; i < a; ++i)
