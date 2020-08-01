@@ -1874,7 +1874,10 @@ namespace tp
 		using any_statement = std::variant<jump_statement, return_value_statement, assign_statement, call_statement>;
 
 		template<typename T_TRAITS>
-		auto compile(const char* text, const variable* variables, int var_count, int* error) -> typename portable<T_TRAITS>::portable_compiled_program*
+		using t_indexer = typename portable<T_TRAITS>::expr_portable_expression_build_indexer;
+		
+		template<typename T_TRAITS>
+		auto compile_using_indexer(const char* text, const variable* variables, int var_count, int* error, typename t_indexer<T_TRAITS>& indexer) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
 			auto program_src	   = parser::trim_all_space(std::string_view{text, strlen(text)});
 			auto program_remaining = program_src;
@@ -1939,7 +1942,6 @@ namespace tp
 			}
 
 			// Add referenced variables to the lookup dict
-			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
 			for (auto itor : vm.m_variable_map)
 			{
 				auto name  = itor.first;
@@ -2082,6 +2084,14 @@ namespace tp
 
 			return program;
 		}
+	
+		template<typename T_TRAITS>
+		auto compile(const char* text, const variable* variables, int var_count, int* error) -> typename portable<T_TRAITS>::portable_compiled_program*
+		{
+			t_indexer<T_TRAITS> indexer;
+			return compile_using_indexer<T_TRAITS>(text, variables, var_count, error, indexer);
+		}
+
 	} // namespace program_details
 } // namespace tp
 #endif // #if (TP_COMPILER_ENABLED)
@@ -2169,6 +2179,9 @@ namespace tp
 		using t_atom		   = typename env_traits::t_atom;
 		using t_vector		   = typename env_traits::t_vector;
 		using variable_factory = details::variable_helper<t_vector>;
+#if (TP_COMPILER_ENABLED)
+		using t_indexer			= program_details::t_indexer<T_TRAITS>;
+#endif // #if (TP_COMPILER_ENABLED)
 
 		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 		{
@@ -2221,6 +2234,11 @@ namespace tp
 		static compiled_program* compile_program(const char* program, const variable* variables, int var_count, int* error)
 		{
 			return (compiled_program*)program_details::compile<env_traits>(program, variables, var_count, error);
+		}
+
+		static compiled_program* compile_program_using_indexer(const char* program, const variable* variables, int var_count, int* error, program_details::t_indexer<env_traits>& indexer)
+		{
+			return (compiled_program*)program_details::compile_using_indexer<env_traits>(program, variables, var_count, error, indexer);
 		}
 
 		static inline t_vector eval(const compiled_expr* n)
