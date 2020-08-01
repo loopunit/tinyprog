@@ -872,7 +872,7 @@ namespace tp
 
 			int logical = 0;
 			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub") ||
-												  s->function == t_vector_builtins::find_builtin_address("logical_not")))
+												 s->function == t_vector_builtins::find_builtin_address("logical_not")))
 			{
 				if (s->function == t_vector_builtins::find_builtin_address("logical_not"))
 				{
@@ -2088,13 +2088,87 @@ namespace tp
 
 namespace tp
 {
+	namespace details
+	{
+		template<typename T_VAL>
+		struct variable_helper
+		{
+			static inline constexpr variable readonly_var(const char* name, const T_VAL* v) noexcept
+			{
+				return {name, v}; // TODO: make distinction between rw and ro
+			}
+
+			static inline constexpr variable readwrite_var(const char* name, T_VAL* v) noexcept
+			{
+				return {name, v}; // TODO: make distinction between rw and ro
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function0(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*zeroargfn)();
+				return {name, zeroargfn{func}, tp::FUNCTION0 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function1(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*oneargfn)(T_VAL);
+				return {name, oneargfn{func}, tp::FUNCTION1 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function2(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*twoargfn)(T_VAL, T_VAL);
+				return {name, twoargfn{func}, tp::FUNCTION2 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function3(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*threeargfn)(T_VAL, T_VAL, T_VAL);
+				return {name, threeargfn{func}, tp::FUNCTION3 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function4(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*fourargfn)(T_VAL, T_VAL, T_VAL, T_VAL);
+				return {name, fourargfn{func}, tp::FUNCTION4 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function5(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*fiveargfn)(T_VAL, T_VAL, T_VAL, T_VAL, T_VAL);
+				return {name, fiveargfn{func}, tp::FUNCTION5 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function6(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*sixargfn)(T_VAL, T_VAL, T_VAL, T_VAL, T_VAL, T_VAL);
+				return {name, sixargfn{func}, tp::FUNCTION6 | tp::FLAG_PURE, 0};
+			}
+
+			template<typename T_FUNC>
+			static inline constexpr variable function7(const char* name, T_FUNC func)
+			{
+				typedef T_VAL (*sevenargfn)(T_VAL, T_VAL, T_VAL, T_VAL, T_VAL, T_VAL, T_VAL);
+				return {name, sevenargfn{func}, tp::FUNCTION7 | tp::FLAG_PURE, 0};
+			}
+		};
+	} // namespace details
+
 	template<typename T_TRAITS>
 	struct impl
 	{
-		using env_traits = T_TRAITS;
-		using variable	 = ::tp::variable;
-		using t_atom	 = typename env_traits::t_atom;
-		using t_vector	 = typename env_traits::t_vector;
+		using env_traits	   = T_TRAITS;
+		using variable		   = ::tp::variable;
+		using t_atom		   = typename env_traits::t_atom;
+		using t_vector		   = typename env_traits::t_vector;
+		using variable_factory = details::variable_helper<t_vector>;
 
 		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
 		{
