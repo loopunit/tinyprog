@@ -1272,11 +1272,32 @@ namespace tp
 			index_map index_map;
 			int		  index_counter = 0;
 
-			std::vector<variable> m_user_variables;
+			std::vector<variable> m_env_variables;
+
+			std::vector<variable>	 m_declared_variables;
+			std::vector<std::string> m_declared_variable_names;
+			std::vector<t_atom>		 m_declared_variable_values;
+
+			std::vector<variable> get_variable_array() const
+			{
+				std::vector<variable> combined;
+				combined.reserve(m_env_variables.size() + m_declared_variables.size());
+				combined.insert(combined.end(), m_env_variables.begin(), m_env_variables.end());
+				combined.insert(combined.end(), m_declared_variables.begin(), m_declared_variables.end());
+				return combined;
+			}
+
+			void add_declared_variable(std::string_view name, std::string_view /*scope*/)
+			{
+				auto idx = m_declared_variables.size();
+				m_declared_variable_names.emplace_back(std::string(name));
+				m_declared_variable_values.resize(m_declared_variable_names.size());
+				m_declared_variables.push_back(variable{m_declared_variable_names[idx].c_str(), &m_declared_variable_values[idx]});
+			}
 
 			void add_user_variable(const variable* var)
 			{
-				m_user_variables.push_back(*var);
+				m_env_variables.push_back(*var);
 			}
 
 			int add_referenced_variable(const variable* var)
@@ -1562,12 +1583,12 @@ namespace tp
 	namespace expr_details
 	{
 		template<typename T_TRAITS>
-		compiled_expr* compile_using_indexer(
-			typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
+		compiled_expr* compile_using_indexer(typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
 		{
-			auto variables = &indexer.m_user_variables[0];
-			int var_count = (int)indexer.m_user_variables.size();
-			
+			auto var_array = indexer.get_variable_array();
+			auto variables = &var_array[0];
+			int	 var_count = (int)var_array.size();
+
 			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables, var_count, error);
 
 			if (native_expr)
@@ -1729,11 +1750,13 @@ namespace tp
 			static inline const auto keyword_return = std::string_view("return");
 			static inline const auto keyword_jump	= std::string_view("jump");
 			static inline const auto keyword_label	= std::string_view("label");
+			static inline const auto keyword_var	= std::string_view("var");
 
-			template<typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
+			template<
+				typename T_ADD_VARIABLE, typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
 			static inline void parse_statement(
-				std::string_view statement, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if, T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign,
-				T_ADD_CALL add_call)
+				std::string_view statement, T_ADD_VARIABLE add_variable, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if, T_ADD_RETURN_VALUE add_return_value,
+				T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
 			{
 				auto [operation, expression] = split_at_char_excl(statement, ':');
 
@@ -1743,7 +1766,12 @@ namespace tp
 				}
 				else
 				{
-					if (operation == keyword_label)
+					if (operation == keyword_var)
+					{
+						auto [var_name, var_scope] = split_at_char_excl(expression, '?');
+						add_variable(var_name, var_scope);
+					}
+					else if (operation == keyword_label)
 					{
 						add_label(expression);
 					}
@@ -1900,7 +1928,7 @@ namespace tp
 
 		template<typename T_TRAITS>
 		using t_indexer = typename portable<T_TRAITS>::expr_portable_expression_build_indexer;
-		
+
 		template<typename T_TRAITS>
 		auto compile_using_indexer(const char* text, int* error, typename t_indexer<T_TRAITS>& indexer) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
@@ -1920,6 +1948,9 @@ namespace tp
 
 				parser::parse_statement(
 					statement,
+
+					// variable
+					[&](std::string_view name, std::string_view scope) { indexer.add_declared_variable(name, scope); },
 
 					// label
 					[&](std::string_view label) { lm.add_label(label, (int)program_statements.size()); },
@@ -1967,41 +1998,44 @@ namespace tp
 			}
 
 			// Add referenced variables to the lookup dict
-			for (auto itor : vm.m_variable_map)
 			{
-				auto name  = itor.first;
-				auto index = itor.second;
-
-				int final_index = -1;
-
-				auto variables = &indexer.m_user_variables[0];
-				const int var_count = (int)indexer.m_user_variables.size();
-
-				for (int var_idx = 0; var_idx < var_count; ++var_idx)
+				auto var_array = indexer.get_variable_array();
+				for (auto itor : vm.m_variable_map)
 				{
-					const auto& var = variables[var_idx];
+					auto name  = itor.first;
+					auto index = itor.second;
 
-					if (name == std::string_view(var.name))
+					int final_index = -1;
+
+					auto variables = &var_array[0];
+					int	 var_count = (int)var_array.size();
+
+					for (int var_idx = 0; var_idx < var_count; ++var_idx)
 					{
-						final_index = indexer.add_referenced_variable(&var);
-						break;
-					}
-				}
+						const auto& var = variables[var_idx];
 
-				if (final_index == -1)
-				{
-					*error = -1; // TODO: variable not found
-					return nullptr;
-				}
-
-				// Remap all indexes to the indexer value
-				for (auto& s : program_statements)
-				{
-					if (std::holds_alternative<assign_statement>(s))
-					{
-						if (std::get<assign_statement>(s).m_variable_build_index == index)
+						if (name == std::string_view(var.name))
 						{
-							std::get<assign_statement>(s).m_variable_final_index = final_index;
+							final_index = indexer.add_referenced_variable(&var);
+							break;
+						}
+					}
+
+					if (final_index == -1)
+					{
+						*error = -1; // TODO: variable not found
+						return nullptr;
+					}
+
+					// Remap all indexes to the indexer value
+					for (auto& s : program_statements)
+					{
+						if (std::holds_alternative<assign_statement>(s))
+						{
+							if (std::get<assign_statement>(s).m_variable_build_index == index)
+							{
+								std::get<assign_statement>(s).m_variable_final_index = final_index;
+							}
 						}
 					}
 				}
@@ -2112,15 +2146,15 @@ namespace tp
 
 			return program;
 		}
-	
+
 		template<typename T_TRAITS>
 		auto compile(const char* text, const variable* variables, int var_count, int* error) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
 			t_indexer<T_TRAITS> indexer;
 			for (int v = 0; v < var_count; ++v)
-            {
-                indexer.add_user_variable(variables + v);
-            }            
+			{
+				indexer.add_user_variable(variables + v);
+			}
 			return compile_using_indexer<T_TRAITS>(text, error, indexer);
 		}
 
@@ -2212,7 +2246,7 @@ namespace tp
 		using t_vector		   = typename env_traits::t_vector;
 		using variable_factory = details::variable_helper<t_vector>;
 #if (TP_COMPILER_ENABLED)
-		using t_indexer			= program_details::t_indexer<T_TRAITS>;
+		using t_indexer = program_details::t_indexer<T_TRAITS>;
 #endif // #if (TP_COMPILER_ENABLED)
 
 		static inline t_vector eval(const void* expr_buffer, const void* const expr_context[]) noexcept
