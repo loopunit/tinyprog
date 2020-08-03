@@ -1278,6 +1278,17 @@ namespace tp
 			std::vector<std::string> m_declared_variable_names;
 			std::vector<t_atom>		 m_declared_variable_values;
 
+			void reset()
+			{
+				name_map.clear();
+				index_map.clear();
+				index_counter = 0;
+				m_env_variables.clear();
+				m_declared_variables.clear();
+				m_declared_variable_names.clear();
+				m_declared_variable_values.clear();
+			}
+
 			std::vector<variable> get_variable_array() const
 			{
 				std::vector<variable> combined;
@@ -1586,8 +1597,8 @@ namespace tp
 		compiled_expr* compile_using_indexer(typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
 		{
 			auto var_array = indexer.get_variable_array();
-			auto variables = &var_array[0];
 			int	 var_count = (int)var_array.size();
+			auto variables = (var_count > 0) ? &var_array[0] : nullptr;
 
 			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables, var_count, error);
 
