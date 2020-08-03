@@ -1272,12 +1272,24 @@ namespace tp
 			index_map index_map;
 			int		  index_counter = 0;
 
+			std::vector<variable> m_user_variables;
+
+			void add_user_variable(const variable* var)
+			{
+				m_user_variables.push_back(*var);
+			}
+
 			int add_referenced_variable(const variable* var)
 			{
-				int idx = index_counter++;
-				name_map.insert(std::make_pair(var->address, std::string(var->name)));
-				index_map.insert(std::make_pair(var->address, idx));
-				return idx;
+				auto itor = index_map.find(var->address);
+				if (itor == index_map.end())
+				{
+					int idx = index_counter++;
+					name_map.insert(std::make_pair(var->address, std::string(var->name)));
+					index_map.insert(std::make_pair(var->address, idx));
+					return idx;
+				}
+				return itor->second;
 			}
 
 			std::vector<std::string> get_binding_table()
@@ -1551,8 +1563,11 @@ namespace tp
 	{
 		template<typename T_TRAITS>
 		compiled_expr* compile_using_indexer(
-			typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, const variable* variables, int var_count, int* error)
+			typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
 		{
+			auto variables = &indexer.m_user_variables[0];
+			int var_count = (int)indexer.m_user_variables.size();
+			
 			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables, var_count, error);
 
 			if (native_expr)
@@ -1609,7 +1624,11 @@ namespace tp
 		compiled_expr* compile(const char* expression, const variable* variables, int var_count, int* error)
 		{
 			typename portable<T_TRAITS>::expr_portable_expression_build_indexer indexer;
-			return compile_using_indexer<T_TRAITS>(indexer, expression, variables, var_count, error);
+			for (int v = 0; v < var_count; ++v)
+			{
+				indexer.add_user_variable(variables + v);
+			}
+			return compile_using_indexer<T_TRAITS>(indexer, expression, error);
 		}
 
 	} // namespace expr_details
@@ -1822,9 +1841,14 @@ namespace tp
 
 			int find_label(std::string_view name)
 			{
-				auto idx = m_variable_count++;
-				m_variable_map.insert(std::make_pair(name, idx));
-				return idx;
+				auto itor = m_variable_map.find(name);
+				if (itor == m_variable_map.end())
+				{
+					auto idx = m_variable_count++;
+					m_variable_map.insert(std::make_pair(name, idx));
+					return idx;
+				}
+				return itor->second;
 			}
 		};
 
@@ -1858,9 +1882,10 @@ namespace tp
 
 		struct assign_statement
 		{
-			int m_variable_index;
+			int m_variable_build_index;
 			int m_expression_index;
 
+			int m_variable_final_index;
 			int m_expression_offset;
 		};
 
@@ -1877,7 +1902,7 @@ namespace tp
 		using t_indexer = typename portable<T_TRAITS>::expr_portable_expression_build_indexer;
 		
 		template<typename T_TRAITS>
-		auto compile_using_indexer(const char* text, const variable* variables, int var_count, int* error, typename t_indexer<T_TRAITS>& indexer) -> typename portable<T_TRAITS>::portable_compiled_program*
+		auto compile_using_indexer(const char* text, int* error, typename t_indexer<T_TRAITS>& indexer) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
 			auto program_src	   = parser::trim_all_space(std::string_view{text, strlen(text)});
 			auto program_remaining = program_src;
@@ -1949,6 +1974,9 @@ namespace tp
 
 				int final_index = -1;
 
+				auto variables = &indexer.m_user_variables[0];
+				const int var_count = (int)indexer.m_user_variables.size();
+
 				for (int var_idx = 0; var_idx < var_count; ++var_idx)
 				{
 					const auto& var = variables[var_idx];
@@ -1967,13 +1995,13 @@ namespace tp
 				}
 
 				// Remap all indexes to the indexer value
-				for (auto s : program_statements)
+				for (auto& s : program_statements)
 				{
 					if (std::holds_alternative<assign_statement>(s))
 					{
-						if (std::get<assign_statement>(s).m_variable_index == index)
+						if (std::get<assign_statement>(s).m_variable_build_index == index)
 						{
-							std::get<assign_statement>(s).m_variable_index = final_index;
+							std::get<assign_statement>(s).m_variable_final_index = final_index;
 						}
 					}
 				}
@@ -1983,7 +2011,7 @@ namespace tp
 			for (int expr_idx = 0; expr_idx < em.m_expressions.size(); ++expr_idx)
 			{
 				auto expr		   = em.m_expressions[expr_idx];
-				auto compiled_expr = expr_details::compile_using_indexer<T_TRAITS>(indexer, expr.data(), variables, var_count, error);
+				auto compiled_expr = expr_details::compile_using_indexer<T_TRAITS>(indexer, expr.data(), error);
 
 				if (compiled_expr)
 				{
@@ -2055,7 +2083,7 @@ namespace tp
 				else if (std::holds_alternative<assign_statement>(s_in))
 				{
 					s_out.type	= statement_type::assign;
-					s_out.arg_a = std::get<assign_statement>(s_in).m_variable_index;
+					s_out.arg_a = std::get<assign_statement>(s_in).m_variable_final_index;
 					s_out.arg_b = std::get<assign_statement>(s_in).m_expression_offset;
 				}
 				else if (std::holds_alternative<return_value_statement>(s_in))
@@ -2089,7 +2117,11 @@ namespace tp
 		auto compile(const char* text, const variable* variables, int var_count, int* error) -> typename portable<T_TRAITS>::portable_compiled_program*
 		{
 			t_indexer<T_TRAITS> indexer;
-			return compile_using_indexer<T_TRAITS>(text, variables, var_count, error, indexer);
+			for (int v = 0; v < var_count; ++v)
+            {
+                indexer.add_user_variable(variables + v);
+            }            
+			return compile_using_indexer<T_TRAITS>(text, error, indexer);
 		}
 
 	} // namespace program_details
@@ -2236,9 +2268,9 @@ namespace tp
 			return (compiled_program*)program_details::compile<env_traits>(program, variables, var_count, error);
 		}
 
-		static compiled_program* compile_program_using_indexer(const char* program, const variable* variables, int var_count, int* error, program_details::t_indexer<env_traits>& indexer)
+		static compiled_program* compile_program_using_indexer(const char* program, int* error, program_details::t_indexer<env_traits>& indexer)
 		{
-			return (compiled_program*)program_details::compile_using_indexer<env_traits>(program, variables, var_count, error, indexer);
+			return (compiled_program*)program_details::compile_using_indexer<env_traits>(program, error, indexer);
 		}
 
 		static inline t_vector eval(const compiled_expr* n)
