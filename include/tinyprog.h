@@ -1274,7 +1274,6 @@ namespace tp
 
 			std::vector<variable> m_env_variables;
 
-			std::vector<variable>	 m_declared_variables;
 			std::vector<std::string> m_declared_variable_names;
 			std::vector<t_atom>		 m_declared_variable_values;
 
@@ -1284,7 +1283,6 @@ namespace tp
 				index_map.clear();
 				index_counter = 0;
 				m_env_variables.clear();
-				m_declared_variables.clear();
 				m_declared_variable_names.clear();
 				m_declared_variable_values.clear();
 			}
@@ -1292,18 +1290,22 @@ namespace tp
 			std::vector<variable> get_variable_array() const
 			{
 				std::vector<variable> combined;
-				combined.reserve(m_env_variables.size() + m_declared_variables.size());
-				combined.insert(combined.end(), m_env_variables.begin(), m_env_variables.end());
-				combined.insert(combined.end(), m_declared_variables.begin(), m_declared_variables.end());
+				for (auto var : m_env_variables)
+				{
+					combined.push_back(var);
+				}
+
+				for (size_t v = 0; v < m_declared_variable_names.size(); ++v)
+				{
+					combined.push_back(variable{m_declared_variable_names[v].c_str(), &m_declared_variable_values[v]});
+				}
 				return combined;
 			}
 
 			void add_declared_variable(std::string_view name, std::string_view /*scope*/)
 			{
-				auto idx = m_declared_variables.size();
-				m_declared_variable_names.emplace_back(std::string(name));
+				m_declared_variable_names.push_back(std::string(name));
 				m_declared_variable_values.resize(m_declared_variable_names.size());
-				m_declared_variables.push_back(variable{m_declared_variable_names[idx].c_str(), &m_declared_variable_values[idx]});
 			}
 
 			void add_user_variable(const variable* var)
