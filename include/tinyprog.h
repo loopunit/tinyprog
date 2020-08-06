@@ -274,13 +274,6 @@ namespace tp
 #endif // #if (TP_COMPILER_ENABLED)
 } // namespace tp
 
-#if (TP_COMPILER_ENABLED)
-#include <unordered_map>
-#include <vector>
-#include <variant>
-#include <memory>
-#include <cassert>
-
 namespace tp
 {
 	template<typename T_NATIVE>
@@ -427,7 +420,17 @@ namespace tp
 			return var;
 		}
 	};
+} // namespace tp
 
+#if (TP_COMPILER_ENABLED)
+#include <unordered_map>
+#include <vector>
+#include <variant>
+#include <memory>
+#include <cassert>
+
+namespace tp
+{
 	template<typename T_TRAITS>
 	struct native
 	{
