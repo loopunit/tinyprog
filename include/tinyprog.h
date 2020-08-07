@@ -2251,16 +2251,240 @@ namespace tp
 				return {name, sevenargfn{func}, tp::FUNCTION7 | tp::FLAG_PURE, 0};
 			}
 		};
+
+		struct serialized_program
+		{
+#pragma pack(push, 1)
+			struct header_chunk
+			{
+				uint16_t magic;
+				uint16_t version;
+				uint16_t num_binding_names;
+				uint16_t padding;
+			};
+
+			struct chunk_header
+			{
+				uint16_t size;
+				uint16_t padding;
+			};
+
+			struct chunk : chunk_header
+			{
+				char data[1];
+			};
+
+			struct statement_chunk : chunk
+			{
+			};
+
+			struct data_chunk : chunk
+			{
+			};
+
+			struct string_chunk : chunk
+			{
+			};
+#pragma pack(pop)
+
+			template<typename T>
+			static inline constexpr T round_up_to_multiple(T value, T multiple) noexcept
+			{
+				return ((value + multiple - 1) / multiple) * multiple;
+			}
+
+			static inline constexpr uint16_t alignment{4};
+			static inline constexpr auto	 out_header_size = uint16_t(sizeof(serialized_program::header_chunk));
+			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::header_chunk)), alignment));
+
+			static inline constexpr auto statement_data_size = uint16_t(sizeof(serialized_program::chunk_header));
+			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+
+			static inline constexpr auto expression_data_size = uint16_t(sizeof(serialized_program::chunk_header));
+			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+
+			static inline constexpr auto string_header_size = uint16_t(sizeof(serialized_program::chunk_header));
+			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+
+			serialized_program(compiled_program* prog)
+			{
+				auto binding_name_count = prog->get_binding_array_size();
+				auto binding_names		= prog->get_binding_names();
+				auto expression_size	= prog->get_data_size();
+				auto expression_src		= prog->get_data();
+				auto num_statements		= prog->get_statement_array_size();
+				auto statement_src		= prog->get_statements();
+
+				// 2-pass iff-style
+
+				size_t							 total_program_size = 0;
+				serialized_program::header_chunk out_header;
+				out_header.magic			 = uint16_t(0x1010);
+				out_header.version			 = uint16_t(0x0001);
+				out_header.num_binding_names = uint16_t(binding_name_count);
+				total_program_size += out_header_size;
+
+				serialized_program::statement_chunk statement_data;
+				statement_data.size = uint16_t(num_statements * sizeof(statement_src[0]));
+				total_program_size += statement_data_size;
+				const auto statement_data_data_size = round_up_to_multiple(statement_data.size, alignment);
+				total_program_size += statement_data_data_size;
+
+				serialized_program::data_chunk expression_data;
+				expression_data.size = uint16_t(expression_size);
+				total_program_size += expression_data_size;
+				const auto expression_data_data_size = round_up_to_multiple(expression_data.size, alignment);
+				total_program_size += expression_data_data_size;
+
+				std::vector<serialized_program::string_chunk> strs;
+				for (size_t i = 0; i < binding_name_count; ++i)
+				{
+					serialized_program::string_chunk chonk;
+					chonk.size = uint16_t(::strlen(binding_names[i]) + 1);
+					total_program_size += string_header_size;
+					total_program_size += round_up_to_multiple(chonk.size, uint16_t(alignment));
+					strs.push_back(chonk);
+				}
+
+				//
+
+				char* const serialized_program = (char*)::malloc(total_program_size);
+				char*		p				   = serialized_program;
+
+				this->header = (header_chunk*)p;
+				::memcpy(p, &out_header, out_header_size);
+				p += out_header_size;
+
+				this->statements = (statement_chunk*)p;
+				::memcpy(p, &statement_data, statement_data_size);
+				p += statement_data_size;
+				::memcpy(p, &statement_src[0], statement_data.size);
+				p += statement_data_data_size;
+
+				this->data = (data_chunk*)p;
+				::memcpy(p, &expression_data, expression_data_size);
+				p += expression_data_size;
+				::memcpy(p, &expression_src[0], expression_data_data_size);
+				p += expression_data_data_size;
+
+				this->strings = (string_chunk*)p;
+
+				for (size_t i = 0; i < binding_name_count; ++i)
+				{
+					::memcpy(p, &strs[i], string_header_size);
+					p += string_header_size;
+
+					::memcpy(p, binding_names[i], strs[i].size - 1);
+					p[strs[i].size - 1] = '\0';
+					p += round_up_to_multiple(strs[i].size, alignment);
+				}
+
+				this->raw_data		= serialized_program;
+				this->raw_data_size = total_program_size;
+			}
+
+			serialized_program(const void* serialized_program, size_t total_program_size)
+			{
+				this->raw_data		= nullptr;
+				this->raw_data_size = total_program_size;
+
+				const char* p = (const char*)serialized_program;
+
+				this->header = (header_chunk*)p;
+				p += out_header_size;
+
+				this->statements = (statement_chunk*)p;
+				p += statement_data_size;
+				p += round_up_to_multiple(this->statements->size, alignment);
+
+				this->data = (data_chunk*)p;
+				p += expression_data_size;
+				p += round_up_to_multiple(this->data->size, alignment);
+
+				this->strings = (string_chunk*)p;
+			}
+
+			~serialized_program()
+			{
+				if (raw_data)
+				{
+					::free(raw_data);
+				}
+			}
+
+			const statement* get_statements_array() const noexcept
+			{
+				return reinterpret_cast<const statement*>(&statements->data[0]);
+			}
+
+			size_t get_statements_array_size() const noexcept
+			{
+				return statements->size / sizeof(statement);
+			}
+
+			const void* get_expression_data() const noexcept
+			{
+				return &data->data[0];
+			}
+
+			const size_t get_expression_size() const noexcept
+			{
+				return data->size;
+			}
+
+			const size_t get_num_bindings() const noexcept
+			{
+				return this->header->num_binding_names;
+			}
+
+			const char* get_binding_string(uint16_t index) const noexcept
+			{
+				if (this->header->num_binding_names > index)
+				{
+					auto p = (const char*)this->strings;
+					for (size_t i = 0; i < this->header->num_binding_names; ++i)
+					{
+						auto chonk = (const string_chunk*)p;
+						if (i == index)
+						{
+							return &chonk->data[0];
+						}
+
+						p += string_header_size;
+						p += round_up_to_multiple(chonk->size, alignment);
+					}
+				}
+				return nullptr;
+			}
+
+			const size_t get_raw_data_size() const noexcept
+			{
+				return raw_data_size;
+			}
+
+			const size_t get_raw_data() const noexcept
+			{
+				return raw_data_size;
+			}
+
+			void*				   raw_data{nullptr};
+			size_t				   raw_data_size{0};
+			const header_chunk*	   header{nullptr};
+			const statement_chunk* statements{nullptr};
+			const data_chunk*	   data{nullptr};
+			const string_chunk*	   strings{nullptr};
+		};
 	} // namespace details
 
 	template<typename T_TRAITS>
 	struct impl
 	{
-		using env_traits	   = T_TRAITS;
-		using variable		   = ::tp::variable;
-		using t_atom		   = typename env_traits::t_atom;
-		using t_vector		   = typename env_traits::t_vector;
-		using variable_factory = details::variable_helper<t_vector>;
+		using env_traits		 = T_TRAITS;
+		using variable			 = ::tp::variable;
+		using t_atom			 = typename env_traits::t_atom;
+		using t_vector			 = typename env_traits::t_vector;
+		using variable_factory	 = details::variable_helper<t_vector>;
+		using serialized_program = details::serialized_program;
 #if (TP_COMPILER_ENABLED)
 		using t_indexer = program_details::t_indexer<T_TRAITS>;
 #endif // #if (TP_COMPILER_ENABLED)
@@ -2305,6 +2529,11 @@ namespace tp
 				}
 			}
 			return env_traits::t_vector_builtins::nan();
+		}
+
+		static inline t_vector eval_program(serialized_program& prog, const void* const* binding_addrs)
+		{
+			return eval_program(prog.get_statements_array(), (int)prog.get_statements_array_size(), prog.get_expression_data(), binding_addrs);
 		}
 
 #if (TP_COMPILER_ENABLED)
