@@ -2274,17 +2274,10 @@ namespace tp
 				char data[1];
 			};
 
-			struct statement_chunk : chunk
-			{
-			};
-
-			struct data_chunk : chunk
-			{
-			};
-
-			struct string_chunk : chunk
-			{
-			};
+			using statement_chunk = chunk;
+			using data_chunk	  = chunk;
+			using string_chunk	  = chunk;
+			using user_var_chunk  = chunk;
 #pragma pack(pop)
 
 			template<typename T>
@@ -2294,19 +2287,22 @@ namespace tp
 			}
 
 			static inline constexpr uint16_t alignment{4};
-			static inline constexpr auto	 out_header_size = uint16_t(sizeof(serialized_program::header_chunk));
-			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::header_chunk)), alignment));
+			static inline constexpr auto	 out_header_size = uint16_t(sizeof(header_chunk));
+			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(header_chunk)), alignment));
 
-			static inline constexpr auto statement_data_size = uint16_t(sizeof(serialized_program::chunk_header));
-			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+			static inline constexpr auto statement_data_size = uint16_t(sizeof(chunk_header));
+			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
 
-			static inline constexpr auto expression_data_size = uint16_t(sizeof(serialized_program::chunk_header));
-			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+			static inline constexpr auto expression_data_size = uint16_t(sizeof(chunk_header));
+			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
 
-			static inline constexpr auto string_header_size = uint16_t(sizeof(serialized_program::chunk_header));
-			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(serialized_program::chunk_header)), alignment));
+			static inline constexpr auto string_header_size = uint16_t(sizeof(chunk_header));
+			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
 
-			serialized_program(compiled_program* prog)
+			static inline constexpr auto user_var_size = uint16_t(sizeof(chunk_header));
+			static_assert(user_var_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
+
+			serialized_program(compiled_program* prog, std::vector<std::string>& user_vars)
 			{
 				auto binding_name_count = prog->get_binding_array_size();
 				auto binding_names		= prog->get_binding_names();
@@ -2314,37 +2310,62 @@ namespace tp
 				auto expression_src		= prog->get_data();
 				auto num_statements		= prog->get_statement_array_size();
 				auto statement_src		= prog->get_statements();
+				auto user_var_count		= user_vars.size();
 
 				// 2-pass iff-style
 
-				size_t							 total_program_size = 0;
-				serialized_program::header_chunk out_header;
+				size_t		 total_program_size = 0;
+				header_chunk out_header;
 				out_header.magic			 = uint16_t(0x1010);
 				out_header.version			 = uint16_t(0x0001);
 				out_header.num_binding_names = uint16_t(binding_name_count);
 				total_program_size += out_header_size;
 
-				serialized_program::statement_chunk statement_data;
+				statement_chunk statement_data;
 				statement_data.size = uint16_t(num_statements * sizeof(statement_src[0]));
 				total_program_size += statement_data_size;
 				const auto statement_data_data_size = round_up_to_multiple(statement_data.size, alignment);
 				total_program_size += statement_data_data_size;
 
-				serialized_program::data_chunk expression_data;
+				data_chunk expression_data;
 				expression_data.size = uint16_t(expression_size);
 				total_program_size += expression_data_size;
 				const auto expression_data_data_size = round_up_to_multiple(expression_data.size, alignment);
 				total_program_size += expression_data_data_size;
 
-				std::vector<serialized_program::string_chunk> strs;
+				std::vector<string_chunk> strs;
 				for (size_t i = 0; i < binding_name_count; ++i)
 				{
-					serialized_program::string_chunk chonk;
+					string_chunk chonk;
 					chonk.size = uint16_t(::strlen(binding_names[i]) + 1);
 					total_program_size += string_header_size;
 					total_program_size += round_up_to_multiple(chonk.size, uint16_t(alignment));
 					strs.push_back(chonk);
 				}
+
+				std::vector<int> user_var_indexes;
+				user_var_indexes.resize(user_var_count);
+				std::fill(std::begin(user_var_indexes), std::end(user_var_indexes), -1);
+				for (size_t i = 0; i < binding_name_count; ++i)
+				{
+					for (size_t j = 0; j < user_var_count; ++j)
+					{
+						if (user_var_indexes[j] == -1)
+						{
+							if (_stricmp(binding_names[i], user_vars[j].c_str()) == 0)
+							{
+								user_var_indexes[j] = int(i);
+								break;
+							}
+						}
+					}
+				}
+
+				user_var_chunk user_var_data;
+				user_var_data.size = uint16_t(sizeof(int) * user_var_count);
+				total_program_size += user_var_size;
+				const auto user_var_data_data_size = round_up_to_multiple(user_var_data.size, alignment);
+				total_program_size += user_var_data_data_size;
 
 				//
 
@@ -2364,7 +2385,7 @@ namespace tp
 				this->data = (data_chunk*)p;
 				::memcpy(p, &expression_data, expression_data_size);
 				p += expression_data_size;
-				::memcpy(p, &expression_src[0], expression_data_data_size);
+				::memcpy(p, &expression_src[0], expression_data.size);
 				p += expression_data_data_size;
 
 				this->strings = (string_chunk*)p;
@@ -2378,6 +2399,14 @@ namespace tp
 					p[strs[i].size - 1] = '\0';
 					p += round_up_to_multiple(strs[i].size, alignment);
 				}
+
+				this->user_vars = (user_var_chunk*)p;
+				::memcpy(p, &user_var_data, user_var_size);
+				p += user_var_size;
+				::memcpy(p, &user_var_indexes[0], user_var_data.size);
+				p += user_var_data_data_size;
+
+				//
 
 				this->raw_data		= serialized_program;
 				this->raw_data_size = total_program_size;
@@ -2402,6 +2431,17 @@ namespace tp
 				p += round_up_to_multiple(this->data->size, alignment);
 
 				this->strings = (string_chunk*)p;
+			
+				for (size_t i = 0; i < this->header->num_binding_names; ++i)
+				{
+					auto chonk = (const string_chunk*)p;
+					p += string_header_size;
+					p += round_up_to_multiple(chonk->size, alignment);
+				}
+
+				this->user_vars = (user_var_chunk*)p;
+				p += user_var_size;
+				p += round_up_to_multiple(this->user_vars->size, alignment);
 			}
 
 			~serialized_program()
@@ -2457,14 +2497,24 @@ namespace tp
 				return nullptr;
 			}
 
-			const size_t get_raw_data_size() const noexcept
+			size_t get_raw_data_size() const noexcept
 			{
 				return raw_data_size;
 			}
 
-			const size_t get_raw_data() const noexcept
+			const void* get_raw_data() const noexcept
 			{
-				return raw_data_size;
+				return raw_data;
+			}
+
+			size_t get_num_user_vars() const noexcept
+			{
+				return (user_vars != nullptr) ? user_vars->size / sizeof(int) : 0;
+			}
+			
+			const int* get_user_vars() const noexcept
+			{
+				return (user_vars != nullptr) ? (int*)&user_vars->data[0] : nullptr;
 			}
 
 			void*				   raw_data{nullptr};
@@ -2473,6 +2523,7 @@ namespace tp
 			const statement_chunk* statements{nullptr};
 			const data_chunk*	   data{nullptr};
 			const string_chunk*	   strings{nullptr};
+			const user_var_chunk*  user_vars{nullptr};
 		};
 	} // namespace details
 
