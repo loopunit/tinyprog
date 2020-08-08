@@ -13,7 +13,7 @@ bool serialize_program_to_disk(const char* file_name, const char* prog_text, te:
 		return res;
 	}();
 
-	te::serialized_program sp(prog, indexer.m_declared_variable_names);
+	te::serialized_program sp(&prog, 1, indexer.m_declared_variable_names);
 
 	FILE* f;
 	if (!::fopen_s(&f, file_name, "wb"))
@@ -54,36 +54,36 @@ int main(int argc, char* argv[])
 	//te::env_traits::t_atom x = 0.0f, y = 0.0f;
 	//te::variable		   vars[] = {{"x", &x}, {"y", &y}};
 	
-	//{
-	//	te::t_indexer indexer;
-	//	//indexer.add_user_variable(vars + 0);
-	//	//indexer.add_user_variable(vars + 1);
-	//
-	//	const char* p1 =
-	//		"var: x;"
-	//		"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
-	//		"jump: is_negative ? x < 0;"
-	//		"return: x;"
-	//		"label: is_negative;"
-	//		"return: -1 * x;";
-	//
-	//	serialize_program_to_disk("prog1.tpp", p1, indexer);
-	//
-	//	const char* p2 =
-	//		"var: y;"
-	//		"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
-	//		"jump: is_negative ? y < 0;"
-	//		"return: y;"
-	//		"label: is_negative;"
-	//		"return: -1 * y;";
-	//
-	//	serialize_program_to_disk("prog2.tpp", p2, indexer);
-	//}
+	{
+		te::t_indexer indexer;
+		//indexer.add_user_variable(vars + 0);
+		//indexer.add_user_variable(vars + 1);
+	
+		const char* p1 =
+			"var: x;"
+			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
+			"jump: is_negative ? x < 0;"
+			"return: x;"
+			"label: is_negative;"
+			"return: -1 * x;";
+	
+		serialize_program_to_disk("prog1.tpp", p1, indexer);
+	
+		const char* p2 =
+			"var: y;"
+			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
+			"jump: is_negative ? y < 0;"
+			"return: y;"
+			"label: is_negative;"
+			"return: -1 * y;";
+	
+		serialize_program_to_disk("prog2.tpp", p2, indexer);
+	}
 
 	{
-		auto [buffer, buffer_size] = serialize_from_disk("prog1.tpp");
-		te::serialized_program prog(buffer, buffer_size);
-
+		auto [buffer, size] = serialize_from_disk("prog1.tpp");
+		te::serialized_program prog(buffer, size);
+						
 		std::vector<const void*> binding_array;
 		binding_array.resize(prog.get_num_bindings());
 		std::fill_n(std::begin(binding_array), prog.get_num_bindings(), nullptr);
@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
 			assert(binding_array[i] != nullptr);
 		}
 		
-		auto result = te::eval_program(prog, &binding_array[0]);
+		auto result = te::eval_program(prog, 0, &binding_array[0]);
 		::free(buffer);
 	}
 

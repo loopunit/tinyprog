@@ -2260,7 +2260,7 @@ namespace tp
 				uint16_t magic;
 				uint16_t version;
 				uint16_t num_binding_names;
-				uint16_t padding;
+				uint16_t num_subprograms;
 			};
 
 			struct chunk_header
@@ -2274,6 +2274,7 @@ namespace tp
 				char data[1];
 			};
 
+			using program_chunk	  = chunk;
 			using statement_chunk = chunk;
 			using data_chunk	  = chunk;
 			using string_chunk	  = chunk;
@@ -2302,36 +2303,93 @@ namespace tp
 			static inline constexpr auto user_var_size = uint16_t(sizeof(chunk_header));
 			static_assert(user_var_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
 
-			serialized_program(compiled_program* prog, std::vector<std::string>& user_vars)
+			struct subprogram
 			{
-				auto binding_name_count = prog->get_binding_array_size();
-				auto binding_names		= prog->get_binding_names();
-				auto expression_size	= prog->get_data_size();
-				auto expression_src		= prog->get_data();
-				auto num_statements		= prog->get_statement_array_size();
-				auto statement_src		= prog->get_statements();
-				auto user_var_count		= user_vars.size();
+				const statement_chunk* statements{nullptr};
+				const data_chunk*	   data{nullptr};
+			};
 
-				// 2-pass iff-style
+			const string_chunk*		strings{nullptr};
+			const user_var_chunk*	user_vars{nullptr};
+			void*					raw_data{nullptr};
+			size_t					raw_data_size{0};
+			const header_chunk*		header{nullptr};
+			const statement_chunk*  first_subprogram{nullptr};
 
-				size_t		 total_program_size = 0;
+			serialized_program(compiled_program** programs, int num_programs, std::vector<std::string>& user_vars_in)
+			{
+				std::vector<subprogram> subprograms;
+				subprograms.resize(num_programs);
+
+				auto user_var_count = user_vars_in.size();
+
+				auto binding_name_count = programs[0]->get_binding_array_size();
+				auto binding_names		= programs[0]->get_binding_names();
+				auto most_bindings_idx	= 0;
+				for (int subprogram_idx = 1; subprogram_idx < num_programs; ++subprogram_idx)
+				{
+					auto next_binding_name_count = programs[0]->get_binding_array_size();
+					auto next_binding_names		 = programs[0]->get_binding_names();
+
+					auto verify_bindings = [&]() {
+						for (auto i = std::min(binding_name_count, next_binding_name_count); i > 0; ++i)
+						{
+							if (strcmp(binding_names[i], next_binding_names[i]) != 0)
+							{
+								return false;
+							}
+						}
+						return true;
+					};
+					assert(verify_bindings());
+
+					if (binding_name_count < next_binding_name_count)
+					{
+						most_bindings_idx  = subprogram_idx;
+						binding_name_count = next_binding_name_count;
+						binding_names	   = next_binding_names;
+					}
+				}
+
+				size_t total_program_size = 0;
+
 				header_chunk out_header;
 				out_header.magic			 = uint16_t(0x1010);
 				out_header.version			 = uint16_t(0x0001);
 				out_header.num_binding_names = uint16_t(binding_name_count);
+				out_header.num_subprograms	 = uint16_t(num_programs);
 				total_program_size += out_header_size;
 
-				statement_chunk statement_data;
-				statement_data.size = uint16_t(num_statements * sizeof(statement_src[0]));
-				total_program_size += statement_data_size;
-				const auto statement_data_data_size = round_up_to_multiple(statement_data.size, alignment);
-				total_program_size += statement_data_data_size;
+				struct program_state
+				{
+					statement_chunk statement_data;
+					data_chunk		expression_data;
+					size_t			statement_data_data_size;
+					size_t			expression_data_data_size;
+				};
 
-				data_chunk expression_data;
-				expression_data.size = uint16_t(expression_size);
-				total_program_size += expression_data_size;
-				const auto expression_data_data_size = round_up_to_multiple(expression_data.size, alignment);
-				total_program_size += expression_data_data_size;
+				std::vector<program_state> program_states;
+				program_states.resize(num_programs);
+
+				for (int subprogram_idx = 0; subprogram_idx < num_programs; ++subprogram_idx)
+				{
+					auto& prog_state	  = program_states[subprogram_idx];
+					auto  prog			  = programs[subprogram_idx];
+					auto  expression_size = prog->get_data_size();
+					auto  expression_src  = prog->get_data();
+					auto  num_statements  = prog->get_statement_array_size();
+					auto  statement_src	  = prog->get_statements();
+
+					prog_state.statement_data.size = uint16_t(num_statements * sizeof(statement_src[0]));
+					total_program_size += statement_data_size;
+					prog_state.statement_data_data_size = round_up_to_multiple(prog_state.statement_data.size, alignment);
+					total_program_size += prog_state.statement_data_data_size;
+
+					prog_state.expression_data.size = uint16_t(expression_size);
+					total_program_size += expression_data_size;
+					prog_state.expression_data_data_size = round_up_to_multiple(prog_state.expression_data.size, alignment);
+					total_program_size += prog_state.expression_data_data_size;
+				}
 
 				std::vector<string_chunk> strs;
 				for (size_t i = 0; i < binding_name_count; ++i)
@@ -2352,7 +2410,7 @@ namespace tp
 					{
 						if (user_var_indexes[j] == -1)
 						{
-							if (_stricmp(binding_names[i], user_vars[j].c_str()) == 0)
+							if (_stricmp(binding_names[i], user_vars_in[j].c_str()) == 0)
 							{
 								user_var_indexes[j] = int(i);
 								break;
@@ -2372,21 +2430,36 @@ namespace tp
 				char* const serialized_program = (char*)::malloc(total_program_size);
 				char*		p				   = serialized_program;
 
+				//
+
 				this->header = (header_chunk*)p;
 				::memcpy(p, &out_header, out_header_size);
 				p += out_header_size;
 
-				this->statements = (statement_chunk*)p;
-				::memcpy(p, &statement_data, statement_data_size);
-				p += statement_data_size;
-				::memcpy(p, &statement_src[0], statement_data.size);
-				p += statement_data_data_size;
+				first_subprogram = (statement_chunk*)p;
 
-				this->data = (data_chunk*)p;
-				::memcpy(p, &expression_data, expression_data_size);
-				p += expression_data_size;
-				::memcpy(p, &expression_src[0], expression_data.size);
-				p += expression_data_data_size;
+				for (int subprogram_idx = 0; subprogram_idx < num_programs; ++subprogram_idx)
+				{
+					auto& prog_state = program_states[subprogram_idx];
+					auto& subprogram = subprograms[subprogram_idx];
+
+					auto prog		   = programs[subprogram_idx];
+					auto statement_src = prog->get_statements();
+
+					auto expression_src = prog->get_data();
+
+					subprogram.statements = (statement_chunk*)p;
+					::memcpy(p, &prog_state.statement_data, statement_data_size);
+					p += statement_data_size;
+					::memcpy(p, &statement_src[0], prog_state.statement_data.size);
+					p += prog_state.statement_data_data_size;
+
+					subprogram.data = (data_chunk*)p;
+					::memcpy(p, &prog_state.expression_data, expression_data_size);
+					p += expression_data_size;
+					::memcpy(p, &expression_src[0], prog_state.expression_data.size);
+					p += prog_state.expression_data_data_size;
+				}
 
 				this->strings = (string_chunk*)p;
 
@@ -2407,7 +2480,7 @@ namespace tp
 				p += user_var_data_data_size;
 
 				//
-
+				
 				this->raw_data		= serialized_program;
 				this->raw_data_size = total_program_size;
 			}
@@ -2422,26 +2495,45 @@ namespace tp
 				this->header = (header_chunk*)p;
 				p += out_header_size;
 
-				this->statements = (statement_chunk*)p;
-				p += statement_data_size;
-				p += round_up_to_multiple(this->statements->size, alignment);
+				first_subprogram = (statement_chunk*)p;
 
-				this->data = (data_chunk*)p;
-				p += expression_data_size;
-				p += round_up_to_multiple(this->data->size, alignment);
+				for (int subprogram_idx = 0; subprogram_idx < this->header->num_subprograms; ++subprogram_idx)
+				{
+					auto subprogram_statements = (statement_chunk*)p;
+					p += statement_data_size;
+					//::memcpy(p, &statement_src[0], prog_state.statement_data.size);
+					p += round_up_to_multiple(subprogram_statements->size, alignment);
+
+					auto subprogram_data = (data_chunk*)p;
+					//::memcpy(p, &prog_state.expression_data, expression_data_size);
+					p += expression_data_size;
+					//::memcpy(p, &expression_src[0], prog_state.expression_data.size);
+					p += round_up_to_multiple(subprogram_data->size, alignment);
+				}
 
 				this->strings = (string_chunk*)p;
-			
-				for (size_t i = 0; i < this->header->num_binding_names; ++i)
+
+				for (size_t i = 0; i < header->num_binding_names; ++i)
 				{
+					//::memcpy(p, &strs[i], string_header_size);
 					auto chonk = (const string_chunk*)p;
 					p += string_header_size;
+
+					//::memcpy(p, binding_names[i], strs[i].size - 1);
+					//p[strs[i].size - 1] = '\0';
 					p += round_up_to_multiple(chonk->size, alignment);
 				}
 
 				this->user_vars = (user_var_chunk*)p;
+				//::memcpy(p, &user_var_data, user_var_size);
 				p += user_var_size;
+				//::memcpy(p, &user_var_indexes[0], user_var_data.size);
 				p += round_up_to_multiple(this->user_vars->size, alignment);
+			}
+
+			serialized_program(std::tuple<const void*, size_t> args)
+				: serialized_program(std::get<0>(args), std::get<1>(args))
+			{
 			}
 
 			~serialized_program()
@@ -2452,24 +2544,54 @@ namespace tp
 				}
 			}
 
-			const statement* get_statements_array() const noexcept
+			const std::tuple<statement_chunk*, data_chunk*> get_subprogram_data(int subprogram_index) const noexcept
 			{
+				const char* p = (const char*)first_subprogram;
+
+				for (int i = 0; i < this->header->num_subprograms; ++i)
+				{
+					auto statements = (statement_chunk*)p;
+					p += statement_data_size;
+					//::memcpy(p, &statement_src[0], prog_state.statement_data.size);
+					p += round_up_to_multiple(statements->size, alignment);
+
+					auto subprogram_data = (data_chunk*)p;
+					//::memcpy(p, &prog_state.expression_data, expression_data_size);
+					p += expression_data_size;
+					//::memcpy(p, &expression_src[0], prog_state.expression_data.size);
+					p += round_up_to_multiple(subprogram_data->size, alignment);
+					
+					if (i == subprogram_index)
+					{
+						return {statements, subprogram_data};
+					}
+				}
+				
+				return {nullptr, nullptr};
+			}
+
+			const statement* get_statements_array(int subprogram_index) const noexcept
+			{
+				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
 				return reinterpret_cast<const statement*>(&statements->data[0]);
 			}
 
-			size_t get_statements_array_size() const noexcept
+			size_t get_statements_array_size(int subprogram_index) const noexcept
 			{
+				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
 				return statements->size / sizeof(statement);
 			}
 
-			const void* get_expression_data() const noexcept
+			const void* get_expression_data(int subprogram_index) const noexcept
 			{
-				return &data->data[0];
+				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				return &subprogram_data->data[0];
 			}
 
-			const size_t get_expression_size() const noexcept
+			const size_t get_expression_size(int subprogram_index) const noexcept
 			{
-				return data->size;
+				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				return subprogram_data->size;
 			}
 
 			const size_t get_num_bindings() const noexcept
@@ -2511,19 +2633,11 @@ namespace tp
 			{
 				return (user_vars != nullptr) ? user_vars->size / sizeof(int) : 0;
 			}
-			
+
 			const int* get_user_vars() const noexcept
 			{
 				return (user_vars != nullptr) ? (int*)&user_vars->data[0] : nullptr;
 			}
-
-			void*				   raw_data{nullptr};
-			size_t				   raw_data_size{0};
-			const header_chunk*	   header{nullptr};
-			const statement_chunk* statements{nullptr};
-			const data_chunk*	   data{nullptr};
-			const string_chunk*	   strings{nullptr};
-			const user_var_chunk*  user_vars{nullptr};
 		};
 	} // namespace details
 
@@ -2582,9 +2696,9 @@ namespace tp
 			return env_traits::t_vector_builtins::nan();
 		}
 
-		static inline t_vector eval_program(serialized_program& prog, const void* const* binding_addrs)
+		static inline t_vector eval_program(serialized_program& prog, int subprogram, const void* const* binding_addrs)
 		{
-			return eval_program(prog.get_statements_array(), (int)prog.get_statements_array_size(), prog.get_expression_data(), binding_addrs);
+			return eval_program(prog.get_statements_array(subprogram), (int)prog.get_statements_array_size(subprogram), prog.get_expression_data(subprogram), binding_addrs);
 		}
 
 #if (TP_COMPILER_ENABLED)
