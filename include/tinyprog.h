@@ -2309,12 +2309,12 @@ namespace tp
 				const data_chunk*	   data{nullptr};
 			};
 
-			const string_chunk*		strings{nullptr};
-			const user_var_chunk*	user_vars{nullptr};
-			void*					raw_data{nullptr};
-			size_t					raw_data_size{0};
-			const header_chunk*		header{nullptr};
-			const statement_chunk*  first_subprogram{nullptr};
+			const string_chunk*	   strings{nullptr};
+			const user_var_chunk*  user_vars{nullptr};
+			void*				   raw_data{nullptr};
+			size_t				   raw_data_size{0};
+			const header_chunk*	   header{nullptr};
+			const statement_chunk* first_subprogram{nullptr};
 
 			serialized_program(const compiled_program* const* programs, int num_programs, std::vector<std::string>& user_vars_in)
 			{
@@ -2330,7 +2330,7 @@ namespace tp
 				{
 					auto next_binding_name_count = programs[subprogram_idx]->get_binding_array_size();
 					auto next_binding_names		 = programs[subprogram_idx]->get_binding_names();
-					
+
 					for (auto i = std::min(binding_name_count, next_binding_name_count); i > 0; --i)
 					{
 						if (strcmp(binding_names[i - 1], next_binding_names[i - 1]) != 0)
@@ -2476,7 +2476,7 @@ namespace tp
 				p += user_var_data_data_size;
 
 				//
-				
+
 				this->raw_data		= serialized_program;
 				this->raw_data_size = total_program_size;
 			}
@@ -2497,13 +2497,10 @@ namespace tp
 				{
 					auto subprogram_statements = (statement_chunk*)p;
 					p += statement_data_size;
-					//::memcpy(p, &statement_src[0], prog_state.statement_data.size);
 					p += round_up_to_multiple(subprogram_statements->size, alignment);
 
 					auto subprogram_data = (data_chunk*)p;
-					//::memcpy(p, &prog_state.expression_data, expression_data_size);
 					p += expression_data_size;
-					//::memcpy(p, &expression_src[0], prog_state.expression_data.size);
 					p += round_up_to_multiple(subprogram_data->size, alignment);
 				}
 
@@ -2511,26 +2508,17 @@ namespace tp
 
 				for (size_t i = 0; i < header->num_binding_names; ++i)
 				{
-					//::memcpy(p, &strs[i], string_header_size);
 					auto chonk = (const string_chunk*)p;
 					p += string_header_size;
-
-					//::memcpy(p, binding_names[i], strs[i].size - 1);
-					//p[strs[i].size - 1] = '\0';
 					p += round_up_to_multiple(chonk->size, alignment);
 				}
 
 				this->user_vars = (user_var_chunk*)p;
-				//::memcpy(p, &user_var_data, user_var_size);
 				p += user_var_size;
-				//::memcpy(p, &user_var_indexes[0], user_var_data.size);
 				p += round_up_to_multiple(this->user_vars->size, alignment);
 			}
 
-			serialized_program(std::tuple<const void*, size_t> args)
-				: serialized_program(std::get<0>(args), std::get<1>(args))
-			{
-			}
+			serialized_program(std::tuple<const void*, size_t> args) : serialized_program(std::get<0>(args), std::get<1>(args)) {}
 
 			~serialized_program()
 			{
@@ -2548,21 +2536,18 @@ namespace tp
 				{
 					auto statements = (statement_chunk*)p;
 					p += statement_data_size;
-					//::memcpy(p, &statement_src[0], prog_state.statement_data.size);
 					p += round_up_to_multiple(statements->size, alignment);
 
 					auto subprogram_data = (data_chunk*)p;
-					//::memcpy(p, &prog_state.expression_data, expression_data_size);
 					p += expression_data_size;
-					//::memcpy(p, &expression_src[0], prog_state.expression_data.size);
 					p += round_up_to_multiple(subprogram_data->size, alignment);
-					
+
 					if (i == subprogram_index)
 					{
 						return {statements, subprogram_data};
 					}
 				}
-				
+
 				return {nullptr, nullptr};
 			}
 
