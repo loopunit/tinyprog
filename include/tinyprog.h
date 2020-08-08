@@ -2040,6 +2040,7 @@ namespace tp
 					if (final_index == -1)
 					{
 						*error = -1; // TODO: variable not found
+						assert(!"Variable not found.");
 						return nullptr;
 					}
 
@@ -2481,12 +2482,12 @@ namespace tp
 				this->raw_data_size = total_program_size;
 			}
 
-			serialized_program(const void* serialized_program, size_t total_program_size)
+			serialized_program(const void* data, size_t data_size)
 			{
 				this->raw_data		= nullptr;
-				this->raw_data_size = total_program_size;
+				this->raw_data_size = data_size;
 
-				const char* p = (const char*)serialized_program;
+				const char* p = (const char*)data;
 
 				this->header = (header_chunk*)p;
 				p += out_header_size;
@@ -2520,6 +2521,13 @@ namespace tp
 
 			serialized_program(std::tuple<const void*, size_t> args) : serialized_program(std::get<0>(args), std::get<1>(args)) {}
 
+			static inline serialized_program* create_using_buffer(void* data, size_t data_size)
+			{
+				auto prog = new serialized_program(data, data_size);
+				prog->raw_data = data;
+				return prog;
+			}
+			
 			~serialized_program()
 			{
 				if (raw_data)
