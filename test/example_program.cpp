@@ -2,18 +2,22 @@
 #include "tinyprog.h"
 #include <stdio.h>
 
-bool serialize_program_to_disk(const char* file_name, const char* prog_text, te::t_indexer& indexer)
+bool serialize_programs_to_disk(const char* file_name, const char* prog_texts[], size_t num_prog_texts, te::t_indexer& indexer)
 {
 	using builtins = tp::compiler_builtins<te::env_traits::t_vector_builtins>;
 
-	auto prog = [prog_text, &indexer]() {
-		int	 err1 = 0;
-		auto res  = te::compile_program_using_indexer(prog_text, &err1, indexer);
-		assert(res);
-		return res;
-	}();
+	std::vector<tp::compiled_program*> subprograms;
+	for (int i = 0; i < num_prog_texts; ++i)
+	{
+		subprograms.push_back([i, prog_texts, &indexer]() {
+			int	 err1 = 0;
+			auto res  = te::compile_program_using_indexer(prog_texts[i], &err1, indexer);
+			assert(res);
+			return res;
+		}());
+	}
 
-	te::serialized_program sp(&prog, 1, indexer.m_declared_variable_names);
+	te::serialized_program sp(&subprograms[0], int(num_prog_texts), indexer.m_declared_variable_names);
 
 	FILE* f;
 	if (!::fopen_s(&f, file_name, "wb"))
@@ -67,8 +71,6 @@ int main(int argc, char* argv[])
 			"label: is_negative;"
 			"return: -1 * x;";
 	
-		serialize_program_to_disk("prog1.tpp", p1, indexer);
-	
 		const char* p2 =
 			"var: y;"
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
@@ -76,21 +78,23 @@ int main(int argc, char* argv[])
 			"return: y;"
 			"label: is_negative;"
 			"return: -1 * y;";
-	
-		serialize_program_to_disk("prog2.tpp", p2, indexer);
+
+		const char* progs[] { p1, p2 };
+
+		serialize_programs_to_disk("progs.tpp", progs, 2, indexer);
 	}
 
 	{
-		auto [buffer, size] = serialize_from_disk("prog1.tpp");
+		auto [buffer, size] = serialize_from_disk("progs.tpp");
 		te::serialized_program prog(buffer, size);
-						
+
 		std::vector<const void*> binding_array;
 		binding_array.resize(prog.get_num_bindings());
 		std::fill_n(std::begin(binding_array), prog.get_num_bindings(), nullptr);
-	
+
 		std::vector<te::env_traits::t_vector> user_var_array;
 		user_var_array.resize(prog.get_num_user_vars());
-		
+
 		for (uint16_t i = 0; i < (uint16_t)prog.get_num_user_vars(); ++i)
 		{
 			auto binding_idx = prog.get_user_vars()[i];
@@ -107,7 +111,8 @@ int main(int argc, char* argv[])
 			assert(binding_array[i] != nullptr);
 		}
 		
-		auto result = te::eval_program(prog, 0, &binding_array[0]);
+		assert(te::eval_program(prog, 0, &binding_array[0]) == te::eval_program(prog, 1, &binding_array[0]));
+		
 		::free(buffer);
 	}
 

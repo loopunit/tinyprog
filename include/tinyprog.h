@@ -2316,7 +2316,7 @@ namespace tp
 			const header_chunk*		header{nullptr};
 			const statement_chunk*  first_subprogram{nullptr};
 
-			serialized_program(compiled_program** programs, int num_programs, std::vector<std::string>& user_vars_in)
+			serialized_program(const compiled_program* const* programs, int num_programs, std::vector<std::string>& user_vars_in)
 			{
 				std::vector<subprogram> subprograms;
 				subprograms.resize(num_programs);
@@ -2328,20 +2328,16 @@ namespace tp
 				auto most_bindings_idx	= 0;
 				for (int subprogram_idx = 1; subprogram_idx < num_programs; ++subprogram_idx)
 				{
-					auto next_binding_name_count = programs[0]->get_binding_array_size();
-					auto next_binding_names		 = programs[0]->get_binding_names();
-
-					auto verify_bindings = [&]() {
-						for (auto i = std::min(binding_name_count, next_binding_name_count); i > 0; ++i)
+					auto next_binding_name_count = programs[subprogram_idx]->get_binding_array_size();
+					auto next_binding_names		 = programs[subprogram_idx]->get_binding_names();
+					
+					for (auto i = std::min(binding_name_count, next_binding_name_count); i > 0; --i)
+					{
+						if (strcmp(binding_names[i - 1], next_binding_names[i - 1]) != 0)
 						{
-							if (strcmp(binding_names[i], next_binding_names[i]) != 0)
-							{
-								return false;
-							}
+							assert(false);
 						}
-						return true;
-					};
-					assert(verify_bindings());
+					}
 
 					if (binding_name_count < next_binding_name_count)
 					{
