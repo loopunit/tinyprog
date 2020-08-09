@@ -60,12 +60,18 @@ te::serialized_program* serialize_from_disk(const char* file_name)
 	return nullptr;
 }
 
+float test_closure(void* context, float arg) 
+{
+	printf("Closure called: %llu, %f\n", (size_t)context, arg);
+	return arg;
+}
+
 int main(int argc, char* argv[])
 {
 	using builtins = tp::compiler_builtins<te::env_traits::t_vector_builtins>;
 
 	te::env_traits::t_atom	x = 0.0f, y = -1.0f;
-	te::variable			vars[]	   = {{"xx", &x}, {"y", &y}};
+	te::variable			vars[]	   = {{"xx", &x}, {"y", &y}, {"test_closure", test_closure, tp::CLOSURE1, (void*)0xf33db33ff33db33f}};
 	static constexpr size_t vars_count = sizeof(vars) / sizeof(vars[0]);
 
 	// compile & save to disk
@@ -79,6 +85,7 @@ int main(int argc, char* argv[])
 
 		const char* p1 =
 			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
+			"test_closure(x);"
 			"jump: is_negative ? x < 0;"
 			"return: x;"
 			"label: is_negative;"
@@ -86,6 +93,7 @@ int main(int argc, char* argv[])
 
 		const char* p2 =
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
+			"test_closure(y);"
 			"jump: is_negative ? y < 0;"
 			"return: y;"
 			"label: is_negative;"
@@ -125,6 +133,8 @@ int main(int argc, char* argv[])
 			binding_array[binding_idx] = &user_var_array[i];
 		}
 
+		std::unordered_map<std::string, void*> closure_contexts;
+
 		for (uint16_t i = 0; i < (uint16_t)prog->get_num_bindings(); ++i)
 		{
 			// If the binding was not already set as a declared var
@@ -138,6 +148,11 @@ int main(int argc, char* argv[])
 					if (_stricmp(vars[j].name, name) == 0)
 					{
 						binding_array[i] = vars[j].address;
+
+						if (vars[j].type >= tp::CLOSURE0 && vars[j].type < tp::CLOSURE_MAX)
+						{
+							closure_contexts.insert({std::string(vars[j].name) + "_closure", vars[j].context});
+						}
 					}
 				}
 
@@ -145,6 +160,16 @@ int main(int argc, char* argv[])
 				{
 					// See if the binding is a builtin
 					binding_array[i] = builtins::find_builtin_address(name);
+				}
+
+				if (!binding_array[i])
+				{
+					// look in the closure contexts
+					auto itor = closure_contexts.find(name);
+					if (itor != std::end(closure_contexts))
+					{
+						binding_array[i] = itor->second;
+					}
 				}
 			}
 
