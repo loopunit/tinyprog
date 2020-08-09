@@ -2317,6 +2317,7 @@ namespace tp
 			const header_chunk*	   header{nullptr};
 			const statement_chunk* first_subprogram{nullptr};
 
+#if (TP_COMPILER_ENABLED)
 			serialized_program(const compiled_program* const* programs, int num_programs, std::vector<std::string>& user_vars_in)
 			{
 				std::vector<subprogram> subprograms;
@@ -2492,6 +2493,7 @@ namespace tp
 					}
 				}
 			}
+#endif // #if (TP_COMPILER_ENABLED)
 
 			serialized_program(const void* data, size_t data_size)
 			{
