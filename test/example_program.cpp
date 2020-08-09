@@ -142,7 +142,17 @@ int main(int argc, char* argv[])
 			{
 				auto name = prog->get_binding_string(i);
 
-				// If not a builtin, see if we have a user binding
+				// Closure contexts are always first
+				if (!binding_array[i])
+				{
+					auto itor = closure_contexts.find(name);
+					if (itor != std::end(closure_contexts))
+					{
+						binding_array[i] = itor->second;
+					}
+				}
+				
+				// User bindings are next priority
 				for (uint16_t j = 0; j < vars_count; ++j)
 				{
 					if (_stricmp(vars[j].name, name) == 0)
@@ -151,25 +161,17 @@ int main(int argc, char* argv[])
 
 						if (vars[j].type >= tp::CLOSURE0 && vars[j].type < tp::CLOSURE_MAX)
 						{
+							// Closures are always declared first, followed by a context, which is appended with "_closure".
+							// Add this to the lookup so we find it later.
 							closure_contexts.insert({std::string(vars[j].name) + "_closure", vars[j].context});
 						}
 					}
 				}
 
+				// Builtins come last
 				if (!binding_array[i])
 				{
-					// See if the binding is a builtin
 					binding_array[i] = builtins::find_builtin_address(name);
-				}
-
-				if (!binding_array[i])
-				{
-					// look in the closure contexts
-					auto itor = closure_contexts.find(name);
-					if (itor != std::end(closure_contexts))
-					{
-						binding_array[i] = itor->second;
-					}
 				}
 			}
 
