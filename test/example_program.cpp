@@ -116,69 +116,75 @@ int main(int argc, char* argv[])
 		te::serialized_program* prog = serialize_from_disk("progs.tpp");
 		assert(prog);
 
+		// Reserve binding memory
 		std::vector<const void*> binding_array;
 		binding_array.resize(prog->get_num_bindings());
 		std::fill_n(std::begin(binding_array), prog->get_num_bindings(), nullptr);
 
+		// Reserve memory for user vars
 		std::vector<te::env_traits::t_vector> user_var_array;
 		user_var_array.resize(prog->get_num_user_vars());
 		std::fill(std::begin(user_var_array), std::end(user_var_array), 0.0f);
 
-		// Binding precendence will be: declared->user->builtin
-
-		// Declared vars come first
-		for (uint16_t i = 0; i < (uint16_t)prog->get_num_user_vars(); ++i)
+		// Binding setup
 		{
-			auto binding_idx		   = prog->get_user_vars()[i];
-			binding_array[binding_idx] = &user_var_array[i];
-		}
+			// Binding precendence will be: declared->user->builtin
 
-		std::unordered_map<std::string, void*> closure_contexts;
-
-		for (uint16_t i = 0; i < (uint16_t)prog->get_num_bindings(); ++i)
-		{
-			// If the binding was not already set as a declared var
-			if (!binding_array[i])
+			// Declared vars come first
+			for (uint16_t i = 0; i < (uint16_t)prog->get_num_user_vars(); ++i)
 			{
-				auto name = prog->get_binding_string(i);
-
-				// Closure contexts are always first
-				if (!binding_array[i])
-				{
-					auto itor = closure_contexts.find(name);
-					if (itor != std::end(closure_contexts))
-					{
-						binding_array[i] = itor->second;
-					}
-				}
-				
-				// User bindings are next priority
-				for (uint16_t j = 0; j < vars_count; ++j)
-				{
-					if (_stricmp(vars[j].name, name) == 0)
-					{
-						binding_array[i] = vars[j].address;
-
-						if (vars[j].type >= tp::CLOSURE0 && vars[j].type < tp::CLOSURE_MAX)
-						{
-							// Closures are always declared first, followed by a context, which is appended with "_closure".
-							// Add this to the lookup so we find it later.
-							closure_contexts.insert({std::string(vars[j].name) + "_closure", vars[j].context});
-						}
-					}
-				}
-
-				// Builtins come last
-				if (!binding_array[i])
-				{
-					binding_array[i] = builtins::find_builtin_address(name);
-				}
+				auto binding_idx		   = prog->get_user_vars()[i];
+				binding_array[binding_idx] = &user_var_array[i];
 			}
 
-			// All bindings must be valid, otherwise the runtime will crash.
-			assert(binding_array[i] != nullptr);
+			std::unordered_map<std::string, void*> closure_contexts;
+
+			for (uint16_t i = 0; i < (uint16_t)prog->get_num_bindings(); ++i)
+			{
+				// If the binding was not already set as a declared var
+				if (!binding_array[i])
+				{
+					auto name = prog->get_binding_string(i);
+
+					// Closure contexts are always first
+					if (!binding_array[i])
+					{
+						auto itor = closure_contexts.find(name);
+						if (itor != std::end(closure_contexts))
+						{
+							binding_array[i] = itor->second;
+						}
+					}
+				
+					// User bindings are next priority
+					for (uint16_t j = 0; j < vars_count; ++j)
+					{
+						if (_stricmp(vars[j].name, name) == 0)
+						{
+							binding_array[i] = vars[j].address;
+
+							if (vars[j].type >= tp::CLOSURE0 && vars[j].type < tp::CLOSURE_MAX)
+							{
+								// Closures are always declared first, followed by a context, which is appended with "_closure".
+								// Add this to the lookup so we find it later.
+								closure_contexts.insert({std::string(vars[j].name) + "_closure", vars[j].context});
+							}
+						}
+					}
+
+					// Builtins come last
+					if (!binding_array[i])
+					{
+						binding_array[i] = builtins::find_builtin_address(name);
+					}
+				}
+
+				// All bindings must be valid, otherwise the runtime will crash.
+				assert(binding_array[i] != nullptr);
+			}
 		}
 
+		// Execute the test programs
 		float* results	   = new float[prog->get_num_subprograms()];
 		float  last_result = 0;
 		for (int i = 0; i < prog->get_num_subprograms(); ++i)
