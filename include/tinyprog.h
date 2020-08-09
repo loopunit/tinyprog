@@ -2627,6 +2627,11 @@ namespace tp
 			{
 				return (user_vars != nullptr) ? (int*)&user_vars->data[0] : nullptr;
 			}
+		
+			uint16_t get_num_subprograms() const noexcept
+			{
+				return header->num_subprograms;
+			}
 		};
 	} // namespace details
 

@@ -70,8 +70,13 @@ int main(int argc, char* argv[])
 	
 	// compile & save to disk
 	{
-		const char* p1 =
+		const char* constructor =
 			"var: x;"
+			"x: 255.0;"
+			"var: y;"
+			"y: 255.0;"; // will return nan
+
+		const char* p1 =
 			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
 			"jump: is_negative ? x < 0;"
 			"return: x;"
@@ -85,9 +90,10 @@ int main(int argc, char* argv[])
 			"label: is_negative;"
 			"return: -1 * y;";
 	
-		const char* progs[] { p1, p2 };
-	
-		auto prog = create_program(progs, 2, vars, vars_count);
+		const char* progs[] { constructor, p1, p2 };
+		const size_t num_progs = sizeof(progs) / sizeof(progs[0]);
+		
+		auto prog = create_program(progs, num_progs, vars, vars_count);
 		assert(prog);
 		if (!serialize_program_to_disk("progs.tpp", prog))
 		{
@@ -137,10 +143,19 @@ int main(int argc, char* argv[])
 			assert(binding_array[i] != nullptr);
 		}
 		
-		auto a = te::eval_program(*prog, 0, &binding_array[0]) ;
-		auto b = te::eval_program(*prog, 1, &binding_array[0]) ;
-		assert(a == b);
+		float *results = new float[prog->get_num_subprograms()];
+		float last_result = 0;
+		for (int i = 0; i < prog->get_num_subprograms(); ++i)
+		{
+			results[i] = te::eval_program(*prog, i, &binding_array[0]);
+			last_result = results[i];
+		}
 		
+		for (int i = 1; i < prog->get_num_subprograms(); ++i)
+		{
+			assert(results[i] == last_result);
+		}
+
 		delete prog;
 	}
 
