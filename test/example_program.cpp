@@ -27,7 +27,7 @@ te::serialized_program* create_program(const char* prog_texts[], size_t num_prog
 	{
 		indexer.add_user_variable(vars + i);
 	}
-	
+
 	std::vector<tp::compiled_program*> subprograms;
 	for (int i = 0; i < num_prog_texts; ++i)
 	{
@@ -64,17 +64,18 @@ int main(int argc, char* argv[])
 {
 	using builtins = tp::compiler_builtins<te::env_traits::t_vector_builtins>;
 
-	te::env_traits::t_atom x = 0.0f, y = 0.0f;
-	te::variable		   vars[] = {{"xx", &x}, {"y", &y}};
+	te::env_traits::t_atom	x = 0.0f, y = -1.0f;
+	te::variable			vars[]	   = {{"xx", &x}, {"y", &y}};
 	static constexpr size_t vars_count = sizeof(vars) / sizeof(vars[0]);
-	
+
 	// compile & save to disk
 	{
 		const char* constructor =
 			"var: x;"
 			"x: 255.0;"
 			"var: y;"
-			"y: 255.0;"; // will return nan
+			"y: 255.0;"
+			"xx: 255.0;";
 
 		const char* p1 =
 			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
@@ -82,17 +83,17 @@ int main(int argc, char* argv[])
 			"return: x;"
 			"label: is_negative;"
 			"return: -1 * x;";
-	
+
 		const char* p2 =
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
 			"jump: is_negative ? y < 0;"
 			"return: y;"
 			"label: is_negative;"
 			"return: -1 * y;";
-	
-		const char* progs[] { constructor, p1, p2 };
+
+		const char*	 progs[]{constructor, p1, p2};
 		const size_t num_progs = sizeof(progs) / sizeof(progs[0]);
-		
+
 		auto prog = create_program(progs, num_progs, vars, vars_count);
 		assert(prog);
 		if (!serialize_program_to_disk("progs.tpp", prog))
@@ -104,7 +105,7 @@ int main(int argc, char* argv[])
 
 	// Load from disk, execute
 	{
-		te::serialized_program* prog = serialize_from_disk("progs.tpp");;
+		te::serialized_program* prog = serialize_from_disk("progs.tpp");
 		assert(prog);
 
 		std::vector<const void*> binding_array;
@@ -117,7 +118,7 @@ int main(int argc, char* argv[])
 
 		for (uint16_t i = 0; i < (uint16_t)prog->get_num_user_vars(); ++i)
 		{
-			auto binding_idx = prog->get_user_vars()[i];
+			auto binding_idx		   = prog->get_user_vars()[i];
 			binding_array[binding_idx] = &user_var_array[i];
 		}
 
@@ -125,9 +126,9 @@ int main(int argc, char* argv[])
 		{
 			if (!binding_array[i])
 			{
-				auto name = prog->get_binding_string(i);
+				auto name		 = prog->get_binding_string(i);
 				binding_array[i] = builtins::find_builtin_address(name);
-				
+
 				if (!binding_array[i])
 				{
 					for (uint16_t j = 0; j < vars_count; ++j)
@@ -142,19 +143,22 @@ int main(int argc, char* argv[])
 
 			assert(binding_array[i] != nullptr);
 		}
-		
-		float *results = new float[prog->get_num_subprograms()];
-		float last_result = 0;
+
+		float* results	   = new float[prog->get_num_subprograms()];
+		float  last_result = 0;
 		for (int i = 0; i < prog->get_num_subprograms(); ++i)
 		{
-			results[i] = te::eval_program(*prog, i, &binding_array[0]);
+			results[i]	= te::eval_program(*prog, i, &binding_array[0]);
 			last_result = results[i];
 		}
-		
+
 		for (int i = 1; i < prog->get_num_subprograms(); ++i)
 		{
 			assert(results[i] == last_result);
 		}
+
+		assert(x == 255.0f); // x should have been initialized to 255 in the constructor
+		assert(y == -1.0f);	 // y should have been overridden by the declared var
 
 		delete prog;
 	}
