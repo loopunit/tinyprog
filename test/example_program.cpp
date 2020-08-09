@@ -103,7 +103,7 @@ int main(int argc, char* argv[])
 		delete prog;
 	}
 
-	// Load from disk, execute
+	// Load from disk, setup bindings, execute
 	{
 		te::serialized_program* prog = serialize_from_disk("progs.tpp");
 		assert(prog);
@@ -116,6 +116,9 @@ int main(int argc, char* argv[])
 		user_var_array.resize(prog->get_num_user_vars());
 		std::fill(std::begin(user_var_array), std::end(user_var_array), 0.0f);
 
+		// Binding precendence will be: declared->user->builtin
+
+		// Declared vars come first
 		for (uint16_t i = 0; i < (uint16_t)prog->get_num_user_vars(); ++i)
 		{
 			auto binding_idx		   = prog->get_user_vars()[i];
@@ -124,23 +127,28 @@ int main(int argc, char* argv[])
 
 		for (uint16_t i = 0; i < (uint16_t)prog->get_num_bindings(); ++i)
 		{
+			// If the binding was not already set as a declared var
 			if (!binding_array[i])
 			{
-				auto name		 = prog->get_binding_string(i);
-				binding_array[i] = builtins::find_builtin_address(name);
+				auto name = prog->get_binding_string(i);
+
+				// If not a builtin, see if we have a user binding
+				for (uint16_t j = 0; j < vars_count; ++j)
+				{
+					if (_stricmp(vars[j].name, name) == 0)
+					{
+						binding_array[i] = vars[j].address;
+					}
+				}
 
 				if (!binding_array[i])
 				{
-					for (uint16_t j = 0; j < vars_count; ++j)
-					{
-						if (_stricmp(vars[j].name, name) == 0)
-						{
-							binding_array[i] = vars[j].address;
-						}
-					}
+					// See if the binding is a builtin
+					binding_array[i] = builtins::find_builtin_address(name);
 				}
 			}
 
+			// All bindings must be valid, otherwise the runtime will crash.
 			assert(binding_array[i] != nullptr);
 		}
 
