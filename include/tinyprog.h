@@ -32,6 +32,7 @@
 
 #include <limits>
 #include <cctype>
+#include <tuple>
 
 #ifndef TP_TESTING
 #define TP_TESTING 0
@@ -49,6 +50,13 @@
 #ifndef TP_STANDARD_LIBRARY
 #define TP_STANDARD_LIBRARY 0
 #endif // #ifndef TP_STANDARD_LIBRARY
+
+#if TP_COMPILER_ENABLED
+#if (_MSVC_LANG < 201703L)
+	#error C++ 17 is required for the compiler.
+#endif
+#include <string_view>
+#endif // #if TP_COMPILER_ENABLED
 
 namespace tp
 {
@@ -1729,7 +1737,10 @@ namespace tp
 
 			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(std::string_view s, size_t index)
 			{
-				auto [l, r] = split_at_index(s, index);
+				auto  tup = split_at_index(s, index);
+				auto& l	  = std::get<0>(tup);
+				auto& r	  = std::get<1>(tup);
+
 				if (r.length() > 1)
 				{
 					return {trim_all_space(l), trim_all_space(std::string_view{&r[1], r.length() - 1})};
@@ -1763,17 +1774,17 @@ namespace tp
 
 			////
 
-			static inline const auto keyword_return = std::string_view("return");
-			static inline const auto keyword_jump	= std::string_view("jump");
-			static inline const auto keyword_label	= std::string_view("label");
-			static inline const auto keyword_var	= std::string_view("var");
-
 			template<
 				typename T_ADD_VARIABLE, typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
 			static inline void parse_statement(
-				std::string_view statement, T_ADD_VARIABLE add_variable, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if, T_ADD_RETURN_VALUE add_return_value,
-				T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
+				std::string_view statement, T_ADD_VARIABLE add_variable, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if,
+				T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
 			{
+				const auto keyword_return = std::string_view("return");
+				const auto keyword_jump	  = std::string_view("jump");
+				const auto keyword_label  = std::string_view("label");
+				const auto keyword_var	  = std::string_view("var");
+
 				auto [operation, expression] = split_at_char_excl(statement, ':');
 
 				if (expression.length() == 0)
@@ -1818,10 +1829,10 @@ namespace tp
 
 		struct label_manager
 		{
-			using handle								  = int;
-			static inline constexpr int placeholder_index = -1;
+			using handle									  = int;
+			static /*inline*/ constexpr int placeholder_index = -1;
 
-			std::vector<int>							 m_label_statement_indexes;
+			std::vector<int>									   m_label_statement_indexes;
 			std::unordered_map<std::string_view, handle> m_label_handle_map;
 
 			handle add_label(std::string_view label, int statement_index)
@@ -1880,7 +1891,7 @@ namespace tp
 
 		struct variable_manager
 		{
-			int										  m_variable_count = 0;
+			int													m_variable_count = 0;
 			std::unordered_map<std::string_view, int> m_variable_map;
 
 			int find_label(std::string_view name)
@@ -1960,7 +1971,9 @@ namespace tp
 
 			while (program_remaining.length() > 0)
 			{
-				auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
+				auto  tup		= parser::split_at_char_excl(program_remaining, ';');
+				auto& statement = std::get<0>(tup);
+				auto& remaining = std::get<1>(tup);
 
 				parser::parse_statement(
 					statement,
@@ -2288,21 +2301,21 @@ namespace tp
 				return ((value + multiple - 1) / multiple) * multiple;
 			}
 
-			static inline constexpr uint16_t alignment{4};
-			static inline constexpr auto	 out_header_size = uint16_t(sizeof(header_chunk));
-			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(header_chunk)), alignment));
+			static /*inline*/ constexpr uint16_t alignment{4};
+			static /*inline*/ constexpr auto	 out_header_size = uint16_t(sizeof(header_chunk));
+			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(header_chunk)), alignment), "");
 
-			static inline constexpr auto statement_data_size = uint16_t(sizeof(chunk_header));
-			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
+			static /*inline*/ constexpr auto statement_data_size = uint16_t(sizeof(chunk_header));
+			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
 
-			static inline constexpr auto expression_data_size = uint16_t(sizeof(chunk_header));
-			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
+			static /*inline*/ constexpr auto expression_data_size = uint16_t(sizeof(chunk_header));
+			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
 
-			static inline constexpr auto string_header_size = uint16_t(sizeof(chunk_header));
-			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
+			static /*inline*/ constexpr auto string_header_size = uint16_t(sizeof(chunk_header));
+			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
 
-			static inline constexpr auto user_var_size = uint16_t(sizeof(chunk_header));
-			static_assert(user_var_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment));
+			static /*inline*/ constexpr auto user_var_size = uint16_t(sizeof(chunk_header));
+			static_assert(user_var_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
 
 			struct subprogram
 			{
@@ -2357,12 +2370,11 @@ namespace tp
 					size_t			expression_data_data_size;
 				};
 
-				auto [total_program_size, out_header, program_states, strs, user_var_indexes, user_var_data, user_var_data_data_size] = [&]() -> std::tuple<size_t, header_chunk, std::vector<program_state>, std::vector<string_chunk>, std::vector<int>, user_var_chunk, size_t>
-				{
+				auto tup = [&]() -> std::tuple<size_t, header_chunk, std::vector<program_state>, std::vector<string_chunk>, std::vector<int>, user_var_chunk, size_t> {
 					std::vector<program_state> program_states;
 					program_states.resize(num_programs);
 
-					size_t total_program_size  = 0;
+					size_t total_program_size = 0;
 
 					header_chunk out_header;
 					out_header.magic			 = uint16_t(0x1010);
@@ -2428,10 +2440,18 @@ namespace tp
 					return {total_program_size, out_header, program_states, strs, user_var_indexes, user_var_data, user_var_data_data_size};
 				}();
 
+				auto& total_program_size	  = std::get<0>(tup);
+				auto& out_header			  = std::get<1>(tup);
+				auto& program_states		  = std::get<2>(tup);
+				auto& strs					  = std::get<3>(tup);
+				auto& user_var_indexes		  = std::get<4>(tup);
+				auto& user_var_data			  = std::get<5>(tup);
+				auto& user_var_data_data_size = std::get<6>(tup);
+
 				//
 
 				if (total_program_size > sizeof(out_header))
-		        {
+				{
 					assert(total_program_size > out_header_size + user_var_data_data_size + user_var_size);
 					char* const serialized_program = (char*)::malloc(total_program_size);
 					char*		p				   = serialized_program;
@@ -2536,11 +2556,11 @@ namespace tp
 
 			static inline serialized_program* create_using_buffer(void* data, size_t data_size)
 			{
-				auto prog = new serialized_program(data, data_size);
+				auto prog	   = new serialized_program(data, data_size);
 				prog->raw_data = data;
 				return prog;
 			}
-			
+
 			~serialized_program()
 			{
 				if (raw_data)
@@ -2574,25 +2594,33 @@ namespace tp
 
 			const statement* get_statements_array(int subprogram_index) const noexcept
 			{
-				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				auto  tup			  = get_subprogram_data(subprogram_index);
+				auto& statements	  = std::get<0>(tup);
+				auto& subprogram_data = std::get<1>(tup);
 				return reinterpret_cast<const statement*>(&statements->data[0]);
 			}
 
 			size_t get_statements_array_size(int subprogram_index) const noexcept
 			{
-				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				auto  tup			  = get_subprogram_data(subprogram_index);
+				auto& statements	  = std::get<0>(tup);
+				auto& subprogram_data = std::get<1>(tup);
 				return statements->size / sizeof(statement);
 			}
 
 			const void* get_expression_data(int subprogram_index) const noexcept
 			{
-				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				auto  tup			  = get_subprogram_data(subprogram_index);
+				auto& statements	  = std::get<0>(tup);
+				auto& subprogram_data = std::get<1>(tup);
 				return &subprogram_data->data[0];
 			}
 
 			const size_t get_expression_size(int subprogram_index) const noexcept
 			{
-				auto [statements, subprogram_data] = get_subprogram_data(subprogram_index);
+				auto  tup			  = get_subprogram_data(subprogram_index);
+				auto& statements	  = std::get<0>(tup);
+				auto& subprogram_data = std::get<1>(tup);
 				return subprogram_data->size;
 			}
 
@@ -2640,7 +2668,7 @@ namespace tp
 			{
 				return (user_vars != nullptr) ? (int*)&user_vars->data[0] : nullptr;
 			}
-		
+
 			uint16_t get_num_subprograms() const noexcept
 			{
 				return header->num_subprograms;
@@ -3276,59 +3304,59 @@ namespace tp_stdlib
 	{
 		using t_impl = native_builtins_impl<T_ATOM>;
 
-		static inline constexpr tp::variable functions[] = {/* must be in alphabetical order */
-															{"abs", t_impl::fabs, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"acos", t_impl::acos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"asin", t_impl::asin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"atan", t_impl::atan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"atan2", t_impl::atan2, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"ceil", t_impl::ceil, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"cos", t_impl::cos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"cosh", t_impl::cosh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"e", t_impl::e, tp::FUNCTION0 | tp::FLAG_PURE, 0},
-															{"exp", t_impl::exp, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"fac", t_impl::fac, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"floor", t_impl::floor, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"ln", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+		static /*inline*/ constexpr tp::variable functions[] = {/* must be in alphabetical order */
+																{"abs", t_impl::fabs, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"acos", t_impl::acos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"asin", t_impl::asin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"atan", t_impl::atan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"atan2", t_impl::atan2, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"ceil", t_impl::ceil, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"cos", t_impl::cos, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"cosh", t_impl::cosh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"e", t_impl::e, tp::FUNCTION0 | tp::FLAG_PURE, 0},
+																{"exp", t_impl::exp, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"fac", t_impl::fac, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"floor", t_impl::floor, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"ln", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
 #ifdef TP_NAT_LOG
-															{"log", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"log", t_impl::log, tp::FUNCTION1 | tp::FLAG_PURE, 0},
 #else
-															{"log", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"log", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
 #endif
-															{"log10", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"ncr", t_impl::ncr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"npr", t_impl::npr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"pi", t_impl::pi, tp::FUNCTION0 | tp::FLAG_PURE, 0},
-															{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"sin", t_impl::sin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"sinh", t_impl::sinh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"sqrt", t_impl::sqrt, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"tan", t_impl::tan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"tanh", t_impl::tanh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{0, 0, 0, 0}};
+																{"log10", t_impl::log10, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"ncr", t_impl::ncr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"npr", t_impl::npr, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"pi", t_impl::pi, tp::FUNCTION0 | tp::FLAG_PURE, 0},
+																{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"sin", t_impl::sin, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"sinh", t_impl::sinh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"sqrt", t_impl::sqrt, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"tan", t_impl::tan, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"tanh", t_impl::tanh, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{0, 0, 0, 0}};
 
-		static inline constexpr tp::variable operators[] = {/* must be in alphabetical order */
-															{"add", t_impl::add, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"comma", t_impl::comma, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"divide", t_impl::divide, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"equal", t_impl::equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"fmod", t_impl::fmod, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"greater", t_impl::greater, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"greater_eq", t_impl::greater_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"logical_and", t_impl::logical_and, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"logical_not", t_impl::logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"logical_notnot", t_impl::logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"logical_or", t_impl::logical_or, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"lower", t_impl::lower, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"lower_eq", t_impl::lower_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"mul", t_impl::mul, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"negate", t_impl::negate, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"negate_logical_not", t_impl::negate_logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"negate_logical_notnot", t_impl::negate_logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
-															{"not_equal", t_impl::not_equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{"sub", t_impl::sub, tp::FUNCTION2 | tp::FLAG_PURE, 0},
-															{0, 0, 0, 0}};
+		static /*inline*/ constexpr tp::variable operators[] = {/* must be in alphabetical order */
+																{"add", t_impl::add, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"comma", t_impl::comma, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"divide", t_impl::divide, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"equal", t_impl::equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"fmod", t_impl::fmod, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"greater", t_impl::greater, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"greater_eq", t_impl::greater_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"logical_and", t_impl::logical_and, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"logical_not", t_impl::logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"logical_notnot", t_impl::logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"logical_or", t_impl::logical_or, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"lower", t_impl::lower, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"lower_eq", t_impl::lower_eq, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"mul", t_impl::mul, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"negate", t_impl::negate, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"negate_logical_not", t_impl::negate_logical_not, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"negate_logical_notnot", t_impl::negate_logical_notnot, tp::FUNCTION1 | tp::FLAG_PURE, 0},
+																{"not_equal", t_impl::not_equal, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"pow", t_impl::pow, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{"sub", t_impl::sub, tp::FUNCTION2 | tp::FLAG_PURE, 0},
+																{0, 0, 0, 0}};
 	};
 } // namespace tp_stdlib
 
