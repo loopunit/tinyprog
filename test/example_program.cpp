@@ -1,7 +1,16 @@
+#include <stdio.h>
+#include <assert.h>
+#include <stdint.h>
+
+#include <vector>
+#include <unordered_map>
+
 #define TP_TESTING 1
 #include "tinyprog.h"
-#include <stdio.h>
 
+using te = tp::impl<tp_stdlib::env_traits_f32<tp_stdlib::native_builtins>>;
+
+#if TP_COMPILER_ENABLED
 bool serialize_program_to_disk(const char* file_name, te::serialized_program* sp)
 {
 	FILE* f;
@@ -41,6 +50,7 @@ te::serialized_program* create_program(const char* prog_texts[], size_t num_prog
 
 	return new te::serialized_program(&subprograms[0], int(num_prog_texts), indexer.m_declared_variable_names);
 }
+#endif
 
 te::serialized_program* serialize_from_disk(const char* file_name)
 {
@@ -75,6 +85,7 @@ int main(int argc, char* argv[])
 	static constexpr size_t vars_count = sizeof(vars) / sizeof(vars[0]);
 
 	// compile & save to disk
+#if TP_COMPILER_ENABLED
 	{
 		const char* constructor =
 			"var: x;"
@@ -82,7 +93,7 @@ int main(int argc, char* argv[])
 			"var: y;"
 			"y: 255.0;"
 			"xx: 255.0;";
-
+	
 		const char* p1 =
 			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
 			"test_closure(x);"
@@ -90,7 +101,7 @@ int main(int argc, char* argv[])
 			"return: x;"
 			"label: is_negative;"
 			"return: -1 * x;";
-
+	
 		const char* p2 =
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
 			"test_closure(y);"
@@ -98,10 +109,10 @@ int main(int argc, char* argv[])
 			"return: y;"
 			"label: is_negative;"
 			"return: -1 * y;";
-
+	
 		const char*	 progs[]{constructor, p1, p2};
 		const size_t num_progs = sizeof(progs) / sizeof(progs[0]);
-
+	
 		auto prog = create_program(progs, num_progs, vars, vars_count);
 		assert(prog);
 		if (!serialize_program_to_disk("progs.tpp", prog))
@@ -110,6 +121,7 @@ int main(int argc, char* argv[])
 		}
 		delete prog;
 	}
+#endif // #if TP_COMPILER_ENABLED
 
 	// Load from disk, setup bindings, execute
 	{

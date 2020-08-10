@@ -53,7 +53,7 @@
 
 #if TP_COMPILER_ENABLED
 #if (_MSVC_LANG < 201703L)
-	#error C++ 17 is required for the compiler.
+#error C++ 17 is required for the compiler.
 #endif
 #include <string_view>
 #endif // #if TP_COMPILER_ENABLED
@@ -1737,10 +1737,7 @@ namespace tp
 
 			static inline std::tuple<std::string_view, std::string_view> split_at_index_excl(std::string_view s, size_t index)
 			{
-				auto  tup = split_at_index(s, index);
-				auto& l	  = std::get<0>(tup);
-				auto& r	  = std::get<1>(tup);
-
+				auto [l, r] = split_at_index(s, index);
 				if (r.length() > 1)
 				{
 					return {trim_all_space(l), trim_all_space(std::string_view{&r[1], r.length() - 1})};
@@ -1774,17 +1771,17 @@ namespace tp
 
 			////
 
+			static inline const auto keyword_return = std::string_view("return");
+			static inline const auto keyword_jump	= std::string_view("jump");
+			static inline const auto keyword_label	= std::string_view("label");
+			static inline const auto keyword_var	= std::string_view("var");
+
 			template<
 				typename T_ADD_VARIABLE, typename T_ADD_LABEL, typename T_ADD_JUMP, typename T_ADD_JUMP_IF, typename T_ADD_RETURN_VALUE, typename T_ADD_ASSIGN, typename T_ADD_CALL>
 			static inline void parse_statement(
-				std::string_view statement, T_ADD_VARIABLE add_variable, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if,
-				T_ADD_RETURN_VALUE add_return_value, T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
+				std::string_view statement, T_ADD_VARIABLE add_variable, T_ADD_LABEL add_label, T_ADD_JUMP add_jump, T_ADD_JUMP_IF add_jump_if, T_ADD_RETURN_VALUE add_return_value,
+				T_ADD_ASSIGN add_assign, T_ADD_CALL add_call)
 			{
-				const auto keyword_return = std::string_view("return");
-				const auto keyword_jump	  = std::string_view("jump");
-				const auto keyword_label  = std::string_view("label");
-				const auto keyword_var	  = std::string_view("var");
-
 				auto [operation, expression] = split_at_char_excl(statement, ':');
 
 				if (expression.length() == 0)
@@ -1829,10 +1826,10 @@ namespace tp
 
 		struct label_manager
 		{
-			using handle									  = int;
-			static /*inline*/ constexpr int placeholder_index = -1;
+			using handle								  = int;
+			static inline constexpr int placeholder_index = -1;
 
-			std::vector<int>									   m_label_statement_indexes;
+			std::vector<int>							 m_label_statement_indexes;
 			std::unordered_map<std::string_view, handle> m_label_handle_map;
 
 			handle add_label(std::string_view label, int statement_index)
@@ -1891,7 +1888,7 @@ namespace tp
 
 		struct variable_manager
 		{
-			int													m_variable_count = 0;
+			int										  m_variable_count = 0;
 			std::unordered_map<std::string_view, int> m_variable_map;
 
 			int find_label(std::string_view name)
@@ -1971,9 +1968,7 @@ namespace tp
 
 			while (program_remaining.length() > 0)
 			{
-				auto  tup		= parser::split_at_char_excl(program_remaining, ';');
-				auto& statement = std::get<0>(tup);
-				auto& remaining = std::get<1>(tup);
+				auto [statement, remaining] = parser::split_at_char_excl(program_remaining, ';');
 
 				parser::parse_statement(
 					statement,
@@ -2370,7 +2365,8 @@ namespace tp
 					size_t			expression_data_data_size;
 				};
 
-				auto tup = [&]() -> std::tuple<size_t, header_chunk, std::vector<program_state>, std::vector<string_chunk>, std::vector<int>, user_var_chunk, size_t> {
+				auto [total_program_size, out_header, program_states, strs, user_var_indexes, user_var_data, user_var_data_data_size] =
+					[&]() -> std::tuple<size_t, header_chunk, std::vector<program_state>, std::vector<string_chunk>, std::vector<int>, user_var_chunk, size_t> {
 					std::vector<program_state> program_states;
 					program_states.resize(num_programs);
 
@@ -2439,14 +2435,6 @@ namespace tp
 
 					return {total_program_size, out_header, program_states, strs, user_var_indexes, user_var_data, user_var_data_data_size};
 				}();
-
-				auto& total_program_size	  = std::get<0>(tup);
-				auto& out_header			  = std::get<1>(tup);
-				auto& program_states		  = std::get<2>(tup);
-				auto& strs					  = std::get<3>(tup);
-				auto& user_var_indexes		  = std::get<4>(tup);
-				auto& user_var_data			  = std::get<5>(tup);
-				auto& user_var_data_data_size = std::get<6>(tup);
 
 				//
 
