@@ -51,11 +51,18 @@
 #define TP_STANDARD_LIBRARY 0
 #endif // #ifndef TP_STANDARD_LIBRARY
 
-#if TP_COMPILER_ENABLED
 #if (_MSVC_LANG < 201703L)
+#define TP_MODERN_CPP 0
+#else
+#define TP_MODERN_CPP 1
+#endif
+
+#if TP_COMPILER_ENABLED
+#if TP_MODERN_CPP
+#include <string_view>
+#else
 #error C++ 17 is required for the compiler.
 #endif
-#include <string_view>
 #endif // #if TP_COMPILER_ENABLED
 
 namespace tp
@@ -218,7 +225,7 @@ namespace tp
 
 		template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
 		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept ->
-			typename T_VECTOR
+			T_VECTOR
 		{
 			using t_atom			= T_ATOM;
 			using t_vector			= T_VECTOR;
@@ -226,7 +233,7 @@ namespace tp
 			using t_vector_builtins = typename T_TRAITS::t_vector_builtins;
 
 			auto eval_arg = [&](int e) {
-				return eval_portable_impl<T_TRAITS, T_ATOM, T_VECTOR>((const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
+				return eval_portable_impl<t_traits, t_atom, t_vector>((const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
 			};
 
 			return eval_generic(
@@ -2191,7 +2198,8 @@ namespace tp
 {
 	namespace details
 	{
-		template<typename T_VAL>
+#if TP_MODERN_CPP
+		template < typename T_VAL>
 		struct variable_helper
 		{
 			static inline constexpr variable readonly_var(const char* name, const T_VAL* v) noexcept
@@ -2260,6 +2268,7 @@ namespace tp
 				return {name, sevenargfn{func}, tp::FUNCTION7 | tp::FLAG_PURE, 0};
 			}
 		};
+#endif
 
 		struct serialized_program
 		{
@@ -2280,6 +2289,7 @@ namespace tp
 
 			struct chunk : chunk_header
 			{
+				using header = chunk_header;
 				char data[1];
 			};
 
@@ -2296,21 +2306,7 @@ namespace tp
 				return ((value + multiple - 1) / multiple) * multiple;
 			}
 
-			static /*inline*/ constexpr uint16_t alignment{4};
-			static /*inline*/ constexpr auto	 out_header_size = uint16_t(sizeof(header_chunk));
-			static_assert(out_header_size == round_up_to_multiple(uint16_t(sizeof(header_chunk)), alignment), "");
-
-			static /*inline*/ constexpr auto statement_data_size = uint16_t(sizeof(chunk_header));
-			static_assert(statement_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
-
-			static /*inline*/ constexpr auto expression_data_size = uint16_t(sizeof(chunk_header));
-			static_assert(expression_data_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
-
-			static /*inline*/ constexpr auto string_header_size = uint16_t(sizeof(chunk_header));
-			static_assert(string_header_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
-
-			static /*inline*/ constexpr auto user_var_size = uint16_t(sizeof(chunk_header));
-			static_assert(user_var_size == round_up_to_multiple(uint16_t(sizeof(chunk_header)), alignment), "");
+			static inline uint16_t alignment() { return 4; }
 
 			struct subprogram
 			{
@@ -2378,7 +2374,7 @@ namespace tp
 					out_header.num_binding_names = uint16_t(binding_name_count);
 					out_header.num_subprograms	 = uint16_t(num_programs);
 
-					total_program_size += out_header_size;
+					total_program_size += sizeof(header_chunk);
 
 					for (int subprogram_idx = 0; subprogram_idx < num_programs; ++subprogram_idx)
 					{
@@ -2389,13 +2385,13 @@ namespace tp
 						auto  statement_src	  = prog->get_statements();
 
 						prog_state.statement_data.size = uint16_t(num_statements * sizeof(statement_src[0]));
-						total_program_size += statement_data_size;
-						prog_state.statement_data_data_size = round_up_to_multiple(prog_state.statement_data.size, alignment);
+						total_program_size += sizeof(chunk_header);
+						prog_state.statement_data_data_size = round_up_to_multiple(prog_state.statement_data.size, alignment());
 						total_program_size += prog_state.statement_data_data_size;
 
 						prog_state.expression_data.size = uint16_t(expression_size);
-						total_program_size += expression_data_size;
-						prog_state.expression_data_data_size = round_up_to_multiple(prog_state.expression_data.size, alignment);
+						total_program_size += sizeof(chunk_header);
+						prog_state.expression_data_data_size = round_up_to_multiple(prog_state.expression_data.size, alignment());
 						total_program_size += prog_state.expression_data_data_size;
 					}
 
@@ -2404,8 +2400,8 @@ namespace tp
 					{
 						string_chunk chonk;
 						chonk.size = uint16_t(::strlen(binding_names[i]) + 1);
-						total_program_size += string_header_size;
-						total_program_size += round_up_to_multiple(chonk.size, uint16_t(alignment));
+						total_program_size += sizeof(chunk_header);
+						total_program_size += round_up_to_multiple(chonk.size, uint16_t(alignment()));
 						strs.push_back(chonk);
 					}
 
@@ -2429,8 +2425,8 @@ namespace tp
 
 					user_var_chunk user_var_data;
 					user_var_data.size = uint16_t(sizeof(int) * user_var_count);
-					total_program_size += user_var_size;
-					const auto user_var_data_data_size = round_up_to_multiple(user_var_data.size, alignment);
+					total_program_size += sizeof(chunk_header);
+					const auto user_var_data_data_size = round_up_to_multiple(user_var_data.size, alignment());
 					total_program_size += user_var_data_data_size;
 
 					return {total_program_size, out_header, program_states, strs, user_var_indexes, user_var_data, user_var_data_data_size};
@@ -2440,7 +2436,7 @@ namespace tp
 
 				if (total_program_size > sizeof(out_header))
 				{
-					assert(total_program_size > out_header_size + user_var_data_data_size + user_var_size);
+					assert(total_program_size > sizeof(header_chunk) + user_var_data_data_size + sizeof(chunk_header));
 					char* const serialized_program = (char*)::malloc(total_program_size);
 					char*		p				   = serialized_program;
 					if (p != nullptr)
@@ -2449,7 +2445,7 @@ namespace tp
 
 						this->header = (header_chunk*)p;
 						::memcpy(p, &out_header, sizeof(out_header));
-						p += out_header_size;
+						p += sizeof(header_chunk);
 
 						first_subprogram = (statement_chunk*)p;
 
@@ -2464,14 +2460,14 @@ namespace tp
 							auto expression_src = prog->get_data();
 
 							subprogram.statements = (statement_chunk*)p;
-							::memcpy(p, &prog_state.statement_data, statement_data_size);
-							p += statement_data_size;
+							::memcpy(p, &prog_state.statement_data, sizeof(chunk_header));
+							p += sizeof(chunk_header);
 							::memcpy(p, &statement_src[0], prog_state.statement_data.size);
 							p += prog_state.statement_data_data_size;
 
 							subprogram.data = (data_chunk*)p;
-							::memcpy(p, &prog_state.expression_data, expression_data_size);
-							p += expression_data_size;
+							::memcpy(p, &prog_state.expression_data, sizeof(chunk_header));
+							p += sizeof(chunk_header);
 							::memcpy(p, &expression_src[0], prog_state.expression_data.size);
 							p += prog_state.expression_data_data_size;
 						}
@@ -2480,17 +2476,17 @@ namespace tp
 
 						for (size_t i = 0; i < binding_name_count; ++i)
 						{
-							::memcpy(p, &strs[i], string_header_size);
-							p += string_header_size;
+							::memcpy(p, &strs[i], sizeof(chunk_header));
+							p += sizeof(chunk_header);
 
 							::memcpy(p, binding_names[i], strs[i].size - 1);
 							p[strs[i].size - 1] = '\0';
-							p += round_up_to_multiple(strs[i].size, alignment);
+							p += round_up_to_multiple(strs[i].size, alignment());
 						}
 
 						this->user_vars = (user_var_chunk*)p;
-						::memcpy(p, &user_var_data, user_var_size);
-						p += user_var_size;
+						::memcpy(p, &user_var_data, sizeof(chunk_header));
+						p += sizeof(chunk_header);
 						::memcpy(p, &user_var_indexes[0], user_var_data.size);
 						p += user_var_data_data_size;
 
@@ -2511,19 +2507,19 @@ namespace tp
 				const char* p = (const char*)data;
 
 				this->header = (header_chunk*)p;
-				p += out_header_size;
+				p += sizeof(header_chunk);
 
 				first_subprogram = (statement_chunk*)p;
 
 				for (int subprogram_idx = 0; subprogram_idx < this->header->num_subprograms; ++subprogram_idx)
 				{
 					auto subprogram_statements = (statement_chunk*)p;
-					p += statement_data_size;
-					p += round_up_to_multiple(subprogram_statements->size, alignment);
+					p += sizeof(statement_chunk::header);
+					p += round_up_to_multiple(subprogram_statements->size, alignment());
 
 					auto subprogram_data = (data_chunk*)p;
-					p += expression_data_size;
-					p += round_up_to_multiple(subprogram_data->size, alignment);
+					p += sizeof(data_chunk::header);
+					p += round_up_to_multiple(subprogram_data->size, alignment());
 				}
 
 				this->strings = (string_chunk*)p;
@@ -2531,13 +2527,13 @@ namespace tp
 				for (size_t i = 0; i < header->num_binding_names; ++i)
 				{
 					auto chonk = (const string_chunk*)p;
-					p += string_header_size;
-					p += round_up_to_multiple(chonk->size, alignment);
+					p += sizeof(string_chunk::header);
+					p += round_up_to_multiple(chonk->size, alignment());
 				}
 
 				this->user_vars = (user_var_chunk*)p;
-				p += user_var_size;
-				p += round_up_to_multiple(this->user_vars->size, alignment);
+				p += sizeof(user_var_chunk::header);
+				p += round_up_to_multiple(this->user_vars->size, alignment());
 			}
 
 			serialized_program(std::tuple<const void*, size_t> args) : serialized_program(std::get<0>(args), std::get<1>(args)) {}
@@ -2564,27 +2560,26 @@ namespace tp
 				for (int i = 0; i < this->header->num_subprograms; ++i)
 				{
 					auto statements = (statement_chunk*)p;
-					p += statement_data_size;
-					p += round_up_to_multiple(statements->size, alignment);
+					p += sizeof(statement_chunk::header);
+					p += round_up_to_multiple(statements->size, alignment());
 
 					auto subprogram_data = (data_chunk*)p;
-					p += expression_data_size;
-					p += round_up_to_multiple(subprogram_data->size, alignment);
+					p += sizeof(data_chunk::header);
+					p += round_up_to_multiple(subprogram_data->size, alignment());
 
 					if (i == subprogram_index)
 					{
-						return {statements, subprogram_data};
+						return std::tuple<statement_chunk*, data_chunk*>(statements, subprogram_data);
 					}
 				}
 
-				return {nullptr, nullptr};
+				return std::tuple<statement_chunk*, data_chunk*>(nullptr, nullptr);
 			}
 
 			const statement* get_statements_array(int subprogram_index) const noexcept
 			{
 				auto  tup			  = get_subprogram_data(subprogram_index);
 				auto& statements	  = std::get<0>(tup);
-				auto& subprogram_data = std::get<1>(tup);
 				return reinterpret_cast<const statement*>(&statements->data[0]);
 			}
 
@@ -2592,27 +2587,24 @@ namespace tp
 			{
 				auto  tup			  = get_subprogram_data(subprogram_index);
 				auto& statements	  = std::get<0>(tup);
-				auto& subprogram_data = std::get<1>(tup);
 				return statements->size / sizeof(statement);
 			}
 
 			const void* get_expression_data(int subprogram_index) const noexcept
 			{
 				auto  tup			  = get_subprogram_data(subprogram_index);
-				auto& statements	  = std::get<0>(tup);
 				auto& subprogram_data = std::get<1>(tup);
 				return &subprogram_data->data[0];
 			}
 
-			const size_t get_expression_size(int subprogram_index) const noexcept
+			size_t get_expression_size(int subprogram_index) const noexcept
 			{
 				auto  tup			  = get_subprogram_data(subprogram_index);
-				auto& statements	  = std::get<0>(tup);
 				auto& subprogram_data = std::get<1>(tup);
 				return subprogram_data->size;
 			}
 
-			const size_t get_num_bindings() const noexcept
+			size_t get_num_bindings() const noexcept
 			{
 				return this->header->num_binding_names;
 			}
@@ -2630,8 +2622,8 @@ namespace tp
 							return &chonk->data[0];
 						}
 
-						p += string_header_size;
-						p += round_up_to_multiple(chonk->size, alignment);
+						p += sizeof(string_chunk::header);
+						p += round_up_to_multiple(chonk->size, alignment());
 					}
 				}
 				return nullptr;
@@ -2671,7 +2663,9 @@ namespace tp
 		using variable			 = ::tp::variable;
 		using t_atom			 = typename env_traits::t_atom;
 		using t_vector			 = typename env_traits::t_vector;
+#if TP_MODERN_CPP
 		using variable_factory	 = details::variable_helper<t_vector>;
+#endif // #if TP_MODERN_CPP
 		using serialized_program = details::serialized_program;
 #if (TP_COMPILER_ENABLED)
 		using t_indexer = program_details::t_indexer<T_TRAITS>;
