@@ -2055,7 +2055,7 @@ namespace tp
 					if (final_index == -1)
 					{
 						*error = -1; // TODO: variable not found
-						assert(!"Variable not found.");
+						//assert(!"Variable not found.");
 						return nullptr;
 					}
 
