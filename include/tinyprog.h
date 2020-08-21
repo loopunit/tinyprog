@@ -973,12 +973,18 @@ namespace tp
 			}
 		}
 
-		static expr_native* compile_native(const char* expression, const variable* variables, int var_count, int* error)
+		static expr_native* compile_native(const char* expression, const variable_lookup* lookup, int* error)
 		{
 			state s;
 			s.start = s.next	= expression;
-			s.lookup.lookup		= variables;
-			s.lookup.lookup_len = var_count;
+			if (lookup)
+			{
+				s.lookup = *lookup;
+			}
+			else
+			{
+				s.lookup = { 0, 0 };
+			}
 
 			next_token(&s);
 			expr_native* root = list(&s);
@@ -1006,7 +1012,7 @@ namespace tp
 
 		static t_vector interp_native(const char* expression, int* error)
 		{
-			expr_native* n = compile_native(expression, 0, 0, error);
+			expr_native* n = compile_native(expression, 0, error);
 			t_vector	 ret;
 			if (n)
 			{
@@ -1090,17 +1096,27 @@ namespace tp
 				m_declared_variable_values.clear();
 			}
 
-			std::vector<variable> get_variable_array() const
+			struct variable_lookup_temp
 			{
-				std::vector<variable> combined;
+				std::vector<variable> data;
+
+				variable_lookup get_lookup() const
+				{
+					return variable_lookup { (data.size() > 0) ? &data[0] : nullptr, int(data.size()) };
+				}
+			};
+			
+			std::unique_ptr<variable_lookup_temp> get_variable_array() const
+			{
+				std::unique_ptr<variable_lookup_temp> combined(new variable_lookup_temp());
 				for (auto var : m_env_variables)
 				{
-					combined.push_back(var);
+					combined->data.push_back(var);
 				}
 
 				for (size_t v = 0; v < m_declared_variable_names.size(); ++v)
 				{
-					combined.push_back(variable{m_declared_variable_names[v].c_str(), &m_declared_variable_values[v]});
+					combined->data.push_back(variable{m_declared_variable_names[v].c_str(), &m_declared_variable_values[v]});
 				}
 				return combined;
 			}
@@ -1400,9 +1416,9 @@ namespace tp
 		compiled_expr* compile_using_indexer(typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
 		{
 			auto			var_array = indexer.get_variable_array();
-			variable_lookup variables{(var_array.size() > 0) ? &var_array[0] : nullptr, (int)var_array.size()};
+			auto variables = var_array->get_lookup();
 
-			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables.lookup, variables.lookup_len, error);
+			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, &variables, error);
 
 			if (native_expr)
 			{
@@ -1811,7 +1827,8 @@ namespace tp
 
 			// Add referenced variables to the lookup dict
 			{
-				auto var_array = indexer.get_variable_array();
+				auto			var_array_tmp = indexer.get_variable_array();
+				auto var_lookup = var_array_tmp->get_lookup();
 				for (auto itor : vm.m_variable_map)
 				{
 					auto name  = itor.first;
@@ -1819,12 +1836,9 @@ namespace tp
 
 					int final_index = -1;
 
-					auto variables = &var_array[0];
-					int	 var_count = (int)var_array.size();
-
-					for (int var_idx = 0; var_idx < var_count; ++var_idx)
+					for (int var_idx = 0; var_idx < var_lookup.lookup_len; ++var_idx)
 					{
-						const auto& var = variables[var_idx];
+						const auto& var = var_lookup.lookup[var_idx];
 
 						if (name == std::string_view(var.name))
 						{
