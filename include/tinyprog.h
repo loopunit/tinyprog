@@ -104,6 +104,12 @@ namespace tp
 		void*		context;
 	};
 
+	struct variable_lookup
+	{
+		const variable* lookup;
+		int				lookup_len;
+	};
+
 	template<typename T_TRAITS>
 	struct expr_portable
 	{
@@ -224,13 +230,11 @@ namespace tp
 		}
 
 		template<typename T_TRAITS, typename T_ATOM, typename T_VECTOR>
-		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept ->
-			T_VECTOR
+		static inline auto eval_portable_impl(const expr_portable<T_TRAITS>* n_portable, const unsigned char* expr_buffer, const void* const expr_context[]) noexcept -> T_VECTOR
 		{
-			using t_atom			= T_ATOM;
-			using t_vector			= T_VECTOR;
-			using t_traits			= T_TRAITS;
-			using t_vector_builtins = typename T_TRAITS::t_vector_builtins;
+			using t_atom   = T_ATOM;
+			using t_vector = T_VECTOR;
+			using t_traits = T_TRAITS;
 
 			auto eval_arg = [&](int e) {
 				return eval_portable_impl<t_traits, t_atom, t_vector>((const expr_portable<t_traits>*)&expr_buffer[n_portable->parameters[e]], expr_buffer, expr_context);
@@ -238,12 +242,10 @@ namespace tp
 
 			return eval_generic(
 				n_portable->type, [&]() { return t_traits::load_atom(n_portable->value); },
-				[&]() { return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_vector_builtins::nan()); },
-				[&](int a) { return eval_function<t_vector>(a, expr_context[n_portable->function], t_vector_builtins::nan(), eval_arg); },
-				[&](int a) {
-					return eval_closure<t_vector>(a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[a]], t_vector_builtins::nan(), eval_arg);
-				},
-				[&]() { return t_vector_builtins::nan(); });
+				[&]() { return t_traits::load_atom((expr_context != nullptr) ? *((const t_vector*)(expr_context[n_portable->bound])) : t_traits::nan()); },
+				[&](int a) { return eval_function<t_vector>(a, expr_context[n_portable->function], t_traits::nan(), eval_arg); },
+				[&](int a) { return eval_closure<t_vector>(a, expr_context[n_portable->function], (void*)expr_context[n_portable->parameters[a]], t_traits::nan(), eval_arg); },
+				[&]() { return t_traits::nan(); });
 		}
 	} // namespace eval_details
 
@@ -289,154 +291,6 @@ namespace tp
 #endif // #if (TP_COMPILER_ENABLED)
 } // namespace tp
 
-namespace tp
-{
-	template<typename T_NATIVE>
-	struct compiler_builtins : T_NATIVE
-	{
-		using t_base = T_NATIVE;
-
-		static inline int name_compare(const char* a, const char* b, size_t n)
-		{
-			while (n && *a && (*a == *b))
-			{
-				++a;
-				++b;
-				--n;
-			}
-			if (n == 0)
-			{
-				return 0;
-			}
-			else
-			{
-				return (*(unsigned char*)a - *(unsigned char*)b);
-			}
-		}
-
-		static inline const variable* find_builtin_function(const char* name, int len)
-		{
-			int imin = 0;
-			int imax = sizeof(t_base::functions) / sizeof(variable) - 2;
-
-			/*Binary search.*/
-			while (imax >= imin)
-			{
-				const int i = (imin + ((imax - imin) / 2));
-				int		  c = name_compare(name, t_base::functions[i].name, len);
-				if (!c)
-					c = '\0' - t_base::functions[i].name[len];
-				if (c == 0)
-				{
-					return t_base::functions + i;
-				}
-				else if (c > 0)
-				{
-					imin = i + 1;
-				}
-				else
-				{
-					imax = i - 1;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_builtin_operator(const char* name, int len)
-		{
-			int imin = 0;
-			int imax = sizeof(t_base::operators) / sizeof(variable) - 2;
-
-			/*Binary search.*/
-			while (imax >= imin)
-			{
-				const int i = (imin + ((imax - imin) / 2));
-				int		  c = name_compare(name, t_base::operators[i].name, len);
-
-				if (!c)
-					c = '\0' - t_base::operators[i].name[len];
-
-				if (c == 0)
-				{
-					return t_base::operators + i;
-				}
-				else if (c > 0)
-				{
-					imin = i + 1;
-				}
-				else
-				{
-					imax = i - 1;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_builtin(const char* name, int len)
-		{
-			auto res = find_builtin_function(name, len);
-			if (!res)
-			{
-				res = find_builtin_operator(name, len);
-			}
-			return res;
-		}
-
-		static inline const variable* find_builtin(const char* name)
-		{
-			return find_builtin(name, static_cast<int>(::strlen(name)));
-		}
-
-		static inline const void* find_builtin_address(const char* name)
-		{
-			auto b = find_builtin(name, static_cast<int>(::strlen(name)));
-			if (b)
-			{
-				return b->address;
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_function_by_addr(const void* addr)
-		{
-			for (auto var = &t_base::functions[0]; var->name != 0; ++var)
-			{
-				if (var->address == addr)
-				{
-					return var;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_operator_by_addr(const void* addr)
-		{
-			for (auto var = &t_base::operators[0]; var->name != 0; ++var)
-			{
-				if (var->address == addr)
-				{
-					return var;
-				}
-			}
-			return nullptr;
-		}
-
-		static inline const variable* find_any_by_addr(const void* addr)
-		{
-			const variable* var = find_function_by_addr(addr);
-			if (!var)
-			{
-				var = find_operator_by_addr(addr);
-				if (!var)
-				{
-					return find_builtin("nul");
-				}
-			}
-			return var;
-		}
-	};
-} // namespace tp
-
 #if (TP_COMPILER_ENABLED)
 #include <unordered_map>
 #include <vector>
@@ -449,11 +303,9 @@ namespace tp
 	template<typename T_TRAITS>
 	struct native
 	{
-		using t_traits			= T_TRAITS;
-		using t_atom			= typename T_TRAITS::t_atom;
-		using t_vector			= typename T_TRAITS::t_vector;
-		using t_atom_builtins	= compiler_builtins<typename T_TRAITS::t_atom_builtins>;
-		using t_vector_builtins = compiler_builtins<typename T_TRAITS::t_vector_builtins>;
+		using t_traits = T_TRAITS;
+		using t_atom   = typename T_TRAITS::t_atom;
+		using t_vector = typename T_TRAITS::t_vector;
 
 		struct expr_native
 		{
@@ -495,8 +347,7 @@ namespace tp
 			};
 			void* context;
 
-			const variable* lookup;
-			int				lookup_len;
+			variable_lookup lookup;
 		};
 
 		static inline bool is_pure(int t) noexcept
@@ -558,26 +409,10 @@ namespace tp
 			free(n);
 		}
 
-		static const variable* find_lookup(const variable* lookup, int lookup_len, const char* name, int len)
+		static inline const void* find_wrapper(const char* name, state* s)
 		{
-			if (!lookup)
-				return 0;
-
-			const variable* var	  = lookup;
-			int				iters = lookup_len;
-			for (; iters; ++var, --iters)
-			{
-				if (strncmp(name, var->name, len) == 0 && var->name[len] == '\0')
-				{
-					return var;
-				}
-			}
-			return 0;
-		}
-
-		static const variable* find_lookup(const state* s, const char* name, int len)
-		{
-			return find_lookup(s->lookup, s->lookup_len, name, len);
+			auto var = t_traits::find_by_name(name, int(strlen(name)), &s->lookup);
+			return var ? var->address : nullptr;
 		}
 
 		static void next_token(state* s)
@@ -608,9 +443,7 @@ namespace tp
 						while ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] >= '0' && s->next[0] <= '9') || (s->next[0] == '_'))
 							s->next++;
 
-						const variable* var = find_lookup(s, start, static_cast<int>(s->next - start));
-						if (!var)
-							var = t_vector_builtins::find_builtin(start, static_cast<int>(s->next - start));
+						const variable* var = t_traits::find_by_name(start, static_cast<int>(s->next - start), &s->lookup);
 
 						if (!var)
 						{
@@ -650,46 +483,46 @@ namespace tp
 						{
 						case '+':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("add");
+							s->function = find_wrapper("add", s);
 							break;
 						case '-':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("sub");
+							s->function = find_wrapper("sub", s);
 							break;
 						case '*':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("mul");
+							s->function = find_wrapper("mul", s);
 							break;
 						case '/':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("divide");
+							s->function = find_wrapper("divide", s);
 							break;
 						case '^':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("pow");
+							s->function = find_wrapper("pow", s);
 							break;
 						case '%':
 							s->type		= (int)TOK_INFIX;
-							s->function = t_vector_builtins::find_builtin_address("fmod");
+							s->function = find_wrapper("fmod", s);
 							break;
 						case '!':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("not_equal");
+								s->function = find_wrapper("not_equal", s);
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("logical_not");
+								s->function = find_wrapper("logical_not", s);
 							}
 							break;
 						case '=':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("equal");
+								s->function = find_wrapper("equal", s);
 							}
 							else
 							{
@@ -700,33 +533,33 @@ namespace tp
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("lower_eq");
+								s->function = find_wrapper("lower_eq", s);
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("lower");
+								s->function = find_wrapper("lower", s);
 							}
 							break;
 						case '>':
 							if (s->next++[0] == '=')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("greater_eq");
+								s->function = find_wrapper("greater_eq", s);
 							}
 							else
 							{
 								s->next--;
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("greater");
+								s->function = find_wrapper("greater", s);
 							}
 							break;
 						case '&':
 							if (s->next++[0] == '&')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("logical_and");
+								s->function = find_wrapper("logical_and", s);
 							}
 							else
 							{
@@ -737,7 +570,7 @@ namespace tp
 							if (s->next++[0] == '|')
 							{
 								s->type		= (int)TOK_INFIX;
-								s->function = t_vector_builtins::find_builtin_address("logical_or");
+								s->function = find_wrapper("logical_or", s);
 							}
 							else
 							{
@@ -871,7 +704,7 @@ namespace tp
 			{
 				ret		   = new_expr(0, 0);
 				s->type	   = (int)TOK_ERROR;
-				ret->value = t_vector_builtins::nan();
+				ret->value = t_traits::nan();
 			}
 
 			return ret;
@@ -881,18 +714,17 @@ namespace tp
 		{
 			/* <power>     =    {("-" | "+" | "!")} <base> */
 			int sign = 1;
-			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("add", s) || s->function == find_wrapper("sub", s)))
 			{
-				if (s->function == t_vector_builtins::find_builtin_address("sub"))
+				if (s->function == find_wrapper("sub", s))
 					sign = -sign;
 				next_token(s);
 			}
 
 			int logical = 0;
-			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub") ||
-												 s->function == t_vector_builtins::find_builtin_address("logical_not")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("add", s) || s->function == find_wrapper("sub", s) || s->function == find_wrapper("logical_not", s)))
 			{
-				if (s->function == t_vector_builtins::find_builtin_address("logical_not"))
+				if (s->function == find_wrapper("logical_not", s))
 				{
 					if (logical == 0)
 					{
@@ -917,12 +749,12 @@ namespace tp
 				else if (logical == -1)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_vector_builtins::find_builtin_address("logical_not");
+					ret->function = find_wrapper("logical_not", s);
 				}
 				else
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_vector_builtins::find_builtin_address("logical_notnot");
+					ret->function = find_wrapper("logical_notnot", s);
 				}
 			}
 			else
@@ -930,17 +762,17 @@ namespace tp
 				if (logical == 0)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_vector_builtins::find_builtin_address("negate");
+					ret->function = find_wrapper("negate", s);
 				}
 				else if (logical == -1)
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_vector_builtins::find_builtin_address("negate_logical_not");
+					ret->function = find_wrapper("negate_logical_not", s);
 				}
 				else
 				{
 					ret			  = NEW_EXPR(FUNCTION1 | FLAG_PURE, base(s));
-					ret->function = t_vector_builtins::find_builtin_address("negate_logical_notnot");
+					ret->function = find_wrapper("negate_logical_notnot", s);
 				}
 			}
 
@@ -957,9 +789,8 @@ namespace tp
 			expr_native* insertion	   = 0;
 
 			if (ret->type == (FUNCTION1 | FLAG_PURE) &&
-				(ret->function == t_vector_builtins::find_builtin_address("negate") || ret->function == t_vector_builtins::find_builtin_address("logical_not") ||
-				 ret->function == t_vector_builtins::find_builtin_address("logical_notnot") || ret->function == t_vector_builtins::find_builtin_address("negate_logical_not") ||
-				 ret->function == t_vector_builtins::find_builtin_address("negate_logical_notnot")))
+				(ret->function == find_wrapper("negate", s) || ret->function == find_wrapper("logical_not", s) || ret->function == find_wrapper("logical_notnot", s) ||
+				 ret->function == find_wrapper("negate_logical_not", s) || ret->function == find_wrapper("negate_logical_notnot", s)))
 			{
 				left_function	= ret->function;
 				expr_native* se = ret->parameters[0];
@@ -967,7 +798,7 @@ namespace tp
 				ret = se;
 			}
 
-			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("pow", s)))
 			{
 				te_fun2 t = s->function;
 				next_token(s);
@@ -1002,7 +833,7 @@ namespace tp
 			/* <factor>    =    <power> {"^" <power>} */
 			expr_native* ret = power(s);
 
-			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("pow")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("pow", s)))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1019,9 +850,7 @@ namespace tp
 			/* <term>      =    <factor> {("*" | "/" | "%") <factor>} */
 			expr_native* ret = factor(s);
 
-			while (s->type == (int)TOK_INFIX &&
-				   (s->function == t_vector_builtins::find_builtin_address("mul") || s->function == t_vector_builtins::find_builtin_address("divide") ||
-					s->function == t_vector_builtins::find_builtin_address("fmod")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("mul", s) || s->function == find_wrapper("divide", s) || s->function == find_wrapper("fmod", s)))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1037,7 +866,7 @@ namespace tp
 			/* <expr>      =    <term> {("+" | "-") <term>} */
 			expr_native* ret = term(s);
 
-			while (s->type == (int)TOK_INFIX && (s->function == t_vector_builtins::find_builtin_address("add") || s->function == t_vector_builtins::find_builtin_address("sub")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("add", s) || s->function == find_wrapper("sub", s)))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1054,9 +883,8 @@ namespace tp
 			expr_native* ret = sum_expr(s);
 
 			while (s->type == (int)TOK_INFIX &&
-				   (s->function == t_vector_builtins::find_builtin_address("greater") || s->function == t_vector_builtins::find_builtin_address("greater_eq") ||
-					s->function == t_vector_builtins::find_builtin_address("lower") || s->function == t_vector_builtins::find_builtin_address("lower_eq") ||
-					s->function == t_vector_builtins::find_builtin_address("equal") || s->function == t_vector_builtins::find_builtin_address("not_equal")))
+				   (s->function == find_wrapper("greater", s) || s->function == find_wrapper("greater_eq", s) || s->function == find_wrapper("lower", s) ||
+					s->function == find_wrapper("lower_eq", s) || s->function == find_wrapper("equal", s) || s->function == find_wrapper("not_equal", s)))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1072,8 +900,7 @@ namespace tp
 			/* <expr>      =    <test_expr> {("&&" | "||") <test_expr>} */
 			expr_native* ret = test_expr(s);
 
-			while (s->type == (int)TOK_INFIX &&
-				   (s->function == t_vector_builtins::find_builtin_address("logical_and") || s->function == t_vector_builtins::find_builtin_address("logical_or")))
+			while (s->type == (int)TOK_INFIX && (s->function == find_wrapper("logical_and", s) || s->function == find_wrapper("logical_or", s)))
 			{
 				te_fun2 t = (te_fun2)s->function;
 				next_token(s);
@@ -1093,7 +920,7 @@ namespace tp
 			{
 				next_token(s);
 				ret			  = NEW_EXPR(FUNCTION2 | FLAG_PURE, ret, expr(s));
-				ret->function = t_vector_builtins::find_builtin_address("comma");
+				ret->function = find_wrapper("comma", s);
 			}
 
 			return ret;
@@ -1102,7 +929,7 @@ namespace tp
 		static t_vector eval_native(const expr_native* n)
 		{
 			if (!n)
-				return t_vector_builtins::nan();
+				return t_traits::nan();
 
 			auto eval_arg = [&](int e) {
 				return eval_native((const expr_native*)n->parameters[e]);
@@ -1110,9 +937,8 @@ namespace tp
 
 			return eval_details::eval_generic(
 				n->type, [&]() { return n->value; }, [&]() { return *n->bound; },
-				[&](int a) { return eval_details::eval_function<t_vector>(a, n->function, t_vector_builtins::nan(), eval_arg); },
-				[&](int a) { return eval_details::eval_closure<t_vector>(a, n->function, (void*)n->parameters[a], t_vector_builtins::nan(), eval_arg); },
-				[&]() { return t_vector_builtins::nan(); });
+				[&](int a) { return eval_details::eval_function<t_vector>(a, n->function, t_traits::nan(), eval_arg); },
+				[&](int a) { return eval_details::eval_closure<t_vector>(a, n->function, (void*)n->parameters[a], t_traits::nan(), eval_arg); }, [&]() { return t_traits::nan(); });
 		}
 
 		static void optimize(expr_native* n)
@@ -1150,9 +976,9 @@ namespace tp
 		static expr_native* compile_native(const char* expression, const variable* variables, int var_count, int* error)
 		{
 			state s;
-			s.start = s.next = expression;
-			s.lookup		 = variables;
-			s.lookup_len	 = var_count;
+			s.start = s.next	= expression;
+			s.lookup.lookup		= variables;
+			s.lookup.lookup_len = var_count;
 
 			next_token(&s);
 			expr_native* root = list(&s);
@@ -1228,47 +1054,6 @@ namespace tp
 		static void print(const expr_native* n)
 		{
 			pn(n, 0);
-		}
-
-		////
-
-		static const variable* find_bind_by_addr(const void* addr, const variable* lookup, int lookup_len)
-		{
-			for (int i = 0; i < lookup_len; ++i)
-			{
-				if (lookup[i].address == addr)
-				{
-					return &lookup[i];
-				}
-			}
-			return nullptr;
-		}
-
-		static const variable* find_closure_by_addr(const void* addr, const variable* lookup, int lookup_len)
-		{
-			for (int i = 0; i < lookup_len; ++i)
-			{
-				if (lookup[i].context == addr)
-				{
-					return &lookup[i];
-				}
-			}
-			return nullptr;
-		}
-
-		static const variable* find_bind_or_any_by_addr(const void* addr, const variable* lookup, int lookup_len)
-		{
-			auto res = t_vector_builtins::find_any_by_addr(addr);
-			if (!res)
-			{
-				res = find_bind_by_addr(addr, lookup, lookup_len);
-				if (!res)
-				{
-					// maybe this is a closure?
-					res = find_closure_by_addr(addr, lookup, lookup_len);
-				}
-			}
-			return res;
 		}
 	};
 
@@ -1409,8 +1194,7 @@ namespace tp
 			}
 		};
 
-		static size_t
-		export_estimate(const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, name_map& name_map, index_map& index_map, int& index_counter)
+		static size_t export_estimate(const expr_native* n, size_t& export_size, const variable_lookup* lookup, name_map& name_map, index_map& index_map, int& index_counter)
 		{
 			if (!n)
 				return export_size;
@@ -1418,7 +1202,7 @@ namespace tp
 			export_size += sizeof(expr_native);
 
 			auto eval_arg = [&](int e) {
-				export_estimate((const expr_native*)n->parameters[e], export_size, lookup, lookup_len, name_map, index_map, index_counter);
+				export_estimate((const expr_native*)n->parameters[e], export_size, lookup, name_map, index_map, index_counter);
 			};
 
 			auto handle_addr = [&](const variable* var) -> bool {
@@ -1449,13 +1233,13 @@ namespace tp
 			return eval_details::eval_generic(
 				n->type, [&]() { return export_size; },
 				[&]() {
-					auto res = handle_addr(native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
+					auto res = handle_addr(t_traits::find_by_addr(n->bound, lookup));
 					assert(res);
 					((void)res);
 					return export_size;
 				},
 				[&](int a) {
-					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					auto res = handle_addr(t_traits::find_by_addr(n->function, lookup));
 					assert(res);
 					((void)res);
 					export_size += sizeof(n->parameters[0]) * a;
@@ -1467,7 +1251,7 @@ namespace tp
 					return export_size;
 				},
 				[&](int a) {
-					auto res = handle_addr(native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					auto res = handle_addr(t_traits::find_by_addr(n->function, lookup));
 					assert(res);
 					((void)res);
 					export_size += sizeof(n->parameters[0]) * a;
@@ -1482,8 +1266,7 @@ namespace tp
 		}
 
 		template<typename T_REGISTER_FUNC>
-		static size_t
-		export_write(const expr_native* n, size_t& export_size, const variable* lookup, int lookup_len, const unsigned char* out_buffer, T_REGISTER_FUNC register_func)
+		static size_t export_write(const expr_native* n, size_t& export_size, const variable_lookup* lookup, const unsigned char* out_buffer, T_REGISTER_FUNC register_func)
 		{
 			if (!n)
 				return export_size;
@@ -1494,7 +1277,7 @@ namespace tp
 			n_out->type = n->type;
 
 			auto eval_arg = [&](int e) {
-				return export_write((const expr_native*)n->parameters[e], export_size, lookup, lookup_len, out_buffer, register_func);
+				return export_write((const expr_native*)n->parameters[e], export_size, lookup, out_buffer, register_func);
 			};
 
 			return eval_details::eval_generic(
@@ -1504,11 +1287,11 @@ namespace tp
 					return export_size;
 				},
 				[&]() {
-					register_func(n->bound, n_out, native<t_traits>::find_bind_by_addr(n->bound, lookup, lookup_len));
+					register_func(n->bound, n_out, t_traits::find_by_addr(n->bound, lookup));
 					return export_size;
 				},
 				[&](int a) {
-					register_func(n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					register_func(n->function, n_out, t_traits::find_by_addr(n->function, lookup));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
@@ -1520,7 +1303,7 @@ namespace tp
 					return export_size;
 				},
 				[&](int a) {
-					register_func(n->function, n_out, native<t_traits>::find_bind_or_any_by_addr(n->function, lookup, lookup_len));
+					register_func(n->function, n_out, t_traits::find_by_addr(n->function, lookup));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
 
@@ -1616,18 +1399,17 @@ namespace tp
 		template<typename T_TRAITS>
 		compiled_expr* compile_using_indexer(typename portable<T_TRAITS>::expr_portable_expression_build_indexer& indexer, const char* expression, int* error)
 		{
-			auto var_array = indexer.get_variable_array();
-			int	 var_count = (int)var_array.size();
-			auto variables = (var_count > 0) ? &var_array[0] : nullptr;
+			auto			var_array = indexer.get_variable_array();
+			variable_lookup variables{(var_array.size() > 0) ? &var_array[0] : nullptr, (int)var_array.size()};
 
-			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables, var_count, error);
+			typename native<T_TRAITS>::expr_native* native_expr = native<T_TRAITS>::compile_native(expression, variables.lookup, variables.lookup_len, error);
 
 			if (native_expr)
 			{
 				auto expr = new typename portable<T_TRAITS>::compiled_expr;
 
 				size_t export_size = 0;
-				portable<T_TRAITS>::export_estimate(native_expr, export_size, variables, var_count, indexer.name_map, indexer.index_map, indexer.index_counter);
+				portable<T_TRAITS>::export_estimate(native_expr, export_size, &variables, indexer.name_map, indexer.index_map, indexer.index_counter);
 
 				expr->m_bindings.index_to_address.resize(indexer.index_counter);
 				for (const auto& itor : indexer.index_map)
@@ -1651,8 +1433,7 @@ namespace tp
 
 				size_t actual_export_size = 0;
 				portable<T_TRAITS>::export_write(
-					native_expr, actual_export_size, variables, var_count, expr->m_build_buffer.get(),
-					[&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
+					native_expr, actual_export_size, &variables, expr->m_build_buffer.get(), [&](const void* addr, expr_portable<T_TRAITS>* out, const variable* v) -> void {
 						assert(v != nullptr);
 						auto itor = indexer.index_map.find(addr);
 						assert(itor != indexer.index_map.end());
@@ -2055,7 +1836,7 @@ namespace tp
 					if (final_index == -1)
 					{
 						*error = -1; // TODO: variable not found
-						//assert(!"Variable not found.");
+						// assert(!"Variable not found.");
 						return nullptr;
 					}
 
@@ -2199,7 +1980,7 @@ namespace tp
 	namespace details
 	{
 #if TP_MODERN_CPP
-		template < typename T_VAL>
+		template<typename T_VAL>
 		struct variable_helper
 		{
 			static inline constexpr variable readonly_var(const char* name, const T_VAL* v) noexcept
@@ -2306,7 +2087,10 @@ namespace tp
 				return ((value + multiple - 1) / multiple) * multiple;
 			}
 
-			static inline uint16_t alignment() { return 4; }
+			static inline uint16_t alignment()
+			{
+				return 4;
+			}
 
 			struct subprogram
 			{
@@ -2578,15 +2362,15 @@ namespace tp
 
 			const statement* get_statements_array(int subprogram_index) const noexcept
 			{
-				auto  tup			  = get_subprogram_data(subprogram_index);
-				auto& statements	  = std::get<0>(tup);
+				auto  tup		 = get_subprogram_data(subprogram_index);
+				auto& statements = std::get<0>(tup);
 				return reinterpret_cast<const statement*>(&statements->data[0]);
 			}
 
 			size_t get_statements_array_size(int subprogram_index) const noexcept
 			{
-				auto  tup			  = get_subprogram_data(subprogram_index);
-				auto& statements	  = std::get<0>(tup);
+				auto  tup		 = get_subprogram_data(subprogram_index);
+				auto& statements = std::get<0>(tup);
 				return statements->size / sizeof(statement);
 			}
 
@@ -2659,12 +2443,13 @@ namespace tp
 	template<typename T_TRAITS>
 	struct impl
 	{
-		using env_traits		 = T_TRAITS;
-		using variable			 = ::tp::variable;
-		using t_atom			 = typename env_traits::t_atom;
-		using t_vector			 = typename env_traits::t_vector;
+		using env_traits	  = T_TRAITS;
+		using variable		  = ::tp::variable;
+		using variable_lookup = ::tp::variable_lookup;
+		using t_atom		  = typename env_traits::t_atom;
+		using t_vector		  = typename env_traits::t_vector;
 #if TP_MODERN_CPP
-		using variable_factory	 = details::variable_helper<t_vector>;
+		using variable_factory = details::variable_helper<t_vector>;
 #endif // #if TP_MODERN_CPP
 		using serialized_program = details::serialized_program;
 #if (TP_COMPILER_ENABLED)
@@ -2707,10 +2492,10 @@ namespace tp
 
 				default:
 					// fatal error
-					return env_traits::t_vector_builtins::nan();
+					return env_traits::nan();
 				}
 			}
-			return env_traits::t_vector_builtins::nan();
+			return env_traits::nan();
 		}
 
 		static inline t_vector eval_program(serialized_program& prog, int subprogram, const void* const* binding_addrs)
@@ -2750,7 +2535,7 @@ namespace tp
 			}
 			else
 			{
-				ret = env_traits::t_vector_builtins::nan();
+				ret = env_traits::nan();
 			}
 			return ret;
 		}
@@ -3340,58 +3125,123 @@ namespace tp_stdlib
 																{"sub", t_impl::sub, tp::FUNCTION2 | tp::FLAG_PURE, 0},
 																{0, 0, 0, 0}};
 	};
-} // namespace tp_stdlib
 
-namespace tp_stdlib
-{
-	template<template<typename> typename T_NATIVE_BUILTINS>
-	struct env_traits_f32
+	template<typename T_NATIVE>
+	struct compiler_builtins : T_NATIVE
 	{
-		using t_atom			= float;
-		using t_vector			= float;
-		using t_vector_int		= int;
-		using t_atom_builtins	= T_NATIVE_BUILTINS<t_atom>;
-		using t_vector_builtins = T_NATIVE_BUILTINS<t_vector>;
+		using t_base = T_NATIVE;
 
-		static inline t_vector load_atom(t_atom a) noexcept
+		static inline int name_compare(const char* a, const char* b, size_t n)
 		{
-			return a;
+			while (n && *a && (*a == *b))
+			{
+				++a;
+				++b;
+				--n;
+			}
+			if (n == 0)
+			{
+				return 0;
+			}
+			else
+			{
+				return (*(unsigned char*)a - *(unsigned char*)b);
+			}
 		}
 
-		static inline t_vector as_truth(t_vector a) noexcept
+		static inline const ::tp::variable* find_in_sorted_array(const char* name, int len, const ::tp::variable* vars, int vars_len)
 		{
-			return (a != 0.0f) ? 1.0f : 0.0f;
+			int imin = 0;
+			int imax = vars_len - 2;
+
+			/*Binary search.*/
+			while (imax >= imin)
+			{
+				const int i = (imin + ((imax - imin) / 2));
+				int		  c = name_compare(name, vars[i].name, len);
+				if (!c)
+					c = '\0' - vars[i].name[len];
+				if (c == 0)
+				{
+					return vars + i;
+				}
+				else if (c > 0)
+				{
+					imin = i + 1;
+				}
+				else
+				{
+					imax = i - 1;
+				}
+			}
+			return nullptr;
 		}
 
-		static inline t_vector explicit_load_atom(double a) noexcept
+		static inline const ::tp::variable* find_by_name(const char* name, int len, const ::tp::variable_lookup* lookup)
 		{
-			return (t_vector)a;
+			if (lookup)
+			{
+				const ::tp::variable* var	= lookup->lookup;
+				int					  iters = lookup->lookup_len;
+				for (; iters; ++var, --iters)
+				{
+					if (name_compare(name, var->name, len) == 0 && var->name[len] == '\0')
+					{
+						return var;
+					}
+				}
+			}
+
+			auto res = find_in_sorted_array(name, len, t_base::functions, int(sizeof(t_base::functions) / sizeof(::tp::variable)));
+			if (!res)
+			{
+				res = find_in_sorted_array(name, len, t_base::operators, int(sizeof(t_base::operators) / sizeof(::tp::variable)));
+			}
+			return res;
 		}
 
-		static inline t_vector explicit_load_atom(int a) noexcept
+		static const ::tp::variable* find_by_addr(const void* addr, const ::tp::variable_lookup* lookup)
 		{
-			return (t_vector)a;
-		}
+			if (lookup)
+			{
+				for (int i = 0; i < lookup->lookup_len; ++i)
+				{
+					if (lookup->lookup[i].address == addr)
+					{
+						return &lookup->lookup[i];
+					}
+				}
+			}
 
-		static inline double explicit_store_double(t_vector a)
-		{
-			return (double)a;
-		}
+			for (auto var = &t_base::functions[0]; var->name != 0; ++var)
+			{
+				if (var->address == addr)
+				{
+					return var;
+				}
+			}
 
-		static inline int explicit_store_int(t_vector a)
-		{
-			return (int)a;
+			for (auto var = &t_base::operators[0]; var->name != 0; ++var)
+			{
+				if (var->address == addr)
+				{
+					return var;
+				}
+			}
+
+			return nullptr;
 		}
 	};
 
-	template<template<typename> typename T_NATIVE_BUILTINS>
-	struct env_traits_d64
+	struct env_traits_f32
 	{
-		using t_atom			= double;
-		using t_vector			= double;
-		using t_vector_int		= int;
-		using t_atom_builtins	= T_NATIVE_BUILTINS<t_atom>;
-		using t_vector_builtins = T_NATIVE_BUILTINS<t_vector>;
+		using t_atom	   = float;
+		using t_vector	   = float;
+		using t_vector_int = int;
+
+#if TP_COMPILER_ENABLED
+		using t_vector_builtins = compiler_builtins<native_builtins<t_vector>>;
+#endif
 
 		static inline t_vector load_atom(t_atom a) noexcept
 		{
@@ -3422,6 +3272,81 @@ namespace tp_stdlib
 		{
 			return (int)a;
 		}
+
+		static inline t_vector nan()
+		{
+			return std::numeric_limits<float>::quiet_NaN();
+		}
+
+#if TP_COMPILER_ENABLED
+		static inline const ::tp::variable* find_by_name(const char* name, int len, const ::tp::variable_lookup* lookup)
+		{
+			return t_vector_builtins::find_by_name(name, len, lookup);
+		}
+
+		static const ::tp::variable* find_by_addr(const void* addr, const ::tp::variable_lookup* lookup)
+		{
+			return t_vector_builtins::find_by_addr(addr, lookup);
+		}
+#endif // #if TP_COMPILER_ENABLED
+	};
+
+	struct env_traits_d64
+	{
+		using t_atom	   = double;
+		using t_vector	   = double;
+		using t_vector_int = int;
+
+#if TP_COMPILER_ENABLED
+		using t_vector_builtins = compiler_builtins<native_builtins<t_vector>>;
+#endif
+
+		static inline t_vector load_atom(t_atom a) noexcept
+		{
+			return a;
+		}
+
+		static inline t_vector as_truth(t_vector a) noexcept
+		{
+			return (a != 0.0f) ? 1.0f : 0.0f;
+		}
+
+		static inline t_vector explicit_load_atom(double a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline t_vector explicit_load_atom(int a) noexcept
+		{
+			return (t_vector)a;
+		}
+
+		static inline double explicit_store_double(t_vector a)
+		{
+			return (double)a;
+		}
+
+		static inline int explicit_store_int(t_vector a)
+		{
+			return (int)a;
+		}
+
+		static inline t_vector nan()
+		{
+			return std::numeric_limits<double>::quiet_NaN();
+		}
+
+#if TP_COMPILER_ENABLED
+		static inline const ::tp::variable* find_by_name(const char* name, int len, const ::tp::variable_lookup* lookup)
+		{
+			return t_vector_builtins::find_by_name(name, len, lookup);
+		}
+
+		static const ::tp::variable* find_by_addr(const void* addr, const ::tp::variable_lookup* lookup)
+		{
+			return t_vector_builtins::find_by_addr(addr, lookup);
+		}
+#endif // #if TP_COMPILER_ENABLED
 	};
 } // namespace tp_stdlib
 #endif // #if TP_STANDARD_LIBRARY
@@ -3430,7 +3355,7 @@ namespace tp_stdlib
 #if !TP_STANDARD_LIBRARY
 #error TP_STANDARD_LIBRARY should be defined for testing
 #endif // #if !TP_STANDARD_LIBRARY
-using te = tp::impl<tp_stdlib::env_traits_f32<tp_stdlib::native_builtins>>;
+using te = tp::impl<tp_stdlib::env_traits_f32>;
 #endif // #if TP_TESTING
 
 #endif /*__TINYPROG_H__*/

@@ -5,10 +5,11 @@
 #include <vector>
 #include <unordered_map>
 
-#define TP_TESTING 1
+#define TP_COMPILER_ENABLED 1
+#define TP_STANDARD_LIBRARY 1
 #include "tinyprog.h"
 
-using te = tp::impl<tp_stdlib::env_traits_f32<tp_stdlib::native_builtins>>;
+using te = tp::impl<tp_stdlib::env_traits_f32>;
 
 #if TP_COMPILER_ENABLED
 bool serialize_program_to_disk(const char* file_name, te::serialized_program* sp)
@@ -29,7 +30,7 @@ bool serialize_program_to_disk(const char* file_name, te::serialized_program* sp
 
 te::serialized_program* create_program(const char* prog_texts[], size_t num_prog_texts, te::variable* vars, size_t num_vars)
 {
-	using builtins = tp::compiler_builtins<te::env_traits::t_vector_builtins>;
+	using builtins = te::env_traits::t_vector_builtins;
 
 	te::t_indexer indexer;
 	for (int i = 0; i < num_vars; ++i)
@@ -78,7 +79,7 @@ float test_closure(void* context, float arg)
 
 int main(int argc, char* argv[])
 {
-	using builtins = tp::compiler_builtins<te::env_traits::t_vector_builtins>;
+	using builtins = tp_stdlib::compiler_builtins<tp_stdlib::native_builtins<float>>;
 
 	te::env_traits::t_atom	x = 0.0f, y = -1.0f;
 	te::variable			vars[]	   = {{"xx", &x}, {"y", &y}, {"test_closure", test_closure, tp::CLOSURE1, (void*)0xf33db33ff33db33f}};
@@ -95,12 +96,13 @@ int main(int argc, char* argv[])
 			"xx: 255.0;";
 	
 		const char* p1 =
-			"x: sqrt(5^2+7^2+11^2+(8-2)^2);"
-			"test_closure(x);"
-			"jump: is_negative ? x < 0;"
-			"return: x;"
+			"var: x_tmp ? local;"
+			"x_tmp: sqrt(5^2+7^2+11^2+(8-2)^2);"
+			"test_closure(x_tmp);"
+			"jump: is_negative ? x_tmp < 0;"
+			"return: x_tmp;"
 			"label: is_negative;"
-			"return: -1 * x;";
+			"return: -1 * x_tmp;";
 	
 		const char* p2 =
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
@@ -187,12 +189,14 @@ int main(int argc, char* argv[])
 					// Builtins come last
 					if (!binding_array[i])
 					{
-						binding_array[i] = builtins::find_builtin_address(name);
+						auto t = builtins::find_by_name(name, int(strlen(name)), nullptr);
+						binding_array[i] = t ? t->address : nullptr;
 					}
+
+					// All bindings must be valid, otherwise the runtime will crash.
+					assert(binding_array[i] != nullptr);
 				}
 
-				// All bindings must be valid, otherwise the runtime will crash.
-				assert(binding_array[i] != nullptr);
 			}
 		}
 
