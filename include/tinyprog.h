@@ -436,7 +436,7 @@ namespace tp
 				else
 				{
 					/* Look for a variable or builtin function call. */
-					if (s->next[0] >= 'a' && s->next[0] <= 'z')
+					if ((s->next[0] >= 'a' && s->next[0] <= 'z') || (s->next[0] == '_'))
 					{
 						const char* start;
 						start = s->next;
@@ -452,7 +452,12 @@ namespace tp
 						else
 						{
 							const auto t = eval_details::type_mask(var->type);
-							if (t == VARIABLE)
+							if (t == CONSTANT)
+							{
+								s->type	 = (int)TOK_VARIABLE;
+								s->bound = (const t_atom*)var->address;
+							}
+							else if (t == VARIABLE)
 							{
 								s->type	 = (int)TOK_VARIABLE;
 								s->bound = (const t_atom*)var->address;
@@ -945,9 +950,21 @@ namespace tp
 		{
 			/* Evaluates as much as possible. */
 			if (n->type == CONSTANT)
+		    {
 				return;
+			}
+			
 			if (n->type == VARIABLE)
+		    {
+				const variable* v = t_traits::find_by_addr(n->bound, nullptr);
+				if (v && (v->type == CONSTANT))
+				{
+					free_parameters(n);
+					n->type	 = CONSTANT;
+					n->value = *((t_vector*)n->bound);
+				}
 				return;
+			}
 
 			/* Only optimize out functions flagged as pure. */
 			if (is_pure(n->type))
