@@ -105,6 +105,7 @@ int main(int argc, char* argv[])
 			"return: -1 * x_tmp;";
 	
 		const char* p2 =
+			"var: y;"
 			"y: sqrt(5^2+7^2+11^2+(8-2)^2);"
 			"test_closure(y);"
 			"jump: is_negative ? y < 0;"
@@ -121,6 +122,9 @@ int main(int argc, char* argv[])
 		{
 			assert(0);
 		}
+
+		assert(prog->get_num_user_vars() == 3);
+
 		delete prog;
 	}
 #endif // #if TP_COMPILER_ENABLED

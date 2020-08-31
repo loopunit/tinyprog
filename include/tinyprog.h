@@ -1138,10 +1138,15 @@ namespace tp
 				return combined;
 			}
 
-			void add_declared_variable(std::string_view name, std::string_view /*scope*/)
+			void add_declared_variable(std::string_view name_view, std::string_view /*scope*/)
 			{
-				m_declared_variable_names.push_back(std::string(name));
-				m_declared_variable_values.resize(m_declared_variable_names.size());
+				std::string name(name_view);
+				auto itor = std::find(m_declared_variable_names.begin(), m_declared_variable_names.end(), name);
+				if (itor == m_declared_variable_names.end())
+				{
+					m_declared_variable_names.push_back(name);
+					m_declared_variable_values.resize(m_declared_variable_names.size());
+				}
 			}
 
 			void add_user_variable(const variable* var)
