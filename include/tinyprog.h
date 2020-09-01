@@ -2501,38 +2501,47 @@ namespace tp
 
 		static inline t_vector eval_program(const statement* statement_array, int statement_array_size, const void* expr_buffer, const void* const expr_context[])
 		{
-			for (int statement_index = 0; statement_index < statement_array_size; ++statement_index)
+			for (int statement_index = 0; statement_index < statement_array_size;)
 			{
 				auto& statement = statement_array[statement_index];
-				switch (statement.type)
-				{
-				case statement_type::jump:
+				
+				if (statement.type == statement_type::jump)
+			    {
 					if (statement.arg_b == -1 ||
 						(0.0f != eval(((const char*)expr_buffer) + statement.arg_b, expr_context))) // TODO: traits function like nan for zero, or compare function?
 					{
 						statement_index = statement.arg_a;
+						continue;
 					}
-					break;
-
-				case statement_type::return_value:
+					else
+					{
+						++statement_index;
+					}
+				}
+				else if (statement.type == statement_type::return_value)
+				{
 					return eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-
-				case statement_type::assign:
+				}
+				else if (statement.type == statement_type::assign)
 				{
 					auto dest = (t_vector*)expr_context[statement.arg_a];
 					*dest	  = eval(((const char*)expr_buffer) + statement.arg_b, expr_context);
+					++statement_index;
 				}
-				break;
-
-				case statement_type::call:
+				else if (statement.type == statement_type::call)
+				{
 					eval(((const char*)expr_buffer) + statement.arg_a, expr_context);
-					break;
-
-				default:
-					// fatal error
+					++statement_index;
+				}
+				else
+				{
+					// fatal, unknown statement
+					assert(0);
 					return env_traits::nan();
 				}
 			}
+			
+			// TODO: should probably make this a std::optional or something to indicate success or faillure
 			return env_traits::nan();
 		}
 
