@@ -1100,8 +1100,8 @@ namespace tp
 
 			std::vector<variable> m_env_variables;
 
-			std::vector<std::string> m_declared_variable_names;
-			std::vector<t_atom>		 m_declared_variable_values;
+			std::vector<std::string>				m_declared_variable_names;
+			std::vector<std::unique_ptr<t_atom>>	 m_declared_variable_values;
 
 			void reset()
 			{
@@ -1126,15 +1126,17 @@ namespace tp
 			std::unique_ptr<variable_lookup_temp> get_variable_array() const
 			{
 				std::unique_ptr<variable_lookup_temp> combined(new variable_lookup_temp());
+				
+				for (size_t v = 0; v < m_declared_variable_names.size(); ++v)
+				{
+					combined->data.push_back(variable{m_declared_variable_names[v].c_str(), m_declared_variable_values[v].get()});
+				}
+
 				for (auto var : m_env_variables)
 				{
 					combined->data.push_back(var);
 				}
 
-				for (size_t v = 0; v < m_declared_variable_names.size(); ++v)
-				{
-					combined->data.push_back(variable{m_declared_variable_names[v].c_str(), &m_declared_variable_values[v]});
-				}
 				return combined;
 			}
 
@@ -1145,7 +1147,7 @@ namespace tp
 				if (itor == m_declared_variable_names.end())
 				{
 					m_declared_variable_names.push_back(name);
-					m_declared_variable_values.resize(m_declared_variable_names.size());
+					m_declared_variable_values.emplace_back(new t_atom);
 				}
 			}
 
