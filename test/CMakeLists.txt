@@ -1,62 +1,64 @@
-cmake_minimum_required(VERSION 3.17 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-option(build_tinyprog_test "Build TinyProg tests." ON)
-option(build_tinyprog_bench "Build TinyProg benchmark." ON)
-option(build_tinyprog_example "Build TinyProg example." ON)
-option(build_tinyprog_example2 "Build TinyProg example 2." ON)
-option(build_tinyprog_example3 "Build TinyProg example 3." ON)
+project(tinyprogTests LANGUAGES CXX)
 
-if (build_tinyprog_test)
-	vcpkg_executable(tinyprog_test
-	SOURCES 
-		test.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
+# ---- Options ----
+
+option(ENABLE_TEST_COVERAGE "Enable test coverage" OFF)
+option(TEST_INSTALLED_VERSION "Test the version found by find_package" OFF)
+
+# --- Import tools ----
+
+include(../cmake/tools.cmake)
+
+# ---- Dependencies ----
+
+include(../cmake/CPM.cmake)
+
+CPMAddPackage(
+  NAME doctest
+  GITHUB_REPOSITORY onqtam/doctest
+  GIT_TAG 2.3.7
+)
+
+if(TEST_INSTALLED_VERSION)
+  find_package(tinyprog REQUIRED)
+else()
+  CPMAddPackage(NAME tinyprog SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/..)
 endif()
 
-if (build_tinyprog_bench)
-	vcpkg_executable(tinyprog_benchmark
-	SOURCES 
-		benchmark.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
+CPMAddPackage(
+  NAME Format.cmake
+  GITHUB_REPOSITORY TheLartians/Format.cmake
+  VERSION 1.6
+  OPTIONS # enable cmake formatting
+          "FORMAT_CHECK_CMAKE ON"
+)
+
+# ---- Create binary ----
+
+file(GLOB sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp)
+add_executable(tinyprogTests ${sources})
+target_link_libraries(tinyprogTests doctest tinyprog)
+
+set_target_properties(tinyprogTests PROPERTIES CXX_STANDARD 17)
+
+# enable compiler warnings
+if(NOT TEST_INSTALLED_VERSION)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    target_compile_options(tinyprog INTERFACE -Wall -pedantic -Wextra -Werror)
+  elseif(MSVC)
+    target_compile_options(tinyprog INTERFACE /W4 /WX)
+    target_compile_definitions(tinyprogTests PUBLIC DOCTEST_CONFIG_USE_STD_HEADERS)
+  endif()
 endif()
 
-if (build_tinyprog_example)
-	vcpkg_executable(tinyprog_example
-	SOURCES 
-		example.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
-endif()
+# ---- Add tinyprogTests ----
 
-if (build_tinyprog_example2)
-	vcpkg_executable(tinyprog_example2
-	SOURCES 
-		example2.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
-endif()
+enable_testing()
 
-if (build_tinyprog_example3)
-	vcpkg_executable(tinyprog_example3
-	SOURCES 
-		example3.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
-endif()
+# Note: doctest and similar testing frameworks can automatically configure CMake tests For other
+# testing frameworks add the tests target instead: ADD_TEST(tinyprogTests tinyprogTests)
 
-if (build_tinyprog_example)
-	vcpkg_executable(tinyprog_example_program
-	SOURCES 
-		example_program.cpp
-	PRIVATE_DEPENDENCIES
-		tinyprog
-	)
-endif()
-
+include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
+doctest_discover_tests(tinyprogTests)

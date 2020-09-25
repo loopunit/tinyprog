@@ -1330,7 +1330,7 @@ namespace tp
 					register_func(n->bound, n_out, t_traits::find_by_addr(n->bound, lookup));
 					return export_size;
 				},
-				[&](int a) {
+				[&](int) {
 					register_func(n->function, n_out, t_traits::find_by_addr(n->function, lookup));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);
@@ -1342,7 +1342,7 @@ namespace tp
 					}
 					return export_size;
 				},
-				[&](int a) {
+				[&](int) {
 					register_func(n->function, n_out, t_traits::find_by_addr(n->function, lookup));
 
 					export_size += sizeof(n->parameters[0]) * eval_details::arity(n->type);

@@ -1,3 +1,5 @@
+#include <doctest/doctest.h>
+
 /*
  * TinyProg - a minimalist shader-like scripting language.
  *
@@ -118,13 +120,11 @@ te::env_traits::t_atom al(te::env_traits::t_atom a)
 	return (1 / (a + 1) + 2 / (a + 2) + 3 / (a + 3));
 }
 
-int main(int argc, char* argv[])
+TEST_CASE("Bench")
 {
-	bench("sqrt(a^1.5+a^2.5)", as);
-	bench("a+5", a5);
-	bench("a+(5*2)", a10);
-	bench("(a+5)*2", a52);
-	bench("(1/(a+1)+2/(a+2)+3/(a+3))", al);
-
-	return 0;
+//	bench("sqrt(a^1.5+a^2.5)", as);
+//	bench("a+5", a5);
+//	bench("a+(5*2)", a10);
+//	bench("(a+5)*2", a52);
+//	bench("(1/(a+1)+2/(a+2)+3/(a+3))", al);
 }

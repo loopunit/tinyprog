@@ -27,6 +27,8 @@
  * 3. This notice may not be removed or altered from any source distribution.
  */
 
+#include <doctest/doctest.h>
+
 #define TP_TESTING 1
 #include "tinyprog.h"
 
@@ -804,7 +806,7 @@ void test_logic()
 	}
 }
 
-int main(int argc, char* argv[])
+TEST_CASE("expression_test") 
 {
 	lrun("Results", test_results);
 	lrun("Syntax", test_syntax);
@@ -819,6 +821,4 @@ int main(int argc, char* argv[])
 	lrun("Combinatorics", test_combinatorics);
 	lrun("Logic", test_logic);
 	lresults();
-
-	return lfails != 0;
 }

@@ -1,2 +1,3 @@
-vcpkg_root/
-CMakeSettings.json
+/build*
+/.vscode
+.DS_Store

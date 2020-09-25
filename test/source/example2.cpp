@@ -1,16 +1,12 @@
+#include <doctest/doctest.h>
+
 #define TP_TESTING 1
 #include "tinyprog.h"
 #include <stdio.h>
 
-int main(int argc, char* argv[])
+TEST_CASE("example2") 
 {
-	if (argc < 2)
-	{
-		printf("Usage: example2 \"expression\"\n");
-		return 0;
-	}
-
-	const char* expression = argv[1];
+	const char* expression = "x + y * 0.2";
 	printf("Evaluating:\n\t%s\n", expression);
 
 	/* This shows an example where the variables
@@ -39,6 +35,4 @@ int main(int argc, char* argv[])
 		/* Show the user where the error is at. */
 		printf("\t%*s^\nError near here", err - 1, "");
 	}
-
-	return 0;
 }

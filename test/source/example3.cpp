@@ -1,3 +1,5 @@
+#include <doctest/doctest.h>
+
 #define TP_TESTING 1
 #include "tinyprog.h"
 #include <stdio.h>
@@ -9,7 +11,7 @@ te::env_traits::t_atom my_sum(te::env_traits::t_atom a, te::env_traits::t_atom b
 	return a + b;
 }
 
-int main(int argc, char* argv[])
+TEST_CASE("example3") 
 {
 	te::variable vars[] = {{"mysum", my_sum, tp::FUNCTION2}};
 
@@ -30,6 +32,4 @@ int main(int argc, char* argv[])
 		/* Show the user where the error is at. */
 		printf("\t%*s^\nError near here", err - 1, "");
 	}
-
-	return 0;
 }

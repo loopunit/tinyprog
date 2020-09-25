@@ -1,3 +1,5 @@
+#include <doctest/doctest.h>
+
 #include <stdio.h>
 #include <assert.h>
 #include <stdint.h>
@@ -77,7 +79,7 @@ float test_closure(void* context, float arg)
 	return arg;
 }
 
-int main(int argc, char* argv[])
+TEST_CASE("example_program") 
 {
 	using builtins = tp_stdlib::compiler_builtins<tp_stdlib::native_builtins<float>>;
 
@@ -223,6 +225,4 @@ int main(int argc, char* argv[])
 
 		delete prog;
 	}
-
-	return 0;
 }
